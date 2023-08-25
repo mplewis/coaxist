@@ -15,4 +15,12 @@ if [ ! -d "${PLEX_MEDIA_SERVER_APPLICATION_SUPPORT_DIR}" ]; then
   chown plex:plex "${PLEX_MEDIA_SERVER_APPLICATION_SUPPORT_DIR}"
 fi
 
+# Wait for rclone to start
+while [ ! -d /media ]; do
+  echo "Waiting for rclone to start..."
+  sleep 1
+done
+
+echo 'rclone is ready.'
+
 exec s6-setuidgid plex /usr/lib/plexmediaserver/Plex\ Media\ Server

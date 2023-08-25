@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+echo "Starting rclone."
+
+
+
+if [ ! -f /config/scripts/rclone.sh ]; then
+	cp /templates/rclone.sh /config/scripts/rclone.sh
+	echo "Copied rclone startup template to /config/scripts/rclone.sh."
+	echo "Please inspect this file and reconfigure rclone with your provider as necessary."
+fi
+
+mkdir -p /media
+/config/scripts/rclone.sh
