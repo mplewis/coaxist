@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-echo "Starting rclone."
-
 if [ ! -f /config/scripts/rclone.sh ]; then
 	mkdir -p /config/scripts
 	cp /templates/rclone.sh /config/scripts/rclone.sh
@@ -21,5 +19,6 @@ if [ ! -f /config/rclone.conf ]; then
 	echo "#######################################################################"
 fi
 
+echo "Starting rclone."
 mkdir -p /media
 /config/scripts/rclone.sh

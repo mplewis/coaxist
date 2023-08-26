@@ -1,3 +1,14 @@
 #!/usr/bin/env bash
 
+echo "Stopping rclone."
+pkill -15 rclone
+for i in {1..15}; do
+    sleep 1
+    pgrep rclone > /dev/null || break
+done
+pgrep rclone > /dev/null && pkill -9 rclone
+
+echo "Unmounting /media and emptying directory."
+umount /media
 rm -rf /media
+mkdir -p /media

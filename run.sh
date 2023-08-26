@@ -3,6 +3,14 @@ set -euo pipefail
 
 source .env
 
+if docker ps -a --format '{{.Names}}' | grep -q '^coaxist$'; then
+	echo "Starting existing coaxist container. To run a fresh copy, delete this container and run this script again."
+	docker start -ai coaxist
+	exit
+fi
+
+echo "Building coaxist container."
+
 ./build.sh
 
 docker run \
@@ -13,5 +21,6 @@ docker run \
 	--mount type=bind,source="$(pwd)"/tmp/transcode,target=/transcode \
 	-p 32400:32400 \
 	-p 5055:5055 \
-	-it --rm "$APP_TAG" \
+	--name "coaxist" \
+	-it "$APP_TAG" \
 	"$@"
