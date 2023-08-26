@@ -8,7 +8,5 @@ for i in {1..15}; do
 done
 pgrep rclone > /dev/null && pkill -9 rclone
 
-echo "Unmounting /media and emptying directory."
+echo "Unmounting /media."
 umount /media
-rm -rf /media
-mkdir -p /media

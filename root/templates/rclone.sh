@@ -1,28 +1,21 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-args=(
-	# location of the config file
-	--config /config/rclone.conf
+# --config: location of the config file
+# mount provider:/links /media: connect to the source named [provider] in rclone.conf and mount the remote /links directory into local /media
+# --allow-other: allow user `plex` to access our files
+# everything else are recommended settings for AllDebrid: https://help.alldebrid.com/en/faq/rclone-webdav
 
-	# connect to the source named [provider] in rclone.conf
-	# and mount the remote /links directory into local /media
-	mount
-	provider:/links
+rclone
+	--config /config/rclone.conf \
+	--allow-other \
+	--buffer-size=0 \
+	--cutoff-mode=cautious \
+	--dir-cache-time 10s \
+	--multi-thread-streams=0 \
+	--network-mode \
+	--read-only \
+	--vfs-cache-mode minimal \
+	mount \
+	provider:/links \
 	/media
-
-	# allow user `plex` to access our files
-	--allow-other
-
-	# recommended settings for AllDebrid:
-	# https://help.alldebrid.com/en/faq/rclone-webdav
-	--buffer-size=0
-	--cutoff-mode=cautious
-	--dir-cache-time 10s
-	--multi-thread-streams=0
-	--network-mode
-	--read-only
-	--vfs-cache-mode minimal
-)
-
-rclone "${args[@]}"

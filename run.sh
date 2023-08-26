@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -euxo pipefail
 
 source .env
 
@@ -12,6 +12,8 @@ fi
 echo "Building coaxist container."
 
 ./build.sh
+
+echo "Running coaxist container."
 
 docker run \
 	--cap-add SYS_ADMIN \

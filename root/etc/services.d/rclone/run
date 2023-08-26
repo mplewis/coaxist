@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 if [ ! -f /config/scripts/rclone.sh ]; then
 	mkdir -p /config/scripts
@@ -20,5 +21,6 @@ if [ ! -f /config/rclone.conf ]; then
 fi
 
 echo "Starting rclone."
+rm -rf /media
 mkdir -p /media
 /config/scripts/rclone.sh

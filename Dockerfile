@@ -34,8 +34,3 @@ RUN curl https://rclone.org/install.sh | bash
 
 COPY --from=builder-overseerr /build/overseerr /overseerr
 COPY root/ /
-
-# https://github.com/just-containers/s6-overlay/issues/158#issuecomment-266913426
-RUN ln -s /init /initt
-
-CMD ["/initt"]
