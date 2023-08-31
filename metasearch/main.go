@@ -10,16 +10,16 @@ import (
 )
 
 var (
-	WORKDIR              = envOr("WORKDIR", path.Join(os.TempDir(), "metasearch_imdb"))
-	IMDB_DATASETS        = envOr("IMDB_DATASETS", "http://datasets.imdbws.com")
-	IMDB_BASICS_GZ_NAME  = envOr("IMDB_BASICS_GZ_NAME", "title.basics.tsv.gz")
-	IMDB_AKAS_GZ_NAME    = envOr("IMDB_AKAS_GZ_NAME", "title.akas.tsv.gz")
-	IMDB_BASICS_GZ_URL   = envOr("IMDB_BASICS_TGZ", fmt.Sprintf("%s/%s", IMDB_DATASETS, IMDB_BASICS_GZ_NAME))
-	IMDB_AKAS_GZ_URL     = envOr("IMDB_AKAS_TGZ", fmt.Sprintf("%s/%s", IMDB_DATASETS, IMDB_AKAS_GZ_NAME))
-	IMDB_BASICS_GZ_PATH  = path.Join(WORKDIR, IMDB_BASICS_GZ_NAME)
-	IMDB_AKAS_GZ_PATH    = path.Join(WORKDIR, IMDB_AKAS_GZ_NAME)
+	WORKDIR             = envOr("WORKDIR", path.Join(os.TempDir(), "metasearch_imdb"))
+	IMDB_DATASETS       = envOr("IMDB_DATASETS", "http://datasets.imdbws.com")
+	IMDB_BASICS_GZ_NAME = envOr("IMDB_BASICS_GZ_NAME", "title.basics.tsv.gz")
+	IMDB_AKAS_GZ_NAME   = envOr("IMDB_AKAS_GZ_NAME", "title.akas.tsv.gz")
+
+	IMDB_BASICS_GZ_URL   = fmt.Sprintf("%s/%s", IMDB_DATASETS, IMDB_BASICS_GZ_NAME)
 	IMDB_BASICS_TSV_PATH = path.Join(WORKDIR, "title.basics.tsv")
-	IMDB_AKAS_TSV_PATH   = path.Join(WORKDIR, "title.akas.tsv")
+
+	IMDB_AKAS_GZ_URL   = fmt.Sprintf("%s/%s", IMDB_DATASETS, IMDB_AKAS_GZ_NAME)
+	IMDB_AKAS_TSV_PATH = path.Join(WORKDIR, "title.akas.tsv")
 )
 
 func check(err error) {
@@ -40,16 +40,6 @@ func envOr(key string, dfault string) string {
 	}
 	return val
 }
-
-// func extractGzipWithShell(path string) (string, error) {
-// 	dst := path[:len(path)-3]
-// 	err := os.Remove(dst)
-// 	if err != nil && !os.IsNotExist(err) {
-// 		return "", err
-// 	}
-// 	err = exec.Command("gunzip", "-c", path).Run()
-// 	return dst, err
-// }
 
 func extractGzip(dst string, path string) error {
 	rd, err := os.Open(path)
@@ -81,10 +71,6 @@ func download(dst string, url string) error {
 	}
 	defer resp.Body.Close()
 
-	err = os.Remove(dst)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
 	out, err := os.Create(dst)
 	if err != nil {
 		return err
@@ -95,17 +81,57 @@ func download(dst string, url string) error {
 	return err
 }
 
+func exist(path string) bool {
+	fi, err := os.Stat(path)
+	return err == nil && !fi.IsDir()
+}
+
+func dlAndExtract(dst string, url string) error {
+	if exist(dst) {
+		fmt.Printf("File %s already exists, skipping download\n", dst)
+		return nil
+	}
+
+	dlDst := fmt.Sprintf("%s.gz", dst)
+	dlDstTmp := fmt.Sprintf("%s.tmp", dlDst)
+	if exist(dlDst) {
+		fmt.Printf("Downloaded file %s already exists, skipping download\n", dlDst)
+	} else {
+		fmt.Printf("Downloading %s to %s...\n", url, dlDstTmp)
+		err := download(dlDstTmp, url)
+		if err != nil {
+			os.Remove(dlDst)
+			return err
+		}
+		err = os.Rename(dlDstTmp, dlDst)
+		if err != nil {
+			os.Remove(dlDst)
+			return err
+		}
+	}
+
+	dstTmp := fmt.Sprintf("%s.tmp", dst)
+	fmt.Printf("Extracting %s to %s...\n", dlDst, dstTmp)
+	err := extractGzip(dstTmp, dlDst)
+	if err != nil {
+		os.Remove(dstTmp)
+		return err
+	}
+	err = os.Rename(dstTmp, dst)
+	if err != nil {
+		os.Remove(dst)
+		return err
+	}
+	os.Remove(dlDst)
+
+	fmt.Printf("Extracted to %s successfully\n", dst)
+	return nil
+}
+
 func main() {
 	os.MkdirAll(WORKDIR, 0755)
 	fmt.Println(WORKDIR)
 
-	fmt.Println("Downloading...")
-	check(download(IMDB_BASICS_GZ_PATH, IMDB_BASICS_GZ_URL))
-	// must(grab.Get(IMDB_AKAS_GZ_PATH, IMDB_AKAS_GZ_URL))
-
-	fmt.Println("Extracting...")
-	check(extractGzip(IMDB_BASICS_TSV_PATH, IMDB_BASICS_GZ_PATH))
-	// check(extractGzip(IMDB_AKAS_GZ_PATH, path.Join(WORKDIR, "title.akas.tsv")))
-	// os.Remove(IMDB_BASICS_GZ_PATH)
-	// os.Remove(IMDB_AKAS_GZ_PATH)
+	check(dlAndExtract(IMDB_BASICS_TSV_PATH, IMDB_BASICS_GZ_URL))
+	check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
 }
