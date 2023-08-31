@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -305,14 +306,17 @@ func canonicalize(s string, en bool) []string {
 
 	stems := []string{}
 	if !en {
-		return words
+		stems = words
+	} else {
+		for _, word := range words {
+			word := porter2.Stem(word)
+			stems = append(stems, word)
+		}
 	}
 
-	for _, word := range words {
-		word := porter2.Stem(word)
-		stems = append(stems, word)
-	}
-	return uniq(stems)
+	stems = uniq(stems)
+	sort.Strings(stems)
+	return stems
 }
 
 func fromRecord(record Record) (Indexable, bool, error) {
