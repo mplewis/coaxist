@@ -257,7 +257,6 @@ type Indexable struct {
 	ImdbID string
 	Title  string
 	Stems  []string
-	Lang   string
 }
 
 func uniq[T comparable](items []T) []T {
@@ -324,16 +323,9 @@ func fromRecord(record Record) (Indexable, bool, error) {
 	if lang == `\N` {
 		return Indexable{}, false, nil
 	}
-
 	title := record.Data[2]
 	stems := canonicalize(title, lang == "GB" || lang == "US")
-
-	return Indexable{
-		ImdbID: record.Data[0],
-		Title:  record.Data[2],
-		Lang:   record.Data[3],
-		Stems:  stems,
-	}, true, nil
+	return Indexable{ImdbID: record.Data[0], Title: title, Stems: stems}, true, nil
 }
 
 func parseBasicMetadata(path string) (map[string]struct{}, map[string]string, error) {
@@ -353,55 +345,73 @@ func parseBasicMetadata(path string) (map[string]struct{}, map[string]string, er
 	return adultImdbIDs, mediaTypes, nil
 }
 
-/*
-Schema:
-
-CREATE TABLE media (
-
-	id INTEGER PRIMARY KEY,
-	imdb_id UNIQUE TEXT NOT NULL
-
-);
-
-CREATE TABLE stem (
-
-	id INTEGER PRIMARY KEY,
-	val UNIQUE TEXT NOT NULL
-
-);
-
-CREATE TABLE title (
-
-	id INTEGER PRIMARY KEY,
-	val UNIQUE STRING,
-	media_id INTEGER NOT NULL,
-	FOREIGN KEY (media_id) REFERENCES media(id)
-
-);
-
-CREATE TABLE title_stems (
-
-	title_id INTEGER NOT NULL,
-	stem_id INTEGER NOT NULL,
-	FOREIGN KEY (title_id) REFERENCES title(id),
-	FOREIGN KEY (stem_id) REFERENCES stem(id),
-	PRIMARY KEY (title_id, stem_id)
-
-);
-*/
 func upsert(db *sql.DB, ix Indexable) error {
 	_, err := db.Exec("INSERT OR IGNORE INTO media (imdb_id) VALUES (?)", ix.ImdbID)
 	if err != nil && err.Error() != "UNIQUE constraint failed: media.imdb_id" {
-		return err
+		return fmt.Errorf("error inserting media: %w", err)
 	}
 
 	var mediaID int
 	row := db.QueryRow("SELECT id FROM media WHERE imdb_id = ?", ix.ImdbID)
 	err = row.Scan(&mediaID)
 	if err != nil {
-		return err
+		return fmt.Errorf("error scanning mediaID: %w", err)
 	}
-	fmt.Printf("tmdbID: %s, mediaID: %d\n", ix.ImdbID, mediaID)
+
+	var titleID int
+	row = db.QueryRow("SELECT id FROM title WHERE val = ? AND media_id = ?", ix.Title, mediaID)
+	err = row.Scan(&titleID)
+	if err == nil {
+		return nil
+	}
+	if err != sql.ErrNoRows {
+		return fmt.Errorf("error scanning titleID: %w", err)
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("error beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	fmt.Printf("inserting: %s, %d\n", ix.Title, mediaID)
+	res, err := tx.Exec("INSERT INTO title (val, media_id) VALUES (?, ?)", ix.Title, mediaID)
+	if err != nil {
+		return fmt.Errorf("error inserting title: %w", err)
+	}
+	fmt.Printf("lastInsertID: %d, rowsAffected: %d\n", must(res.LastInsertId()), must(res.RowsAffected()))
+	row = tx.QueryRow("SELECT id FROM title WHERE val = ? AND media_id = ?", ix.Title, mediaID)
+	err = row.Scan(&titleID)
+	if err != nil {
+		return fmt.Errorf("error scanning titleID after insert: %w", err)
+	}
+
+	var stemIDs []int
+	for _, stem := range ix.Stems {
+		_, err := tx.Exec("INSERT OR IGNORE INTO stem (val) VALUES (?)", stem)
+		if err != nil {
+			return fmt.Errorf("error inserting stem: %w", err)
+		}
+		var stemID int
+		row = tx.QueryRow("SELECT id FROM stem WHERE val = ?", stem)
+		err = row.Scan(&stemID)
+		if err != nil {
+			return fmt.Errorf("error scanning stemID: %w", err)
+		}
+		stemIDs = append(stemIDs, stemID)
+	}
+
+	for _, stemID := range stemIDs {
+		_, err := tx.Exec("INSERT OR IGNORE INTO title_stem (title_id, stem_id) VALUES (?, ?)", titleID, stemID)
+		if err != nil {
+			return fmt.Errorf("error inserting title_stem: %w", err)
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("error committing transaction: %w", err)
+	}
 	return nil
 }
 
@@ -413,7 +423,11 @@ func main() {
 	// check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
 	db := must(connect(SQLITE_DB_PATH))
 	fmt.Println(db)
-	upsert(db, Indexable{ImdbID: "tt123456"})
+	check(upsert(db, Indexable{
+		ImdbID: "tt123456",
+		Title:  "The Matrix Resurrections",
+		Stems:  []string{"the", "matrix", "resurrect"},
+	}))
 	os.Exit(0)
 
 	adultImdbIDs, mediaTypes, err := parseBasicMetadata(IMDB_BASICS_TSV_PATH)
