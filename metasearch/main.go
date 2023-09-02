@@ -75,15 +75,15 @@ func (b *Batcher[T]) Flush() error {
 	return nil
 }
 
-func connect(path string) error {
+func connect(path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	result, err := db.Query("SELECT name FROM sqlite_master WHERE type='table';")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tables := []string{}
@@ -91,17 +91,17 @@ func connect(path string) error {
 		var name string
 		err = result.Scan(&name)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		tables = append(tables, name)
 	}
 	result.Close()
 	if len(tables) > 0 {
-		return nil
+		return db, nil
 	}
 
 	_, err = db.Exec(CREATE_TABLES_SQL)
-	return err
+	return db, err
 }
 
 func check(err error) {
@@ -353,13 +353,68 @@ func parseBasicMetadata(path string) (map[string]struct{}, map[string]string, er
 	return adultImdbIDs, mediaTypes, nil
 }
 
+/*
+Schema:
+
+CREATE TABLE media (
+
+	id INTEGER PRIMARY KEY,
+	imdb_id UNIQUE TEXT NOT NULL
+
+);
+
+CREATE TABLE stem (
+
+	id INTEGER PRIMARY KEY,
+	val UNIQUE TEXT NOT NULL
+
+);
+
+CREATE TABLE title (
+
+	id INTEGER PRIMARY KEY,
+	val UNIQUE STRING,
+	media_id INTEGER NOT NULL,
+	FOREIGN KEY (media_id) REFERENCES media(id)
+
+);
+
+CREATE TABLE title_stems (
+
+	title_id INTEGER NOT NULL,
+	stem_id INTEGER NOT NULL,
+	FOREIGN KEY (title_id) REFERENCES title(id),
+	FOREIGN KEY (stem_id) REFERENCES stem(id),
+	PRIMARY KEY (title_id, stem_id)
+
+);
+*/
+func upsert(db *sql.DB, ix Indexable) error {
+	_, err := db.Exec("INSERT OR IGNORE INTO media (imdb_id) VALUES (?)", ix.ImdbID)
+	if err != nil && err.Error() != "UNIQUE constraint failed: media.imdb_id" {
+		return err
+	}
+
+	var mediaID int
+	row := db.QueryRow("SELECT id FROM media WHERE imdb_id = ?", ix.ImdbID)
+	err = row.Scan(&mediaID)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("tmdbID: %s, mediaID: %d\n", ix.ImdbID, mediaID)
+	return nil
+}
+
 func main() {
 	os.MkdirAll(WORKDIR, 0755)
 	fmt.Println(WORKDIR)
 
-	check(dlAndExtract(IMDB_BASICS_TSV_PATH, IMDB_BASICS_GZ_URL))
-	check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
-	// connect(SQLITE_DB_PATH)
+	// check(dlAndExtract(IMDB_BASICS_TSV_PATH, IMDB_BASICS_GZ_URL))
+	// check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
+	db := must(connect(SQLITE_DB_PATH))
+	fmt.Println(db)
+	upsert(db, Indexable{ImdbID: "tt123456"})
+	os.Exit(0)
 
 	adultImdbIDs, mediaTypes, err := parseBasicMetadata(IMDB_BASICS_TSV_PATH)
 	check(err)
