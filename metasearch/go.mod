@@ -3,10 +3,11 @@ module github.com/mplewis/metasearch
 go 1.20
 
 require (
+	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/sourcegraph/conc v0.3.0
 	github.com/surgebase/porter2 v0.0.0-20150829210152-56e4718818e8
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
-	golang.org/x/text v0.3.3
+	golang.org/x/text v0.3.8
 	modernc.org/sqlite v1.25.0
 )
 
@@ -19,7 +20,6 @@ require (
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
-	github.com/schollz/progressbar/v3 v3.13.1 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/surge/glog v0.0.0-20141108051140-2578deb2b95c // indirect
 	go.uber.org/atomic v1.7.0 // indirect
