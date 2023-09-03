@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"compress/gzip"
 	"database/sql"
 	"encoding/csv"
@@ -13,11 +14,12 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 	"unicode"
 
 	_ "embed"
 
+	"github.com/schollz/progressbar/v3"
+	"github.com/sourcegraph/conc"
 	"github.com/sourcegraph/conc/pool"
 	"github.com/surgebase/porter2"
 	"golang.org/x/exp/slices"
@@ -234,6 +236,7 @@ func parseTsv(path string) (<-chan Record, error) {
 	out := make(chan Record)
 
 	go func() {
+		// drop header record
 		_, err := r.Read()
 		if err != nil {
 			out <- Record{Error: err}
@@ -326,6 +329,21 @@ func canonicalize(s string, en bool) []string {
 	return stems
 }
 
+func countLines(path string) (int, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return 0, fmt.Errorf("error opening file: %w", err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	count := 0
+	for scanner.Scan() {
+		count++
+	}
+	return count, nil
+}
+
 func fromRecord(record Record) (Indexable, error) {
 	title := record.Data[2]
 	lang := record.Data[3]
@@ -333,7 +351,11 @@ func fromRecord(record Record) (Indexable, error) {
 	return Indexable{ImdbID: record.Data[0], Title: title, Stems: stems}, nil
 }
 
-func loadBasicMetadata(db *sql.DB, path string) (map[string]int64, error) {
+func loadBasicMetadata(db *sql.DB, path string) (*map[string]int64, error) {
+	total := must(countLines(IMDB_BASICS_TSV_PATH)) - 1
+	bar := progressbar.Default(int64(total))
+	defer bar.Finish()
+
 	records, err := parseTsv(IMDB_BASICS_TSV_PATH)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing IMDB basics TSV: %w", err)
@@ -341,6 +363,7 @@ func loadBasicMetadata(db *sql.DB, path string) (map[string]int64, error) {
 
 	mediaIDs := map[string]int64{}
 	for record := range records {
+		bar.Add(1)
 		if record.Error != nil {
 			return nil, fmt.Errorf("error parsing IMDB basics TSV record: %w: %+v", record.Error, record)
 		}
@@ -368,18 +391,18 @@ func loadBasicMetadata(db *sql.DB, path string) (map[string]int64, error) {
 		}
 		mediaIDs[imdbId] = mediaID
 	}
-	return mediaIDs, nil
+	return &mediaIDs, nil
 }
 
 func upsert(db *sql.DB, ix Indexable) (bool, error) {
-	var titleID int
-	row := db.QueryRow("SELECT id FROM title WHERE val = ? AND media_id = ?", ix.Title, ix.MediaID)
-	err := row.Scan(&titleID)
-	if err == nil {
-		return false, nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
+	var existingCount int64
+	row := db.QueryRow("SELECT COUNT(*) FROM title WHERE val = ? AND media_id = ?", ix.Title, ix.MediaID)
+	err := row.Scan(&existingCount)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return false, fmt.Errorf("error scanning titleID: %w", err)
+	}
+	if existingCount > 0 {
+		return false, nil
 	}
 
 	tx, err := db.Begin()
@@ -392,6 +415,7 @@ func upsert(db *sql.DB, ix Indexable) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("error inserting title: %w", err)
 	}
+	var titleID int64
 	row = tx.QueryRow("SELECT id FROM title WHERE val = ? AND media_id = ?", ix.Title, ix.MediaID)
 	err = row.Scan(&titleID)
 	if err != nil {
@@ -427,6 +451,59 @@ func upsert(db *sql.DB, ix Indexable) (bool, error) {
 	return true, nil
 }
 
+func loadTitles(db *sql.DB, path string, mediaIDs *map[string]int64) error {
+	total := must(countLines(IMDB_AKAS_TSV_PATH)) - 1
+	records := must(parseTsv(IMDB_AKAS_TSV_PATH))
+	toInsert := make(chan Indexable)
+	toIndex := pool.New().WithErrors()
+	bar := progressbar.Default(int64(total))
+	defer bar.Finish()
+
+	var inserter conc.WaitGroup
+	var errInsert error
+	inserter.Go(func() {
+		for ix := range toInsert {
+			_, err := upsert(db, ix)
+			if err != nil {
+				errInsert = err
+				return
+			}
+		}
+	})
+
+	for record := range records {
+		bar.Add(1)
+		toIndex.Go(func() error {
+			if record.Error != nil {
+				return fmt.Errorf("error parsing title: %w: %+v", record.Error, record)
+			}
+
+			imdbID := record.Data[0]
+			mediaID, found := (*mediaIDs)[imdbID]
+			if !found {
+				return nil
+			}
+			lang := record.Data[3]
+			if lang == `\N` {
+				return nil
+			}
+
+			indexed := must(fromRecord(record))
+			indexed.MediaID = mediaID
+			toInsert <- indexed
+			return nil
+		})
+	}
+	close(toInsert)
+
+	err := toIndex.Wait()
+	if err != nil {
+		return fmt.Errorf("error indexing: %w", err)
+	}
+	inserter.Wait()
+	return errInsert
+}
+
 func main() {
 	os.MkdirAll(WORKDIR, 0755)
 	fmt.Println(WORKDIR)
@@ -438,41 +515,6 @@ func main() {
 	fmt.Println("Parsing IMDB metadata")
 	mediaIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
 
-	fmt.Println("Parsing titles")
-	records := must(parseTsv(IMDB_AKAS_TSV_PATH))
-
 	fmt.Println("Processing titles")
-	toInsert := make(chan Indexable)
-	toIndex := pool.New()
-	for record := range records {
-		toIndex.Go(func() {
-			check(record.Error)
-
-			imdbID := record.Data[0]
-			mediaID, found := mediaIDs[imdbID]
-			if !found {
-				return
-			}
-			lang := record.Data[3]
-			if lang == `\N` {
-				return
-			}
-
-			indexed := must(fromRecord(record))
-			indexed.MediaID = mediaID
-			toInsert <- indexed
-		})
-	}
-	toIndex.Wait()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		for ix := range toInsert {
-			_, err := upsert(db, ix)
-			check(err)
-		}
-		wg.Done()
-	}()
-	wg.Wait()
+	check(loadTitles(db, IMDB_AKAS_TSV_PATH, mediaIDs))
 }
