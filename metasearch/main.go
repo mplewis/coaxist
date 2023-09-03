@@ -17,6 +17,7 @@ import (
 
 	_ "embed"
 
+	"github.com/sourcegraph/conc/pool"
 	"github.com/surgebase/porter2"
 	"golang.org/x/exp/slices"
 	"golang.org/x/text/runes"
@@ -318,14 +319,11 @@ func canonicalize(s string, en bool) []string {
 	return stems
 }
 
-func fromRecord(record Record) (Indexable, bool, error) {
-	lang := record.Data[3]
-	if lang == `\N` {
-		return Indexable{}, false, nil
-	}
+func fromRecord(record Record) (Indexable, error) {
 	title := record.Data[2]
+	lang := record.Data[3]
 	stems := canonicalize(title, lang == "GB" || lang == "US")
-	return Indexable{ImdbID: record.Data[0], Title: title, Stems: stems}, true, nil
+	return Indexable{ImdbID: record.Data[0], Title: title, Stems: stems}, nil
 }
 
 func parseBasicMetadata(path string) (map[string]struct{}, map[string]string, error) {
@@ -432,34 +430,40 @@ func main() {
 	fmt.Println("Parsing titles")
 	records := must(parseTsv(IMDB_AKAS_TSV_PATH))
 	fmt.Println("Processing titles")
-	count := 0
+
+	toIndex := pool.New()
+	toInsert := make(chan Indexable)
+
+	go func() {
+		for indexable := range toInsert {
+			inserted := must(upsert(db, indexable))
+			if inserted {
+				fmt.Printf("%s: %s\n", indexable.ImdbID, indexable.Title)
+			}
+		}
+	}()
+
 	for record := range records {
-		count++
-		if count == -1 {
-			break
-		}
-		check(record.Error)
+		toIndex.Go(func() {
+			check(record.Error)
 
-		imdbID := record.Data[0]
-		if imdbID <= maxImdbID {
-			continue
-		}
-		if _, found := adultImdbIDs[imdbID]; found {
-			continue
-		}
-		if mt := mediaTypes[imdbID]; !slices.Contains(MEDIA_TYPE_ALLOWLIST, mt) {
-			continue
-		}
+			imdbID := record.Data[0]
+			if imdbID < maxImdbID {
+				return
+			}
+			if _, found := adultImdbIDs[imdbID]; found {
+				return
+			}
+			if mt := mediaTypes[imdbID]; !slices.Contains(MEDIA_TYPE_ALLOWLIST, mt) {
+				return
+			}
+			lang := record.Data[3]
+			if lang == `\N` {
+				return
+			}
 
-		indexable, ok, err := fromRecord(record)
-		check(err)
-		if !ok {
-			continue
-		}
-
-		inserted := must(upsert(db, indexable))
-		if inserted {
-			fmt.Printf("%s: %s\n", indexable.ImdbID, indexable.Title)
-		}
+			toInsert <- must(fromRecord(record))
+		})
 	}
+	toIndex.Wait()
 }

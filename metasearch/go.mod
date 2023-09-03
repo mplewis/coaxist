@@ -3,6 +3,7 @@ module github.com/mplewis/metasearch
 go 1.20
 
 require (
+	github.com/sourcegraph/conc v0.3.0
 	github.com/surgebase/porter2 v0.0.0-20150829210152-56e4718818e8
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	golang.org/x/text v0.3.3
@@ -17,6 +18,8 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/surge/glog v0.0.0-20141108051140-2578deb2b95c // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
