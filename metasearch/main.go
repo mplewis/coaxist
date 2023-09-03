@@ -345,58 +345,56 @@ func parseBasicMetadata(path string) (map[string]struct{}, map[string]string, er
 	return adultImdbIDs, mediaTypes, nil
 }
 
-func upsert(db *sql.DB, ix Indexable) error {
+func upsert(db *sql.DB, ix Indexable) (bool, error) {
 	_, err := db.Exec("INSERT OR IGNORE INTO media (imdb_id) VALUES (?)", ix.ImdbID)
 	if err != nil && err.Error() != "UNIQUE constraint failed: media.imdb_id" {
-		return fmt.Errorf("error inserting media: %w", err)
+		return false, fmt.Errorf("error inserting media: %w", err)
 	}
 
 	var mediaID int
 	row := db.QueryRow("SELECT id FROM media WHERE imdb_id = ?", ix.ImdbID)
 	err = row.Scan(&mediaID)
 	if err != nil {
-		return fmt.Errorf("error scanning mediaID: %w", err)
+		return false, fmt.Errorf("error scanning mediaID: %w", err)
 	}
 
 	var titleID int
 	row = db.QueryRow("SELECT id FROM title WHERE val = ? AND media_id = ?", ix.Title, mediaID)
 	err = row.Scan(&titleID)
 	if err == nil {
-		return nil
+		return false, nil
 	}
 	if err != sql.ErrNoRows {
-		return fmt.Errorf("error scanning titleID: %w", err)
+		return false, fmt.Errorf("error scanning titleID: %w", err)
 	}
 
 	tx, err := db.Begin()
 	if err != nil {
-		return fmt.Errorf("error beginning transaction: %w", err)
+		return false, fmt.Errorf("error beginning transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	fmt.Printf("inserting: %s, %d\n", ix.Title, mediaID)
-	res, err := tx.Exec("INSERT INTO title (val, media_id) VALUES (?, ?)", ix.Title, mediaID)
+	_, err = tx.Exec("INSERT INTO title (val, media_id) VALUES (?, ?)", ix.Title, mediaID)
 	if err != nil {
-		return fmt.Errorf("error inserting title: %w", err)
+		return false, fmt.Errorf("error inserting title: %w", err)
 	}
-	fmt.Printf("lastInsertID: %d, rowsAffected: %d\n", must(res.LastInsertId()), must(res.RowsAffected()))
 	row = tx.QueryRow("SELECT id FROM title WHERE val = ? AND media_id = ?", ix.Title, mediaID)
 	err = row.Scan(&titleID)
 	if err != nil {
-		return fmt.Errorf("error scanning titleID after insert: %w", err)
+		return false, fmt.Errorf("error scanning titleID after insert: %w", err)
 	}
 
 	var stemIDs []int
 	for _, stem := range ix.Stems {
 		_, err := tx.Exec("INSERT OR IGNORE INTO stem (val) VALUES (?)", stem)
 		if err != nil {
-			return fmt.Errorf("error inserting stem: %w", err)
+			return false, fmt.Errorf("error inserting stem: %w", err)
 		}
 		var stemID int
 		row = tx.QueryRow("SELECT id FROM stem WHERE val = ?", stem)
 		err = row.Scan(&stemID)
 		if err != nil {
-			return fmt.Errorf("error scanning stemID: %w", err)
+			return false, fmt.Errorf("error scanning stemID: %w", err)
 		}
 		stemIDs = append(stemIDs, stemID)
 	}
@@ -404,43 +402,36 @@ func upsert(db *sql.DB, ix Indexable) error {
 	for _, stemID := range stemIDs {
 		_, err := tx.Exec("INSERT OR IGNORE INTO title_stem (title_id, stem_id) VALUES (?, ?)", titleID, stemID)
 		if err != nil {
-			return fmt.Errorf("error inserting title_stem: %w", err)
+			return false, fmt.Errorf("error inserting title_stem: %w", err)
 		}
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return fmt.Errorf("error committing transaction: %w", err)
+		return false, fmt.Errorf("error committing transaction: %w", err)
 	}
-	return nil
+	return true, nil
 }
 
 func main() {
 	os.MkdirAll(WORKDIR, 0755)
 	fmt.Println(WORKDIR)
 
-	// check(dlAndExtract(IMDB_BASICS_TSV_PATH, IMDB_BASICS_GZ_URL))
-	// check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
+	check(dlAndExtract(IMDB_BASICS_TSV_PATH, IMDB_BASICS_GZ_URL))
+	check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
 	db := must(connect(SQLITE_DB_PATH))
-	fmt.Println(db)
-	check(upsert(db, Indexable{
-		ImdbID: "tt123456",
-		Title:  "The Matrix Resurrections",
-		Stems:  []string{"the", "matrix", "resurrect"},
-	}))
-	os.Exit(0)
 
+	var maxImdbID string
+	row := db.QueryRow("SELECT MAX(imdb_id) FROM media")
+	check(row.Scan(&maxImdbID))
+
+	fmt.Println("Parsing basic metadata")
 	adultImdbIDs, mediaTypes, err := parseBasicMetadata(IMDB_BASICS_TSV_PATH)
 	check(err)
 
-	batcher := Batcher[Indexable]{
-		MaxSize: 100,
-		Callable: func(x []Indexable) error {
-			// TODO
-			return nil
-		},
-	}
+	fmt.Println("Parsing titles")
 	records := must(parseTsv(IMDB_AKAS_TSV_PATH))
+	fmt.Println("Processing titles")
 	count := 0
 	for record := range records {
 		count++
@@ -450,6 +441,9 @@ func main() {
 		check(record.Error)
 
 		imdbID := record.Data[0]
+		if imdbID <= maxImdbID {
+			continue
+		}
 		if _, found := adultImdbIDs[imdbID]; found {
 			continue
 		}
@@ -459,10 +453,13 @@ func main() {
 
 		indexable, ok, err := fromRecord(record)
 		check(err)
-		if ok {
-			fmt.Println(indexable)
-			check(batcher.Submit(indexable))
+		if !ok {
+			continue
+		}
+
+		inserted := must(upsert(db, indexable))
+		if inserted {
+			fmt.Printf("%s: %s\n", indexable.ImdbID, indexable.Title)
 		}
 	}
-	check(batcher.Flush())
 }
