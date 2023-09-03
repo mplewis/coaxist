@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"unicode"
 
 	_ "embed"
@@ -78,6 +79,11 @@ func (b *Batcher[T]) Flush() error {
 
 func connect(path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec("PRAGMA journal_mode=WAL")
 	if err != nil {
 		return nil, err
 	}
@@ -255,9 +261,10 @@ func parseTsv(path string) (<-chan Record, error) {
 }
 
 type Indexable struct {
-	ImdbID string
-	Title  string
-	Stems  []string
+	MediaID int64
+	ImdbID  string
+	Title   string
+	Stems   []string
 }
 
 func uniq[T comparable](items []T) []T {
@@ -326,43 +333,52 @@ func fromRecord(record Record) (Indexable, error) {
 	return Indexable{ImdbID: record.Data[0], Title: title, Stems: stems}, nil
 }
 
-func parseBasicMetadata(path string) (map[string]struct{}, map[string]string, error) {
-	adultImdbIDs := map[string]struct{}{}
-	mediaTypes := map[string]string{}
+func loadBasicMetadata(db *sql.DB, path string) (map[string]int64, error) {
 	records, err := parseTsv(IMDB_BASICS_TSV_PATH)
 	if err != nil {
-		return nil, nil, err
+		return nil, fmt.Errorf("error parsing IMDB basics TSV: %w", err)
 	}
+
+	mediaIDs := map[string]int64{}
 	for record := range records {
-		check(record.Error)
-		mediaTypes[record.Data[0]] = record.Data[1]
-		if record.Data[4] == "1" {
-			adultImdbIDs[record.Data[0]] = struct{}{}
+		if record.Error != nil {
+			return nil, fmt.Errorf("error parsing IMDB basics TSV record: %w: %+v", record.Error, record)
 		}
+
+		adult := record.Data[4]
+		if adult == "1" {
+			continue
+		}
+		mediaType := record.Data[1]
+		if !slices.Contains(MEDIA_TYPE_ALLOWLIST, mediaType) {
+			continue
+		}
+
+		imdbId := record.Data[0]
+
+		_, err := db.Exec("INSERT OR IGNORE INTO media (imdb_id) VALUES (?)", imdbId)
+		if err != nil {
+			return nil, fmt.Errorf("error inserting media: %w", err)
+		}
+		var mediaID int64
+		row := db.QueryRow("SELECT id FROM media WHERE imdb_id = ?", imdbId)
+		err = row.Scan(&mediaID)
+		if err != nil {
+			return nil, fmt.Errorf("error finding media: %w", err)
+		}
+		mediaIDs[imdbId] = mediaID
 	}
-	return adultImdbIDs, mediaTypes, nil
+	return mediaIDs, nil
 }
 
 func upsert(db *sql.DB, ix Indexable) (bool, error) {
-	_, err := db.Exec("INSERT OR IGNORE INTO media (imdb_id) VALUES (?)", ix.ImdbID)
-	if err != nil && err.Error() != "UNIQUE constraint failed: media.imdb_id" {
-		return false, fmt.Errorf("error inserting media: %w", err)
-	}
-
-	var mediaID int
-	row := db.QueryRow("SELECT id FROM media WHERE imdb_id = ?", ix.ImdbID)
-	err = row.Scan(&mediaID)
-	if err != nil {
-		return false, fmt.Errorf("error scanning mediaID: %w", err)
-	}
-
 	var titleID int
-	row = db.QueryRow("SELECT id FROM title WHERE val = ? AND media_id = ?", ix.Title, mediaID)
-	err = row.Scan(&titleID)
+	row := db.QueryRow("SELECT id FROM title WHERE val = ? AND media_id = ?", ix.Title, ix.MediaID)
+	err := row.Scan(&titleID)
 	if err == nil {
 		return false, nil
 	}
-	if err != sql.ErrNoRows {
+	if !errors.Is(err, sql.ErrNoRows) {
 		return false, fmt.Errorf("error scanning titleID: %w", err)
 	}
 
@@ -372,11 +388,11 @@ func upsert(db *sql.DB, ix Indexable) (bool, error) {
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec("INSERT INTO title (val, media_id) VALUES (?, ?)", ix.Title, mediaID)
+	_, err = tx.Exec("INSERT INTO title (val, media_id) VALUES (?, ?)", ix.Title, ix.MediaID)
 	if err != nil {
 		return false, fmt.Errorf("error inserting title: %w", err)
 	}
-	row = tx.QueryRow("SELECT id FROM title WHERE val = ? AND media_id = ?", ix.Title, mediaID)
+	row = tx.QueryRow("SELECT id FROM title WHERE val = ? AND media_id = ?", ix.Title, ix.MediaID)
 	err = row.Scan(&titleID)
 	if err != nil {
 		return false, fmt.Errorf("error scanning titleID after insert: %w", err)
@@ -419,42 +435,22 @@ func main() {
 	check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
 	db := must(connect(SQLITE_DB_PATH))
 
-	var maxImdbID string
-	row := db.QueryRow("SELECT MAX(imdb_id) FROM media")
-	check(row.Scan(&maxImdbID))
-
-	fmt.Println("Parsing basic metadata")
-	adultImdbIDs, mediaTypes, err := parseBasicMetadata(IMDB_BASICS_TSV_PATH)
-	check(err)
+	fmt.Println("Parsing IMDB metadata")
+	mediaIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
 
 	fmt.Println("Parsing titles")
 	records := must(parseTsv(IMDB_AKAS_TSV_PATH))
+
 	fmt.Println("Processing titles")
-
-	toIndex := pool.New()
 	toInsert := make(chan Indexable)
-
-	go func() {
-		for indexable := range toInsert {
-			inserted := must(upsert(db, indexable))
-			if inserted {
-				fmt.Printf("%s: %s\n", indexable.ImdbID, indexable.Title)
-			}
-		}
-	}()
-
+	toIndex := pool.New()
 	for record := range records {
 		toIndex.Go(func() {
 			check(record.Error)
 
 			imdbID := record.Data[0]
-			if imdbID < maxImdbID {
-				return
-			}
-			if _, found := adultImdbIDs[imdbID]; found {
-				return
-			}
-			if mt := mediaTypes[imdbID]; !slices.Contains(MEDIA_TYPE_ALLOWLIST, mt) {
+			mediaID, found := mediaIDs[imdbID]
+			if !found {
 				return
 			}
 			lang := record.Data[3]
@@ -462,8 +458,21 @@ func main() {
 				return
 			}
 
-			toInsert <- must(fromRecord(record))
+			indexed := must(fromRecord(record))
+			indexed.MediaID = mediaID
+			toInsert <- indexed
 		})
 	}
 	toIndex.Wait()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		for ix := range toInsert {
+			_, err := upsert(db, ix)
+			check(err)
+		}
+		wg.Done()
+	}()
+	wg.Wait()
 }
