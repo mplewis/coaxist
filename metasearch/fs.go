@@ -96,16 +96,30 @@ func dlAndExtract(dst string, url string) error {
 	return nil
 }
 
-func countLines(path string) (int, error) {
-	file, err := os.Open(path)
+func lines(path string) (<-chan string, error) {
+	f, err := os.Open(path)
 	if err != nil {
-		return 0, fmt.Errorf("error opening file: %w", err)
+		return nil, fmt.Errorf("error opening file: %s: %w", path, err)
 	}
-	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	ret := make(chan string)
+	go func() {
+		s := bufio.NewScanner(f)
+		for s.Scan() {
+			ret <- s.Text()
+		}
+		close(ret)
+	}()
+	return ret, nil
+}
+
+func countLines(path string) (int, error) {
+	ch, err := lines(path)
+	if err != nil {
+		return 0, err
+	}
 	count := 0
-	for scanner.Scan() {
+	for range ch {
 		count++
 	}
 	return count, nil

@@ -12,13 +12,6 @@ type Record struct {
 	Error error
 }
 
-type Indexable struct {
-	MediaID int64
-	ImdbID  string
-	Title   string
-	Stems   []string
-}
-
 func parseTsv(path string) (<-chan Record, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -56,11 +49,4 @@ func parseTsv(path string) (<-chan Record, error) {
 	}()
 
 	return out, nil
-}
-
-func fromRecord(record Record) (Indexable, error) {
-	title := record.Data[2]
-	lang := record.Data[3]
-	stems := canonicalize(title, lang == "GB" || lang == "US")
-	return Indexable{ImdbID: record.Data[0], Title: title, Stems: stems}, nil
 }

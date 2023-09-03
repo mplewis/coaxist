@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"sync/atomic"
 
 	"github.com/schollz/progressbar/v3"
@@ -12,6 +13,13 @@ import (
 )
 
 var MEDIA_TYPE_ALLOWLIST = []string{"movie", "tvMovie", "tvSeries", "tvMiniSeries", "tvSpecial", "video"}
+
+type Indexable struct {
+	MediaID int64
+	ImdbID  string
+	Title   string
+	Stems   []string
+}
 
 func loadBasicMetadata(db *sql.DB, path string) (*map[string]int64, error) {
 	total := must(countLines(IMDB_BASICS_TSV_PATH)) - 1
@@ -58,7 +66,10 @@ func loadBasicMetadata(db *sql.DB, path string) (*map[string]int64, error) {
 
 func loadTitles(db *sql.DB, path string, mediaIDs *map[string]int64) error {
 	recordCount := must(countLines(IMDB_AKAS_TSV_PATH)) - 1
-	records := must(parseTsv(IMDB_AKAS_TSV_PATH))
+	rows, err := lines(path)
+	if err != nil {
+		return fmt.Errorf("error loading titles: %w", err)
+	}
 	toInsert := make(chan Indexable)
 
 	var inserter conc.WaitGroup
@@ -80,32 +91,35 @@ func loadTitles(db *sql.DB, path string, mediaIDs *map[string]int64) error {
 	var total int64
 	barIndex := progressbar.Default(int64(recordCount))
 	toIndex := pool.New().WithErrors()
-	for record := range records {
+	for row := range rows {
 		toIndex.Go(func() error {
-			if record.Error != nil {
-				return fmt.Errorf("error parsing title: %w: %+v", record.Error, record)
-			}
-
-			imdbID := record.Data[0]
+			record := strings.Split(row, "\t")
+			imdbID := record[0]
 			mediaID, found := (*mediaIDs)[imdbID]
 			if !found {
 				return nil
 			}
-			lang := record.Data[3]
+			lang := record[3]
 			if lang == `\N` {
 				return nil
 			}
 
-			indexed := must(fromRecord(record))
-			indexed.MediaID = mediaID
-			toInsert <- indexed
+			title := record[2]
+			stems := canonicalize(title, lang == "GB" || lang == "US")
+			toInsert <- Indexable{
+				ImdbID:  imdbID,
+				Title:   title,
+				Stems:   stems,
+				MediaID: mediaID,
+			}
+
 			atomic.AddInt64(&total, 1)
 			barIndex.Add(1)
 			return nil
 		})
 	}
 
-	err := toIndex.Wait()
+	err = toIndex.Wait()
 	barIndex.Finish()
 	close(toInsert)
 	if err != nil {
