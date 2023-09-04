@@ -1,14 +1,11 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"strings"
-	"sync/atomic"
 
+	"github.com/mplewis/metasearch/lib/filedb"
 	"github.com/schollz/progressbar/v3"
-	"github.com/sourcegraph/conc"
-	"github.com/sourcegraph/conc/pool"
 	"golang.org/x/exp/slices"
 )
 
@@ -21,21 +18,23 @@ type Indexable struct {
 	Stems   []string
 }
 
-func loadBasicMetadata(db *sql.DB, path string) (*map[string]int64, error) {
-	total := must(countLines(IMDB_BASICS_TSV_PATH)) - 1
-	bar := progressbar.Default(int64(total))
+func loadBasicMetadata(db *filedb.FileDB, path string) error {
+	total, err := countLines(path)
+	if err != nil {
+		return fmt.Errorf("error counting lines in IMDB basics TSV: %w", err)
+	}
+	bar := progressbar.Default(int64(total - 1))
 	defer bar.Finish()
 
-	records, err := parseTsv(IMDB_BASICS_TSV_PATH)
+	records, err := parseTsv(path)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing IMDB basics TSV: %w", err)
+		return fmt.Errorf("error parsing IMDB basics TSV: %w", err)
 	}
 
-	mediaIDs := map[string]int64{}
 	for record := range records {
 		bar.Add(1)
 		if record.Error != nil {
-			return nil, fmt.Errorf("error parsing IMDB basics TSV record: %w: %+v", record.Error, record)
+			return fmt.Errorf("error parsing IMDB basics TSV record: %w: %+v", record.Error, record)
 		}
 
 		adult := record.Data[4]
@@ -47,91 +46,42 @@ func loadBasicMetadata(db *sql.DB, path string) (*map[string]int64, error) {
 			continue
 		}
 
-		imdbId := record.Data[0]
-
-		_, err := db.Exec("INSERT OR IGNORE INTO media (imdb_id) VALUES (?)", imdbId)
-		if err != nil {
-			return nil, fmt.Errorf("error inserting media: %w", err)
-		}
-		var mediaID int64
-		row := db.QueryRow("SELECT id FROM media WHERE imdb_id = ?", imdbId)
-		err = row.Scan(&mediaID)
-		if err != nil {
-			return nil, fmt.Errorf("error finding media: %w", err)
-		}
-		mediaIDs[imdbId] = mediaID
+		imdbID := record.Data[0]
+		db.UpsertTitle(imdbID)
 	}
-	return &mediaIDs, nil
+	return nil
 }
 
-func loadTitles(db *sql.DB, path string, mediaIDs *map[string]int64) error {
-	recordCount := must(countLines(IMDB_AKAS_TSV_PATH)) - 1
+func loadTitles(db *filedb.FileDB, path string) error {
+	recordCount, err := countLines(path)
+	if err != nil {
+		return fmt.Errorf("error counting lines in IMDB akas TSV: %w", err)
+	}
+	bar := progressbar.Default(int64(recordCount - 1))
+	defer bar.Finish()
+
 	rows, err := lines(path)
 	if err != nil {
 		return fmt.Errorf("error loading titles: %w", err)
 	}
-	toInsert := make(chan Indexable)
 
-	var inserter conc.WaitGroup
-	var errInsert error
-	addedBeforeBarCreated := 0
-	var incrBar = func() { addedBeforeBarCreated++ }
-	inserter.Go(func() {
-		for ix := range toInsert {
-			_, err := upsert(db, ix)
-			if err != nil {
-				errInsert = err
-				return
-			}
-			incrBar()
-		}
-	})
-
-	fmt.Println("Indexing titles")
-	var total int64
-	barIndex := progressbar.Default(int64(recordCount))
-	toIndex := pool.New().WithErrors()
 	for row := range rows {
-		toIndex.Go(func() error {
-			record := strings.Split(row, "\t")
-			imdbID := record[0]
-			mediaID, found := (*mediaIDs)[imdbID]
-			if !found {
-				return nil
-			}
-			lang := record[3]
-			if lang == `\N` {
-				return nil
-			}
+		bar.Add(1)
 
-			title := record[2]
-			stems := canonicalize(title, lang == "GB" || lang == "US")
-			toInsert <- Indexable{
-				ImdbID:  imdbID,
-				Title:   title,
-				Stems:   stems,
-				MediaID: mediaID,
-			}
+		record := strings.Split(row, "\t")
+		imdbID := record[0]
+		lang := record[3]
+		if lang == `\N` {
+			continue
+		}
 
-			atomic.AddInt64(&total, 1)
-			barIndex.Add(1)
-			return nil
-		})
+		title := record[2]
+		stems := canonicalize(title, lang == "GB" || lang == "US")
+		err := db.UpsertStems(imdbID, title, stems)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = toIndex.Wait()
-	barIndex.Finish()
-	close(toInsert)
-	if err != nil {
-		return fmt.Errorf("error indexing: %w", err)
-	}
-
-	fmt.Println("Inserting titles into database")
-	barInsert := progressbar.Default(total)
-	incrBar = func() { barInsert.Add(1) }
-	barInsert.Add(addedBeforeBarCreated)
-	defer barInsert.Finish()
-
-	inserter.Wait()
-	return errInsert
+	return nil
 }

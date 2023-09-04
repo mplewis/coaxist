@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/mplewis/metasearch/lib/filedb"
 	_ "modernc.org/sqlite"
 )
 
@@ -13,7 +14,7 @@ var (
 	IMDB_DATASETS       = envOr("IMDB_DATASETS", "http://datasets.imdbws.com")
 	IMDB_BASICS_GZ_NAME = envOr("IMDB_BASICS_GZ_NAME", "title.basics.tsv.gz")
 	IMDB_AKAS_GZ_NAME   = envOr("IMDB_AKAS_GZ_NAME", "title.akas.tsv.gz")
-	SQLITE_DB_PATH      = envOr("SQLITE_DB_PATH", path.Join(WORKDIR, "metasearch_imdb.v1.sqlite"))
+	DB_PATH             = envOr("DB_PATH", path.Join(WORKDIR, "db"))
 
 	IMDB_BASICS_GZ_URL   = fmt.Sprintf("%s/%s", IMDB_DATASETS, IMDB_BASICS_GZ_NAME)
 	IMDB_BASICS_TSV_PATH = path.Join(WORKDIR, "title.basics.tsv")
@@ -28,11 +29,12 @@ func main() {
 
 	check(dlAndExtract(IMDB_BASICS_TSV_PATH, IMDB_BASICS_GZ_URL))
 	check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
-	db := must(connect(SQLITE_DB_PATH))
+	db := filedb.New(DB_PATH)
+	db.Empty()
 
 	fmt.Println("Parsing IMDB metadata")
-	mediaIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
+	check(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
 
 	fmt.Println("Processing titles")
-	check(loadTitles(db, IMDB_AKAS_TSV_PATH, mediaIDs))
+	check(loadTitles(db, IMDB_AKAS_TSV_PATH))
 }
