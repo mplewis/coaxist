@@ -182,7 +182,7 @@ func (db *DB) QueryStem(stem string) ([]uint32, error) {
 	return ids, nil
 }
 
-func (db *DB) QueryTitle(title string, stem bool) ([]uint32, error) {
+func (db *DB) QueryTitle(title string, stem bool) ([]string, error) {
 	canonicalized := db.canonicalizer(title, stem)
 	var resultsByWord [][]uint32
 	for _, stem := range canonicalized {
@@ -192,5 +192,17 @@ func (db *DB) QueryTitle(title string, stem bool) ([]uint32, error) {
 		}
 		resultsByWord = append(resultsByWord, stemIDs)
 	}
-	return intersect(resultsByWord...), nil
+	mediaKeys := intersect(resultsByWord...)
+	var results []string
+	for _, mediaID := range mediaKeys {
+		imdbID, found, err := db.QueryMedia(mediaID)
+		if err != nil {
+			return nil, fmt.Errorf("error querying db: %w", err)
+		}
+		if !found {
+			return nil, fmt.Errorf("error querying db: mediaID %d not found", mediaID)
+		}
+		results = append(results, imdbID)
+	}
+	return results, nil
 }
