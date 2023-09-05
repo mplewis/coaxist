@@ -3,8 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/dgraph-io/badger/v4"
+	"golang.org/x/exp/slices"
 )
 
 type DB struct {
@@ -27,11 +29,9 @@ func (db *DB) Close() error {
 
 func (db *DB) InsertStems(imdbID string, title string, stems []string) error {
 	if _, ok := db.insertedTitles[title]; ok {
-		fmt.Println("already inserted", title)
 		return nil
 	}
 
-	fmt.Println("inserting title", title)
 	err := db.kv.Update(func(txn *badger.Txn) error {
 		for _, stem := range stems {
 			item, err := txn.Get([]byte(stem))
@@ -40,7 +40,6 @@ func (db *DB) InsertStems(imdbID string, title string, stems []string) error {
 					return fmt.Errorf("error getting key %s: %w", stem, err)
 				}
 
-				fmt.Println("new key", stem)
 				err = txn.Set([]byte(stem), []byte(imdbID))
 				if err != nil {
 					return fmt.Errorf("error setting key %s: %w", stem, err)
@@ -52,7 +51,12 @@ func (db *DB) InsertStems(imdbID string, title string, stems []string) error {
 			if err != nil {
 				return fmt.Errorf("error getting value for key %s: %w", stem, err)
 			}
-			fmt.Println("updating key", stem)
+
+			bits := strings.Split(string(existing), ",")
+			if slices.Contains(bits, imdbID) {
+				continue // don't insert a duplicate imdb ID for the same stem
+			}
+
 			toSet := append(existing, ',')
 			toSet = append(toSet, []byte(imdbID)...)
 			err = txn.Set([]byte(stem), toSet)
@@ -79,6 +83,9 @@ func (db *DB) List() error {
 		for it.Rewind(); it.Valid(); it.Next() {
 			item := it.Item()
 			k := item.Key()
+			if string(k) != "yorks" {
+				continue
+			}
 			err := item.Value(func(v []byte) error {
 				fmt.Printf("key=%s, value=%s\n", k, v)
 				return nil
