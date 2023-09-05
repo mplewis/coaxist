@@ -26,36 +26,48 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) InsertStems(imdbID string, title string, stems []string) error {
-	if _, ok := db.insertedTitles[imdbID]; ok {
+	if _, ok := db.insertedTitles[title]; ok {
+		fmt.Println("already inserted", title)
 		return nil
 	}
 
-	return db.kv.Update(func(txn *badger.Txn) error {
+	fmt.Println("inserting title", title)
+	err := db.kv.Update(func(txn *badger.Txn) error {
 		for _, stem := range stems {
-			// get existing value
 			item, err := txn.Get([]byte(stem))
 			if err != nil {
-				if errors.Is(err, badger.ErrKeyNotFound) {
-					err = txn.Set([]byte(stem), []byte(imdbID))
-					if err != nil {
-						return fmt.Errorf("error setting key %s: %w", stem, err)
-					}
-				} else {
-					existing, err := item.ValueCopy(nil)
-					if err != nil {
-						return fmt.Errorf("error getting key %s: %w", stem, err)
-					}
-					toSet := append(existing, ',')
-					toSet = append(toSet, []byte(imdbID)...)
-					err = txn.Set([]byte(stem), toSet)
-					if err != nil {
-						return fmt.Errorf("error setting key %s: %w", stem, err)
-					}
+				if !errors.Is(err, badger.ErrKeyNotFound) {
+					return fmt.Errorf("error getting key %s: %w", stem, err)
 				}
+
+				fmt.Println("new key", stem)
+				err = txn.Set([]byte(stem), []byte(imdbID))
+				if err != nil {
+					return fmt.Errorf("error setting key %s: %w", stem, err)
+				}
+				continue
+			}
+
+			existing, err := item.ValueCopy(nil)
+			if err != nil {
+				return fmt.Errorf("error getting value for key %s: %w", stem, err)
+			}
+			fmt.Println("updating key", stem)
+			toSet := append(existing, ',')
+			toSet = append(toSet, []byte(imdbID)...)
+			err = txn.Set([]byte(stem), toSet)
+			if err != nil {
+				return fmt.Errorf("error setting key %s: %w", stem, err)
 			}
 		}
 		return nil
 	})
+
+	if err != nil {
+		return fmt.Errorf("error updating db: %w", err)
+	}
+	db.insertedTitles[title] = struct{}{}
+	return nil
 }
 
 func (db *DB) List() error {
