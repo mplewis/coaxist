@@ -111,10 +111,82 @@ func (db *DB) List() error {
 	})
 }
 
+func (db *DB) QueryMedia(id uint32) (string, bool, error) {
+	idb := uint32ToByte(id)
+	qid := append([]byte("_"), idb...)
+
+	var imdbID string
+	found := false
+	err := db.kv.View(func(txn *badger.Txn) error {
+		item, err := txn.Get(qid)
+		if err != nil {
+			return fmt.Errorf("error getting key %d: %w", id, err)
+		}
+
+		val, err := item.ValueCopy(nil)
+		if err != nil {
+			if errors.Is(err, badger.ErrKeyNotFound) {
+				return nil
+			} else {
+				return fmt.Errorf("error getting value for key %d: %w", id, err)
+			}
+		}
+
+		found = true
+		imdbID = string(val)
+		return nil
+	})
+
+	if err != nil {
+		return "", false, fmt.Errorf("error querying db: %w", err)
+	}
+	return imdbID, found, nil
+}
+
+func (db *DB) QueryStem(stem string) ([]uint32, error) {
+	var ids []uint32
+	err := db.kv.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(stem))
+		if err != nil {
+			if errors.Is(err, badger.ErrKeyNotFound) {
+				return nil
+			} else {
+				return fmt.Errorf("error getting key %s: %w", stem, err)
+			}
+		}
+
+		val, err := item.ValueCopy(nil)
+		if err != nil {
+			if errors.Is(err, badger.ErrKeyNotFound) {
+				return nil
+			} else {
+				return fmt.Errorf("error getting value for key %s: %w", stem, err)
+			}
+		}
+
+		ids = append(ids, bytesToUint32s(val)...)
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("error querying db: %w", err)
+	}
+	return ids, nil
+}
+
 func uint32ToByte(n uint32) []byte {
 	a := make([]byte, 4)
 	binary.LittleEndian.PutUint32(a, n)
 	return a
+}
+
+func bytesToUint32s(b []byte) []uint32 {
+	bits := splitEvery4(b)
+	var ids []uint32
+	for _, b := range bits {
+		ids = append(ids, binary.LittleEndian.Uint32(b))
+	}
+	return ids
 }
 
 func splitEvery4(b []byte) [][]byte {

@@ -71,7 +71,7 @@ func loadTitles(db *DB, path string, imdbIDToMediaID map[string]uint32) error {
 
 	count := 0
 	for row := range rows {
-		if count > 100 {
+		if count > 10_000 {
 			break
 		}
 		bar.Add(1)
