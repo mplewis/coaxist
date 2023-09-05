@@ -17,7 +17,7 @@ type Indexable struct {
 	Stems   []string
 }
 
-func loadBasicMetadata(db *DB, path string) (map[string]struct{}, error) {
+func loadBasicMetadata(db *DB, path string) (map[string]uint32, error) {
 	total, err := countLines(path)
 	if err != nil {
 		return nil, fmt.Errorf("error counting lines in IMDB basics TSV: %w", err)
@@ -30,7 +30,7 @@ func loadBasicMetadata(db *DB, path string) (map[string]struct{}, error) {
 		return nil, fmt.Errorf("error parsing IMDB basics TSV: %w", err)
 	}
 
-	imdbIDs := map[string]struct{}{}
+	imdbIDToMediaID := map[string]uint32{}
 	for record := range records {
 		bar.Add(1)
 		if record.Error != nil {
@@ -47,12 +47,16 @@ func loadBasicMetadata(db *DB, path string) (map[string]struct{}, error) {
 		}
 
 		imdbID := record.Data[0]
-		imdbIDs[imdbID] = struct{}{}
+		mediaID, err := db.InsertMedia(imdbID)
+		if err != nil {
+			return nil, fmt.Errorf("error inserting media: %w", err)
+		}
+		imdbIDToMediaID[imdbID] = mediaID
 	}
-	return imdbIDs, nil
+	return imdbIDToMediaID, nil
 }
 
-func loadTitles(db *DB, path string, imdbIDs map[string]struct{}) error {
+func loadTitles(db *DB, path string, imdbIDToMediaID map[string]uint32) error {
 	recordCount, err := countLines(path)
 	if err != nil {
 		return fmt.Errorf("error counting lines in IMDB akas TSV: %w", err)
@@ -65,7 +69,11 @@ func loadTitles(db *DB, path string, imdbIDs map[string]struct{}) error {
 		return fmt.Errorf("error loading titles: %w", err)
 	}
 
+	count := 0
 	for row := range rows {
+		if count > 100 {
+			break
+		}
 		bar.Add(1)
 
 		record := strings.Split(row, "\t")
@@ -74,16 +82,18 @@ func loadTitles(db *DB, path string, imdbIDs map[string]struct{}) error {
 			continue
 		}
 		imdbID := record[0]
-		if _, ok := imdbIDs[imdbID]; !ok {
+		mediaID, ok := imdbIDToMediaID[imdbID]
+		if !ok {
 			continue
 		}
 
 		title := record[2]
 		stems := canonicalize(title, lang == "GB" || lang == "US")
-		err := db.InsertStems(imdbID, title, stems)
+		err := db.InsertStems(mediaID, title, stems)
 		if err != nil {
 			return err
 		}
+		count += 1
 	}
 
 	return nil

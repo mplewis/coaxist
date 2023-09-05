@@ -35,4 +35,6 @@ func main() {
 
 	fmt.Println("Processing titles")
 	check(loadTitles(db, IMDB_AKAS_TSV_PATH, imdbIDs))
+
+	check(db.List())
 }

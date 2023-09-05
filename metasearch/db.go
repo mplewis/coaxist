@@ -1,17 +1,18 @@
 package main
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/dgraph-io/badger/v4"
 	"golang.org/x/exp/slices"
 )
 
 type DB struct {
-	kv             *badger.DB
-	insertedTitles map[string]struct{}
+	kv                  *badger.DB
+	insertedTitles      map[string]struct{}
+	lastInsertedTitleID uint32
 }
 
 func NewDB(path string) (*DB, error) {
@@ -19,7 +20,7 @@ func NewDB(path string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db := &DB{kv: kv, insertedTitles: map[string]struct{}{}}
+	db := &DB{kv: kv, insertedTitles: map[string]struct{}{}, lastInsertedTitleID: 0}
 	return db, nil
 }
 
@@ -27,10 +28,24 @@ func (db *DB) Close() error {
 	return db.kv.Close()
 }
 
-func (db *DB) InsertStems(imdbID string, title string, stems []string) error {
+func (db *DB) InsertMedia(imdbID string) (uint32, error) {
+	db.lastInsertedTitleID++
+	id := db.lastInsertedTitleID
+	idb := uint32ToByte(id)
+	err := db.kv.Update(func(txn *badger.Txn) error {
+		return txn.Set(append([]byte("_"), idb...), []byte(imdbID))
+	})
+	if err != nil {
+		return 0, fmt.Errorf("error updating db: %w", err)
+	}
+	return id, nil
+}
+
+func (db *DB) InsertStems(mediaID uint32, title string, stems []string) error {
 	if _, ok := db.insertedTitles[title]; ok {
 		return nil
 	}
+	mediaIDb := uint32ToByte(mediaID)
 
 	err := db.kv.Update(func(txn *badger.Txn) error {
 		for _, stem := range stems {
@@ -40,7 +55,7 @@ func (db *DB) InsertStems(imdbID string, title string, stems []string) error {
 					return fmt.Errorf("error getting key %s: %w", stem, err)
 				}
 
-				err = txn.Set([]byte(stem), []byte(imdbID))
+				err = txn.Set([]byte(stem), mediaIDb)
 				if err != nil {
 					return fmt.Errorf("error setting key %s: %w", stem, err)
 				}
@@ -52,14 +67,11 @@ func (db *DB) InsertStems(imdbID string, title string, stems []string) error {
 				return fmt.Errorf("error getting value for key %s: %w", stem, err)
 			}
 
-			bits := strings.Split(string(existing), ",")
-			if slices.Contains(bits, imdbID) {
-				continue // don't insert a duplicate imdb ID for the same stem
+			if contains4(existing, mediaIDb) {
+				continue // don't add mediaID if it already exists in the set
 			}
 
-			toSet := append(existing, ',')
-			toSet = append(toSet, []byte(imdbID)...)
-			err = txn.Set([]byte(stem), toSet)
+			err = txn.Set([]byte(stem), append(existing, mediaIDb...))
 			if err != nil {
 				return fmt.Errorf("error setting key %s: %w", stem, err)
 			}
@@ -84,7 +96,11 @@ func (db *DB) List() error {
 			item := it.Item()
 			k := item.Key()
 			err := item.Value(func(v []byte) error {
-				fmt.Printf("key=%s, value=%s\n", k, v)
+				if k[0] == '_' {
+					fmt.Printf("key=%+v, value=%s\n", k, v)
+				} else {
+					fmt.Printf("key=%s, value=%+v\n", k, v)
+				}
 				return nil
 			})
 			if err != nil {
@@ -93,4 +109,28 @@ func (db *DB) List() error {
 		}
 		return nil
 	})
+}
+
+func uint32ToByte(n uint32) []byte {
+	a := make([]byte, 4)
+	binary.LittleEndian.PutUint32(a, n)
+	return a
+}
+
+func splitEvery4(b []byte) [][]byte {
+	var bits [][]byte
+	for i := 0; i < len(b); i += 4 {
+		bits = append(bits, b[i:i+4])
+	}
+	return bits
+}
+
+func contains4(all []byte, x []byte) bool {
+	bits := splitEvery4(all)
+	for _, b := range bits {
+		if slices.Equal(b, x) {
+			return true
+		}
+	}
+	return false
 }
