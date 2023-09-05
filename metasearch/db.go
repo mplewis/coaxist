@@ -83,9 +83,6 @@ func (db *DB) List() error {
 		for it.Rewind(); it.Valid(); it.Next() {
 			item := it.Item()
 			k := item.Key()
-			if string(k) != "yorks" {
-				continue
-			}
 			err := item.Value(func(v []byte) error {
 				fmt.Printf("key=%s, value=%s\n", k, v)
 				return nil
