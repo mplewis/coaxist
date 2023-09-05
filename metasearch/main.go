@@ -32,11 +32,11 @@ func main() {
 	db := must(NewDB(DB_PATH, canonicalize))
 	defer db.Close()
 
-	// fmt.Println("Parsing IMDB metadata")
-	// imdbIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
+	fmt.Println("Parsing IMDB metadata")
+	imdbIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
 
-	// fmt.Println("Processing titles")
-	// check(loadTitles(db, IMDB_AKAS_TSV_PATH, imdbIDs))
+	fmt.Println("Processing titles")
+	check(loadTitles(db, IMDB_AKAS_TSV_PATH, imdbIDs))
 
 	// check(db.List())
 
