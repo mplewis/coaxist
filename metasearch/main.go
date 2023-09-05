@@ -26,8 +26,8 @@ func main() {
 	os.MkdirAll(WORKDIR, 0755)
 	fmt.Println(WORKDIR)
 
-	// check(dlAndExtract(IMDB_BASICS_TSV_PATH, IMDB_BASICS_GZ_URL))
-	// check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
+	check(dlAndExtract(IMDB_BASICS_TSV_PATH, IMDB_BASICS_GZ_URL))
+	check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
 
 	db := must(NewDB(DB_PATH, canonicalize))
 	defer db.Close()
@@ -38,7 +38,7 @@ func main() {
 	fmt.Println("Processing titles")
 	check(loadTitles(db, IMDB_AKAS_TSV_PATH, imdbIDs))
 
-	// check(db.List())
+	check(db.List())
 
 	titles := []string{
 		"One Hundred Years of Mormonism",
