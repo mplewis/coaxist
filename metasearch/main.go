@@ -16,10 +16,10 @@ var (
 	DB_PATH             = envOr("DB_PATH", path.Join(WORKDIR, "db"))
 
 	IMDB_BASICS_GZ_URL   = fmt.Sprintf("%s/%s", IMDB_DATASETS, IMDB_BASICS_GZ_NAME)
-	IMDB_BASICS_TSV_PATH = path.Join(WORKDIR, "title.basics.tsv")
+	IMDB_BASICS_TSV_PATH = path.Join(WORKDIR, "title.basics.snw.tsv")
 
 	IMDB_AKAS_GZ_URL   = fmt.Sprintf("%s/%s", IMDB_DATASETS, IMDB_AKAS_GZ_NAME)
-	IMDB_AKAS_TSV_PATH = path.Join(WORKDIR, "title.akas.tsv")
+	IMDB_AKAS_TSV_PATH = path.Join(WORKDIR, "title.akas.snw.tsv")
 )
 
 func main() {
@@ -32,11 +32,11 @@ func main() {
 	db := must(NewDB(DB_PATH, canonicalize))
 	defer db.Close()
 
-	// fmt.Println("Parsing IMDB metadata")
-	// imdbIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
+	fmt.Println("Parsing IMDB metadata")
+	imdbIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
 
-	// fmt.Println("Processing titles")
-	// check(loadTitles(db, IMDB_AKAS_TSV_PATH, imdbIDs))
+	fmt.Println("Processing titles")
+	check(loadTitles(db, IMDB_AKAS_TSV_PATH, imdbIDs))
 
 	// check(db.List())
 
@@ -47,9 +47,7 @@ func main() {
 		"Star Trek: Strange New Worlds",
 	}
 	for _, title := range titles {
-		results := must(db.QueryTitle(title, true))
-		fmt.Println(title, results)
-		results = must(db.QueryTitle(title, true))
+		results := must(db.QueryTitle(title))
 		fmt.Println(title, results)
 	}
 }

@@ -105,9 +105,11 @@ func (db *DB) List() error {
 			k := item.Key()
 			err := item.Value(func(v []byte) error {
 				if k[0] == '_' {
-					fmt.Printf("key=%+v, value=%s\n", k, v)
+					kn := bytesToUint32s(k[1:])[0]
+					fmt.Printf("key=%d, value=%s\n", kn, v)
 				} else {
-					fmt.Printf("key=%s, value=%+v\n", k, v)
+					vns := bytesToUint32s(v)
+					fmt.Printf("key=%s, value=%+v\n", k, vns)
 				}
 				return nil
 			})
@@ -182,27 +184,29 @@ func (db *DB) QueryStem(stem string) ([]uint32, error) {
 	return ids, nil
 }
 
-func (db *DB) QueryTitle(title string, stem bool) ([]string, error) {
-	canonicalized := db.canonicalizer(title, stem)
-	var resultsByWord [][]uint32
-	for _, stem := range canonicalized {
-		stemIDs, err := db.QueryStem(stem)
-		if err != nil {
-			return nil, fmt.Errorf("error querying db: %w", err)
-		}
-		resultsByWord = append(resultsByWord, stemIDs)
-	}
-	mediaKeys := intersect(resultsByWord...)
+func (db *DB) QueryTitle(title string) ([]string, error) {
 	var results []string
-	for _, mediaID := range mediaKeys {
-		imdbID, found, err := db.QueryMedia(mediaID)
-		if err != nil {
-			return nil, fmt.Errorf("error querying db: %w", err)
+	for _, doStem := range []bool{true, false} {
+		var resultsByWord [][]uint32
+		for _, stem := range db.canonicalizer(title, doStem) {
+			stemIDs, err := db.QueryStem(stem)
+			if err != nil {
+				return nil, fmt.Errorf("error querying db: %w", err)
+			}
+			resultsByWord = append(resultsByWord, stemIDs)
 		}
-		if !found {
-			return nil, fmt.Errorf("error querying db: mediaID %d not found", mediaID)
+
+		mediaKeys := intersect(resultsByWord...)
+		for _, mediaID := range mediaKeys {
+			imdbID, found, err := db.QueryMedia(mediaID)
+			if err != nil {
+				return nil, fmt.Errorf("error querying db: %w", err)
+			}
+			if !found {
+				return nil, fmt.Errorf("error querying db: mediaID %d not found", mediaID)
+			}
+			results = append(results, imdbID)
 		}
-		results = append(results, imdbID)
 	}
 	return results, nil
 }
