@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mplewis/metasearch/lib/filedb"
 	"github.com/schollz/progressbar/v3"
 	"golang.org/x/exp/slices"
 )
@@ -18,23 +17,24 @@ type Indexable struct {
 	Stems   []string
 }
 
-func loadBasicMetadata(db *filedb.FileDB, path string) error {
+func loadBasicMetadata(db *DB, path string) (map[string]struct{}, error) {
 	total, err := countLines(path)
 	if err != nil {
-		return fmt.Errorf("error counting lines in IMDB basics TSV: %w", err)
+		return nil, fmt.Errorf("error counting lines in IMDB basics TSV: %w", err)
 	}
 	bar := progressbar.Default(int64(total - 1))
 	defer bar.Finish()
 
 	records, err := parseTsv(path)
 	if err != nil {
-		return fmt.Errorf("error parsing IMDB basics TSV: %w", err)
+		return nil, fmt.Errorf("error parsing IMDB basics TSV: %w", err)
 	}
 
+	imdbIDs := map[string]struct{}{}
 	for record := range records {
 		bar.Add(1)
 		if record.Error != nil {
-			return fmt.Errorf("error parsing IMDB basics TSV record: %w: %+v", record.Error, record)
+			return nil, fmt.Errorf("error parsing IMDB basics TSV record: %w: %+v", record.Error, record)
 		}
 
 		adult := record.Data[4]
@@ -47,12 +47,12 @@ func loadBasicMetadata(db *filedb.FileDB, path string) error {
 		}
 
 		imdbID := record.Data[0]
-		db.UpsertTitle(imdbID)
+		imdbIDs[imdbID] = struct{}{}
 	}
-	return nil
+	return imdbIDs, nil
 }
 
-func loadTitles(db *filedb.FileDB, path string) error {
+func loadTitles(db *DB, path string, imdbIDs map[string]struct{}) error {
 	recordCount, err := countLines(path)
 	if err != nil {
 		return fmt.Errorf("error counting lines in IMDB akas TSV: %w", err)
@@ -65,11 +65,19 @@ func loadTitles(db *filedb.FileDB, path string) error {
 		return fmt.Errorf("error loading titles: %w", err)
 	}
 
+	count := 0
 	for row := range rows {
+		count += 1
+		if count == 1000 {
+			break
+		}
 		bar.Add(1)
 
 		record := strings.Split(row, "\t")
 		imdbID := record[0]
+		if _, ok := imdbIDs[imdbID]; !ok {
+			continue
+		}
 		lang := record[3]
 		if lang == `\N` {
 			continue
@@ -77,7 +85,7 @@ func loadTitles(db *filedb.FileDB, path string) error {
 
 		title := record[2]
 		stems := canonicalize(title, lang == "GB" || lang == "US")
-		err := db.UpsertStems(imdbID, title, stems)
+		err := db.InsertStems(imdbID, title, stems)
 		if err != nil {
 			return err
 		}

@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/mplewis/metasearch/lib/filedb"
 	_ "modernc.org/sqlite"
 )
 
@@ -29,12 +28,13 @@ func main() {
 
 	check(dlAndExtract(IMDB_BASICS_TSV_PATH, IMDB_BASICS_GZ_URL))
 	check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
-	db := filedb.New(DB_PATH)
-	db.Empty()
+	db := must(NewDB(DB_PATH))
 
 	fmt.Println("Parsing IMDB metadata")
-	check(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
+	imdbIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
 
 	fmt.Println("Processing titles")
-	check(loadTitles(db, IMDB_AKAS_TSV_PATH))
+	check(loadTitles(db, IMDB_AKAS_TSV_PATH, imdbIDs))
+
+	check(db.List())
 }
