@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/dgraph-io/badger/v4"
@@ -31,9 +32,26 @@ func (db *DB) InsertStems(imdbID string, title string, stems []string) error {
 
 	return db.kv.Update(func(txn *badger.Txn) error {
 		for _, stem := range stems {
-			err := txn.Set([]byte(stem), []byte(imdbID))
+			// get existing value
+			item, err := txn.Get([]byte(stem))
 			if err != nil {
-				return err
+				if errors.Is(err, badger.ErrKeyNotFound) {
+					err = txn.Set([]byte(stem), []byte(imdbID))
+					if err != nil {
+						return fmt.Errorf("error setting key %s: %w", stem, err)
+					}
+				} else {
+					existing, err := item.ValueCopy(nil)
+					if err != nil {
+						return fmt.Errorf("error getting key %s: %w", stem, err)
+					}
+					toSet := append(existing, ',')
+					toSet = append(toSet, []byte(imdbID)...)
+					err = txn.Set([]byte(stem), toSet)
+					if err != nil {
+						return fmt.Errorf("error setting key %s: %w", stem, err)
+					}
+				}
 			}
 		}
 		return nil
