@@ -29,16 +29,16 @@ func main() {
 	// check(dlAndExtract(IMDB_BASICS_TSV_PATH, IMDB_BASICS_GZ_URL))
 	// check(dlAndExtract(IMDB_AKAS_TSV_PATH, IMDB_AKAS_GZ_URL))
 
-	db := must(NewDB(DB_PATH))
+	db := must(NewDB(DB_PATH, canonicalize))
 	defer db.Close()
 
-	// fmt.Println("Parsing IMDB metadata")
-	// imdbIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
+	fmt.Println("Parsing IMDB metadata")
+	imdbIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
 
-	// fmt.Println("Processing titles")
-	// check(loadTitles(db, IMDB_AKAS_TSV_PATH, imdbIDs))
+	fmt.Println("Processing titles")
+	check(loadTitles(db, IMDB_AKAS_TSV_PATH, imdbIDs))
 
-	// check(db.List())
+	check(db.List())
 
 	results := [][]uint32{}
 	for _, word := range canonicalize("One Hundred Years of Mormonism", true) {

@@ -88,8 +88,7 @@ func loadTitles(db *DB, path string, imdbIDToMediaID map[string]uint32) error {
 		}
 
 		title := record[2]
-		stems := canonicalize(title, lang == "GB" || lang == "US")
-		err := db.InsertStems(mediaID, title, stems)
+		err := db.InsertStems(mediaID, title, lang == "GB" || lang == "US")
 		if err != nil {
 			return err
 		}

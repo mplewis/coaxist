@@ -10,18 +10,26 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+type Canonicalizer func(string, bool) []string
+
 type DB struct {
 	kv                  *badger.DB
 	insertedTitles      map[string]struct{}
 	lastInsertedTitleID uint32
+	canonicalizer       Canonicalizer
 }
 
-func NewDB(path string) (*DB, error) {
+func NewDB(path string, can Canonicalizer) (*DB, error) {
 	kv, err := badger.Open(badger.DefaultOptions(path))
 	if err != nil {
 		return nil, err
 	}
-	db := &DB{kv: kv, insertedTitles: map[string]struct{}{}, lastInsertedTitleID: 0}
+	db := &DB{
+		kv:                  kv,
+		insertedTitles:      map[string]struct{}{},
+		lastInsertedTitleID: 0,
+		canonicalizer:       can,
+	}
 	return db, nil
 }
 
@@ -42,14 +50,16 @@ func (db *DB) InsertMedia(imdbID string) (uint32, error) {
 	return id, nil
 }
 
-func (db *DB) InsertStems(mediaID uint32, title string, stems []string) error {
+func (db *DB) InsertStems(mediaID uint32, title string, doStem bool) error {
 	if _, ok := db.insertedTitles[title]; ok {
 		return nil
 	}
 	mediaIDb := uint32ToByte(mediaID)
 
+	canonicalized := db.canonicalizer(title, doStem)
+
 	err := db.kv.Update(func(txn *badger.Txn) error {
-		for _, stem := range stems {
+		for _, stem := range canonicalized {
 			item, err := txn.Get([]byte(stem))
 			if err != nil {
 				if !errors.Is(err, badger.ErrKeyNotFound) {
