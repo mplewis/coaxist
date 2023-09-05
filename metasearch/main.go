@@ -32,16 +32,23 @@ func main() {
 	db := must(NewDB(DB_PATH))
 	defer db.Close()
 
-	fmt.Println("Parsing IMDB metadata")
-	imdbIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
+	// fmt.Println("Parsing IMDB metadata")
+	// imdbIDs := must(loadBasicMetadata(db, IMDB_BASICS_TSV_PATH))
 
-	fmt.Println("Processing titles")
-	check(loadTitles(db, IMDB_AKAS_TSV_PATH, imdbIDs))
+	// fmt.Println("Processing titles")
+	// check(loadTitles(db, IMDB_AKAS_TSV_PATH, imdbIDs))
 
 	// check(db.List())
 
 	for _, word := range canonicalize("One Hundred Years of Mormonism", true) {
-		results := must(db.QueryStem(word))
-		fmt.Printf("%s: %+v\n", word, results)
+		stemResults := must(db.QueryStem(word))
+		fmt.Printf("%s: %+v\n", word, stemResults)
+		results := intersect(stemResults)
+		fmt.Println("results:", results)
+		for _, result := range results {
+			title, ok, err := db.QueryMedia(result)
+			check(err)
+			fmt.Printf("%d: %t %s\n", result, ok, title)
+		}
 	}
 }

@@ -13,6 +13,7 @@ require (
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect

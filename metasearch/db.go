@@ -206,3 +206,19 @@ func contains4(all []byte, x []byte) bool {
 	}
 	return false
 }
+
+func intersect(itemSets ...[]uint32) []uint32 {
+	counts := map[uint32]int{}
+	for _, itemSet := range itemSets {
+		for _, item := range itemSet {
+			counts[item]++
+		}
+	}
+	result := []uint32{}
+	for item, count := range counts {
+		if count == len(itemSets) {
+			result = append(result, item)
+		}
+	}
+	return result
+}
