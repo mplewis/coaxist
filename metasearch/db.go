@@ -185,6 +185,19 @@ func (db *DB) QueryStem(stem string) ([]uint32, error) {
 	return ids, nil
 }
 
+func (db *DB) QueryTitle(title string, stem bool) ([]uint32, error) {
+	canonicalized := db.canonicalizer(title, stem)
+	var resultsByWord [][]uint32
+	for _, stem := range canonicalized {
+		stemIDs, err := db.QueryStem(stem)
+		if err != nil {
+			return nil, fmt.Errorf("error querying db: %w", err)
+		}
+		resultsByWord = append(resultsByWord, stemIDs)
+	}
+	return intersect(resultsByWord...), nil
+}
+
 func uint32ToByte(n uint32) []byte {
 	a := make([]byte, 4)
 	binary.LittleEndian.PutUint32(a, n)
