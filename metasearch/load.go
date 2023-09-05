@@ -65,20 +65,16 @@ func loadTitles(db *DB, path string, imdbIDs map[string]struct{}) error {
 		return fmt.Errorf("error loading titles: %w", err)
 	}
 
-	count := 0
 	for row := range rows {
-		if count > 10_000 {
-			break
-		}
 		bar.Add(1)
 
 		record := strings.Split(row, "\t")
-		imdbID := record[0]
-		if _, ok := imdbIDs[imdbID]; !ok {
-			continue
-		}
 		lang := record[3]
 		if lang == `\N` {
+			continue
+		}
+		imdbID := record[0]
+		if _, ok := imdbIDs[imdbID]; !ok {
 			continue
 		}
 
@@ -88,7 +84,6 @@ func loadTitles(db *DB, path string, imdbIDs map[string]struct{}) error {
 		if err != nil {
 			return err
 		}
-		count += 1
 	}
 
 	return nil
