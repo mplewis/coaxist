@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	set "github.com/deckarep/golang-set/v2"
 	"github.com/dgraph-io/badger/v4"
 	"golang.org/x/exp/slices"
 )
@@ -208,17 +209,13 @@ func contains4(all []byte, x []byte) bool {
 }
 
 func intersect(itemSets ...[]uint32) []uint32 {
-	counts := map[uint32]int{}
-	for _, itemSet := range itemSets {
-		for _, item := range itemSet {
-			counts[item]++
-		}
+	sets := []set.Set[uint32]{}
+	for _, items := range itemSets {
+		sets = append(sets, set.NewSet[uint32](items...))
 	}
-	result := []uint32{}
-	for item, count := range counts {
-		if count == len(itemSets) {
-			result = append(result, item)
-		}
+	result := sets[0]
+	for _, s := range sets[1:] {
+		result = result.Intersect(s)
 	}
-	return result
+	return result.ToSlice()
 }

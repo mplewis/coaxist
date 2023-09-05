@@ -40,15 +40,11 @@ func main() {
 
 	// check(db.List())
 
+	results := [][]uint32{}
 	for _, word := range canonicalize("One Hundred Years of Mormonism", true) {
 		stemResults := must(db.QueryStem(word))
-		fmt.Printf("%s: %+v\n", word, stemResults)
-		results := intersect(stemResults)
-		fmt.Println("results:", results)
-		for _, result := range results {
-			title, ok, err := db.QueryMedia(result)
-			check(err)
-			fmt.Printf("%d: %t %s\n", result, ok, title)
-		}
+		results = append(results, stemResults)
 	}
+	final := intersect(results...)
+	fmt.Println(final)
 }

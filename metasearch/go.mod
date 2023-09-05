@@ -3,6 +3,7 @@ module github.com/mplewis/metasearch
 go 1.20
 
 require (
+	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/dgraph-io/badger/v4 v4.2.0
 	github.com/schollz/progressbar/v3 v3.13.1
 	github.com/surgebase/porter2 v0.0.0-20150829210152-56e4718818e8
@@ -13,7 +14,6 @@ require (
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
