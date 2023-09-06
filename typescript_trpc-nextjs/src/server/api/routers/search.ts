@@ -3,15 +3,28 @@ import { createTRPCRouter, publicProcedure } from "../trpc";
 
 const cinemetaHost = "https://v3-cinemeta.strem.io";
 
-async function searchMovie(q: string) {
-  const resp = await fetch(
-    `${cinemetaHost}/catalog/movie/top/search=${q}.json`
-  );
-  const data = await resp.json();
-  return data;
+export interface CinemetaResult {
+  type: "movie" | "series" | string;
+  imdb_id: string;
+  name: string;
+  releaseInfo: string;
+  poster: string;
 }
 
-export const searchRouter = createTRPCRouter({
+async function search(q: string): Promise<CinemetaResult[]> {
+  const movieReq = fetch(`${cinemetaHost}/catalog/movie/top/search=${q}.json`);
+  const seriesReq = fetch(
+    `${cinemetaHost}/catalog/series/top/search=${q}.json`
+  );
+  const [movieRes, seriesRes] = await Promise.all([movieReq, seriesReq]);
+  const [movie, series] = await Promise.all([
+    movieRes.json(),
+    seriesRes.json(),
+  ]);
+  return [...movie.metas, ...series.metas];
+}
+
+export const mediaRouter = createTRPCRouter({
   search: publicProcedure
     .input(
       z.object({
@@ -19,6 +32,6 @@ export const searchRouter = createTRPCRouter({
       })
     )
     .query(({ input }) => {
-      return searchMovie(input.q);
+      return search(input.q);
     }),
 });
