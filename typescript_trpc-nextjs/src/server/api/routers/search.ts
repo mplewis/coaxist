@@ -3,7 +3,7 @@ import { createTRPCRouter, publicProcedure } from "../trpc";
 
 const cinemetaHost = "https://v3-cinemeta.strem.io";
 
-export interface CinemetaResult {
+export interface CinemetaSearchResult {
   type: "movie" | "series" | string;
   imdb_id: string;
   name: string;
@@ -11,7 +11,27 @@ export interface CinemetaResult {
   poster: string;
 }
 
-async function search(q: string): Promise<CinemetaResult[]> {
+export interface CinemetaMovie {
+  type: "movie";
+  imdb_id: string;
+
+  name: string;
+  year: string;
+  description: string;
+
+  country: string;
+  director: string[];
+  writer: string[];
+  cast: string[];
+  genre: string[];
+
+  poster: string;
+  background: string;
+  logo: string;
+  runtime: string;
+}
+
+async function search(q: string): Promise<CinemetaSearchResult[]> {
   const movieReq = fetch(`${cinemetaHost}/catalog/movie/top/search=${q}.json`);
   const seriesReq = fetch(
     `${cinemetaHost}/catalog/series/top/search=${q}.json`
@@ -24,14 +44,19 @@ async function search(q: string): Promise<CinemetaResult[]> {
   return [...movie.metas, ...series.metas];
 }
 
+async function movie(imdbID: string): Promise<CinemetaMovie> {
+  const res = await fetch(`${cinemetaHost}/meta/movie/${imdbID}.json`);
+  console.log(res);
+  const data = await res.json();
+  console.log(data);
+  return data.meta;
+}
+
 export const mediaRouter = createTRPCRouter({
   search: publicProcedure
-    .input(
-      z.object({
-        q: z.string(),
-      })
-    )
-    .query(({ input }) => {
-      return search(input.q);
-    }),
+    .input(z.object({ q: z.string() }))
+    .query(({ input }) => search(input.q)),
+  movie: publicProcedure
+    .input(z.object({ imdbID: z.string() }))
+    .query(({ input }) => movie(input.imdbID)),
 });
