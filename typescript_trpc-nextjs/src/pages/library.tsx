@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { api } from "../utils/api";
 
 export const Library = () => {
@@ -7,7 +8,9 @@ export const Library = () => {
       <h1>Library</h1>
       {data?.map((media) => (
         <p>
-          {media.type}: {media.imdbID}
+          <Link href={`/${media.type}/${media.imdbID}`}>
+            {media.type}: {media.imdbID}
+          </Link>
         </p>
       ))}
     </div>
