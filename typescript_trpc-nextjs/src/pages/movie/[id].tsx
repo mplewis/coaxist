@@ -13,6 +13,7 @@ const Media = () => {
     );
   }
   const { data } = api.media.meta.movie.useQuery({ imdbID: id.toString() });
+  const add = api.library.add.useMutation();
 
   if (!data) {
     return (
@@ -33,6 +34,12 @@ const Media = () => {
             {data.year}, {data.runtime}, {data.genres.join(", ")}
           </p>
           <p>{data.description}</p>
+          <button
+            onClick={() =>
+              add.mutateAsync({ type: "movie", imdbID: data.imdb_id })
+            }>
+            Add to Library
+          </button>
           <TorrentData type="movie" imdbID={data.imdb_id} />
         </main>
       </div>
