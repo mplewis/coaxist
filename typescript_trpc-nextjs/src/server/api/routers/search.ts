@@ -1,7 +1,20 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
+import { LRUCache } from "lru-cache";
+import ms from "ms";
 
 const cinemetaHost = "https://v3-cinemeta.strem.io";
+
+const fetchCache = new LRUCache({ ttl: ms("1h"), max: 1000 });
+
+async function fetchCachedJSON(url: string): Promise<any> {
+  const val = fetchCache.get(url);
+  if (val) return Promise.resolve(val);
+  const res = await fetch(url);
+  const json = await res.json();
+  fetchCache.set(url, json);
+  return json;
+}
 
 export interface CinemetaSearchResult {
   type: "movie" | "series" | string;
@@ -57,27 +70,24 @@ export interface CinemetaEpisode {
 }
 
 async function search(q: string): Promise<CinemetaSearchResult[]> {
-  const movieReq = fetch(`${cinemetaHost}/catalog/movie/top/search=${q}.json`);
-  const seriesReq = fetch(
-    `${cinemetaHost}/catalog/series/top/search=${q}.json`
-  );
-  const [movieRes, seriesRes] = await Promise.all([movieReq, seriesReq]);
   const [movie, series] = await Promise.all([
-    movieRes.json(),
-    seriesRes.json(),
+    fetchCachedJSON(`${cinemetaHost}/catalog/movie/top/search=${q}.json`),
+    fetchCachedJSON(`${cinemetaHost}/catalog/series/top/search=${q}.json`),
   ]);
   return [...movie.metas, ...series.metas];
 }
 
 async function movie(imdbID: string): Promise<CinemetaMovie> {
-  const res = await fetch(`${cinemetaHost}/meta/movie/${imdbID}.json`);
-  const data = await res.json();
+  const data = await fetchCachedJSON(
+    `${cinemetaHost}/meta/movie/${imdbID}.json`
+  );
   return data.meta;
 }
 
 async function series(imdbID: string): Promise<CinemetaSeries> {
-  const res = await fetch(`${cinemetaHost}/meta/series/${imdbID}.json`);
-  const data = await res.json();
+  const data = await fetchCachedJSON(
+    `${cinemetaHost}/meta/series/${imdbID}.json`
+  );
   return data.meta;
 }
 
