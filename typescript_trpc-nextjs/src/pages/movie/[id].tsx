@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import Layout from "../../components/Layout";
 import { api } from "../../utils/api";
+import { TorrentData } from "../../components/TorrentData";
 
 const Media = () => {
   const id = useRouter().query.id;
@@ -11,7 +12,7 @@ const Media = () => {
       </p>
     );
   }
-  const { data } = api.media.movie.useQuery({ imdbID: id.toString() });
+  const { data } = api.media.meta.movie.useQuery({ imdbID: id.toString() });
 
   if (!data) {
     return (
@@ -32,6 +33,7 @@ const Media = () => {
             {data.year}, {data.runtime}, {data.genre.join(", ")}
           </p>
           <p>{data.description}</p>
+          <TorrentData type="movie" imdbID={data.imdb_id} />
         </main>
       </div>
     </Layout>

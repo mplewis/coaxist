@@ -5,6 +5,7 @@ import { api } from "../../utils/api";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { CinemetaEpisode } from "../../server/api/routers/search";
+import { TorrentData } from "../../components/TorrentData";
 dayjs.extend(relativeTime);
 
 const Media = () => {
@@ -16,7 +17,7 @@ const Media = () => {
       </p>
     );
   }
-  const { data } = api.media.series.useQuery({ imdbID: id.toString() });
+  const { data } = api.media.meta.series.useQuery({ imdbID: id.toString() });
 
   if (!data) {
     return (
@@ -53,6 +54,12 @@ const Media = () => {
                 <img src={video.thumbnail} alt={video.name} />
                 <p>{video.description}</p>
                 <p>{releaseText(video)}</p>
+                <TorrentData
+                  type="series"
+                  imdbID={data.imdb_id}
+                  season={video.season}
+                  episode={video.episode}
+                />
               </li>
             ))}
           </ul>

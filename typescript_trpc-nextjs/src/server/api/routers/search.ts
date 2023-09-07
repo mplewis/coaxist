@@ -4,6 +4,9 @@ import { LRUCache } from "lru-cache";
 import ms from "ms";
 
 const cinemetaHost = "https://v3-cinemeta.strem.io";
+const torrentioHost = "https://torrentio.strem.fun";
+
+const settings = `alldebrid=${process.env.ALLDEBRID_API_KEY}`;
 
 const fetchCache = new LRUCache({ ttl: ms("1h"), max: 1000 });
 
@@ -69,6 +72,17 @@ export interface CinemetaEpisode {
   thumbnail: string;
 }
 
+export interface TorrentioStream {
+  /** e.g. `Barbie 2023 1080p WEBRip\n👤 13873 💾 2.1 GB ⚙️ YTS` */
+  title: string;
+  /** Direct link to the video file streamed from debrid */
+  url: string;
+  behaviorHints: {
+    /** e.g. `torrentio|1080p|WEBRip|hevc|10bit` */
+    bingeGroup: string | null;
+  };
+}
+
 async function search(q: string): Promise<CinemetaSearchResult[]> {
   const [movie, series] = await Promise.all([
     fetchCachedJSON(`${cinemetaHost}/catalog/movie/top/search=${q}.json`),
@@ -77,28 +91,68 @@ async function search(q: string): Promise<CinemetaSearchResult[]> {
   return [...movie.metas, ...series.metas];
 }
 
-async function movie(imdbID: string): Promise<CinemetaMovie> {
+async function metaMovie(imdbID: string): Promise<CinemetaMovie> {
   const data = await fetchCachedJSON(
     `${cinemetaHost}/meta/movie/${imdbID}.json`
   );
   return data.meta;
 }
 
-async function series(imdbID: string): Promise<CinemetaSeries> {
+async function metaSeries(imdbID: string): Promise<CinemetaSeries> {
   const data = await fetchCachedJSON(
     `${cinemetaHost}/meta/series/${imdbID}.json`
   );
   return data.meta;
 }
 
+async function torrentMovie(
+  settings: string,
+  imdbID: string
+): Promise<TorrentioStream[]> {
+  const data = await fetchCachedJSON(
+    `${torrentioHost}/${settings}/stream/movie/${imdbID}.json`
+  );
+  return data.streams;
+}
+
+async function torrentSeries(
+  settings: string,
+  imdbID: string,
+  season: number,
+  episode: number
+): Promise<TorrentioStream[]> {
+  const data = await fetchCachedJSON(
+    `${torrentioHost}/${settings}/stream/series/${imdbID}:${season}:${episode}.json`
+  );
+  return data.streams;
+}
+
 export const mediaRouter = createTRPCRouter({
   search: publicProcedure
     .input(z.object({ q: z.string() }))
     .query(({ input }) => search(input.q)),
-  movie: publicProcedure
-    .input(z.object({ imdbID: z.string() }))
-    .query(({ input }) => movie(input.imdbID)),
-  series: publicProcedure
-    .input(z.object({ imdbID: z.string() }))
-    .query(({ input }) => series(input.imdbID)),
+  meta: createTRPCRouter({
+    movie: publicProcedure
+      .input(z.object({ imdbID: z.string() }))
+      .query(({ input }) => metaMovie(input.imdbID)),
+    series: publicProcedure
+      .input(z.object({ imdbID: z.string() }))
+      .query(({ input }) => metaSeries(input.imdbID)),
+  }),
+  torrent: createTRPCRouter({
+    movie: publicProcedure
+      .input(z.object({ imdbID: z.string() }))
+      .query(({ input }) => torrentMovie(settings, input.imdbID)),
+    series: publicProcedure
+      .input(
+        z.object({
+          imdbID: z.string(),
+          season: z.number(),
+          episode: z.number(),
+        })
+      )
+      .query(({ input }) =>
+        torrentSeries(settings, input.imdbID, input.season, input.episode)
+      ),
+  }),
 });
