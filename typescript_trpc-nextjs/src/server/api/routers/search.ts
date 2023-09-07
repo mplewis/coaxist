@@ -11,24 +11,49 @@ export interface CinemetaSearchResult {
   poster: string;
 }
 
-export interface CinemetaMovie {
-  type: "movie";
+export interface CinemetaDetails {
+  type: "movie" | "series";
   imdb_id: string;
 
   name: string;
   year: string;
   description: string;
-
+  runtime: string;
   country: string;
+  genre: string[];
+
   director: string[];
   writer: string[];
   cast: string[];
-  genre: string[];
 
   poster: string;
   background: string;
   logo: string;
-  runtime: string;
+}
+
+export interface CinemetaMovie extends CinemetaDetails {
+  type: "movie";
+}
+
+export interface CinemetaSeries extends CinemetaDetails {
+  type: "series";
+  videos: CinemetaEpisode[];
+}
+
+export interface CinemetaEpisode {
+  /** tt0804484:2:8 for Foundation S02E08 */
+  id: string;
+  /** per-episode */
+  tvdb_id: number;
+  season: number;
+  episode: number;
+  /** ISO8601 date. If this episode hasn't come out yet, this will be in the future. */
+  released: string;
+
+  name: string;
+  description: string;
+
+  thumbnail: string;
 }
 
 async function search(q: string): Promise<CinemetaSearchResult[]> {
@@ -46,9 +71,13 @@ async function search(q: string): Promise<CinemetaSearchResult[]> {
 
 async function movie(imdbID: string): Promise<CinemetaMovie> {
   const res = await fetch(`${cinemetaHost}/meta/movie/${imdbID}.json`);
-  console.log(res);
   const data = await res.json();
-  console.log(data);
+  return data.meta;
+}
+
+async function series(imdbID: string): Promise<CinemetaSeries> {
+  const res = await fetch(`${cinemetaHost}/meta/series/${imdbID}.json`);
+  const data = await res.json();
   return data.meta;
 }
 
@@ -59,4 +88,7 @@ export const mediaRouter = createTRPCRouter({
   movie: publicProcedure
     .input(z.object({ imdbID: z.string() }))
     .query(({ input }) => movie(input.imdbID)),
+  series: publicProcedure
+    .input(z.object({ imdbID: z.string() }))
+    .query(({ input }) => series(input.imdbID)),
 });

@@ -11,7 +11,7 @@ const Media = () => {
       </p>
     );
   }
-  const { data } = api.media.movie.useQuery({ imdbID: id.toString() });
+  const { data } = api.media.series.useQuery({ imdbID: id.toString() });
 
   if (!data) {
     return (
@@ -32,6 +32,16 @@ const Media = () => {
             {data.year}, {data.runtime}, {data.genre.join(", ")}
           </p>
           <p>{data.description}</p>
+          <ul>
+            {data.videos.map((video) => (
+              <li key={video.id}>
+                <h2>{video.name}</h2>
+                <img src={video.thumbnail} alt={video.name} />
+                <p>{video.description}</p>
+                <p>{video.released}</p>
+              </li>
+            ))}
+          </ul>
         </main>
       </div>
     </Layout>

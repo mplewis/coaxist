@@ -10,7 +10,6 @@ const Home: NextPage = () => {
   return (
     <Layout>
       <div className="page">
-        <h1>Hello World</h1>
         <main>
           {data?.map((media) => (
             <div key={media.imdb_id}>
