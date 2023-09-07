@@ -16,6 +16,7 @@ async function fetchCachedJSON(url: string): Promise<any> {
   const res = await fetch(url);
   const json = await res.json();
   fetchCache.set(url, json);
+  // console.log(JSON.stringify(json, null, 2));
   return json;
 }
 
@@ -36,7 +37,7 @@ export interface CinemetaDetails {
   description: string;
   runtime: string;
   country: string;
-  genre: string[];
+  genres: string[];
 
   director: string[];
   writer: string[];
@@ -84,6 +85,7 @@ export interface TorrentioStream {
 }
 
 async function search(q: string): Promise<CinemetaSearchResult[]> {
+  if (q.trim() === "") return [];
   const [movie, series] = await Promise.all([
     fetchCachedJSON(`${cinemetaHost}/catalog/movie/top/search=${q}.json`),
     fetchCachedJSON(`${cinemetaHost}/catalog/series/top/search=${q}.json`),
@@ -129,8 +131,11 @@ async function torrentSeries(
 
 export const mediaRouter = createTRPCRouter({
   search: publicProcedure
-    .input(z.object({ q: z.string() }))
-    .query(({ input }) => search(input.q)),
+    .input(z.object({ q: z.string().nullable() }))
+    .query(({ input }) => {
+      if (!input.q) return null;
+      return search(input.q);
+    }),
   meta: createTRPCRouter({
     movie: publicProcedure
       .input(z.object({ imdbID: z.string() }))

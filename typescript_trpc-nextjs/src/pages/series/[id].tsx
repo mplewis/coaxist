@@ -44,7 +44,7 @@ const Media = () => {
           <img src={data.poster} alt={data.name} />
           <h1>{data.name}</h1>
           <p>
-            {data.year}, {data.runtime}, {data.genre.join(", ")}
+            {data.year}, {data.runtime}, {data.genres.join(", ")}
           </p>
           <p>{data.description}</p>
           <ul>
