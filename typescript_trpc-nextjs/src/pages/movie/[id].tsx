@@ -2,24 +2,63 @@ import { useRouter } from "next/router";
 import Layout from "../../components/Layout";
 import { api } from "../../utils/api";
 import { TorrentData } from "../../components/TorrentData";
+import { useState } from "react";
 
-const Media = () => {
-  const id = useRouter().query.id;
-  if (!id) {
+const Media = (props: { id: string }) => {
+  const { id } = props;
+  const [lastLibraryUpdate, setLastLibraryUpdate] = useState(new Date());
+  const [libraryUpdating, setLibraryUpdating] = useState(false);
+  const { data: meta } = api.media.meta.movie.useQuery(
+    { imdbID: id },
+    { queryKeyHashFn: (key) => `${key}_${lastLibraryUpdate}` }
+  );
+  const { data: entry, isLoading: isLoadingEntry } = api.library.get.useQuery(
+    { imdbID: id },
+    { queryKeyHashFn: (key) => `${key}_${lastLibraryUpdate}` }
+  );
+  const add = api.library.add.useMutation();
+  const remove = api.library.remove.useMutation();
+
+  if (!meta || isLoadingEntry) {
     return (
       <p>
         <em>Loading...</em>
       </p>
     );
   }
-  const { data } = api.media.meta.movie.useQuery({ imdbID: id.toString() });
-  const add = api.library.add.useMutation();
 
-  if (!data) {
-    return (
-      <p>
-        <em>Loading...</em>
-      </p>
+  let button = (
+    <button
+      disabled={libraryUpdating}
+      onClick={async () => {
+        setLibraryUpdating(true);
+        try {
+          await add.mutateAsync({ type: "movie", imdbID: meta.imdb_id });
+        } catch (e) {
+          // don't worry about it, just refresh
+        }
+        setLibraryUpdating(false);
+        setLastLibraryUpdate(new Date());
+      }}>
+      Add to Library
+    </button>
+  );
+  if (entry) {
+    button = (
+      <button
+        disabled={libraryUpdating}
+        onClick={async () => {
+          setLibraryUpdating(true);
+          try {
+            await remove.mutateAsync({ imdbID: meta.imdb_id });
+          } catch (e) {
+            // don't worry about it, just refresh
+          }
+          setLibraryUpdating(false);
+          setLastLibraryUpdate(new Date());
+        }}>
+        Remove from Library
+      </button>
     );
   }
 
@@ -28,23 +67,29 @@ const Media = () => {
       <div className="page">
         <h1>Media</h1>
         <main>
-          <img src={data.poster} alt={data.name} />
-          <h1>{data.name}</h1>
+          <img src={meta.poster} alt={meta.name} />
+          <h1>{meta.name}</h1>
           <p>
-            {data.year}, {data.runtime}, {data.genres.join(", ")}
+            {meta.year}, {meta.runtime}, {meta.genres.join(", ")}
           </p>
-          <p>{data.description}</p>
-          <button
-            onClick={() =>
-              add.mutateAsync({ type: "movie", imdbID: data.imdb_id })
-            }>
-            Add to Library
-          </button>
-          <TorrentData type="movie" imdbID={data.imdb_id} />
+          <p>{meta.description}</p>
+          {button}
+          <TorrentData type="movie" imdbID={meta.imdb_id} />
         </main>
       </div>
     </Layout>
   );
 };
 
-export default Media;
+const MediaWrapper = () => {
+  const { id } = useRouter().query;
+  if (!id)
+    return (
+      <p>
+        <em>Loading...</em>
+      </p>
+    );
+  return <Media id={id.toString()} />;
+};
+
+export default MediaWrapper;
