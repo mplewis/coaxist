@@ -5,7 +5,7 @@ import Layout from "../components/Layout";
 import Link from "next/link";
 
 const Home: NextPage = () => {
-  const { data } = api.media.search.useQuery({ q: "Star Trek" });
+  const { data } = api.media.search.useQuery({ q: "Foundation" });
 
   return (
     <Layout>

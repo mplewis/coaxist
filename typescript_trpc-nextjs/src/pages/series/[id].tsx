@@ -2,6 +2,11 @@ import { useRouter } from "next/router";
 import Layout from "../../components/Layout";
 import { api } from "../../utils/api";
 
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import { CinemetaEpisode } from "../../server/api/routers/search";
+dayjs.extend(relativeTime);
+
 const Media = () => {
   const id = useRouter().query.id;
   if (!id) {
@@ -21,6 +26,15 @@ const Media = () => {
     );
   }
 
+  function releaseText(video: CinemetaEpisode): string {
+    const releaseDate = new Date(video.released);
+    let releaseText = releaseDate.toString();
+    if (releaseDate > new Date()) {
+      releaseText = `${releaseDate} (${dayjs(releaseDate).fromNow()})`;
+    }
+    return releaseText;
+  }
+
   return (
     <Layout>
       <div className="page">
@@ -38,7 +52,7 @@ const Media = () => {
                 <h2>{video.name}</h2>
                 <img src={video.thumbnail} alt={video.name} />
                 <p>{video.description}</p>
-                <p>{video.released}</p>
+                <p>{releaseText(video)}</p>
               </li>
             ))}
           </ul>
