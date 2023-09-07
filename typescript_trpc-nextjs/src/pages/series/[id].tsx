@@ -4,7 +4,7 @@ import { api } from "../../utils/api";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { CinemetaEpisode } from "../../server/api/routers/search";
+import { CinemetaEpisode } from "../../server/api/routers/media";
 import { TorrentData } from "../../components/TorrentData";
 dayjs.extend(relativeTime);
 

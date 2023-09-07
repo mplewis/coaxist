@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { api } from "../utils/api";
-import { TorrentioStream } from "../server/api/routers/search";
+import { TorrentioStream } from "../server/api/routers/media";
 
 export type TorrentDataProps =
   | {

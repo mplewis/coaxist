@@ -1,33 +1,15 @@
-import Link from "next/link"
-import { useRouter } from "next/router"
+import Link from "next/link";
+import { useRouter } from "next/router";
 
 const Header = () => {
-  const router = useRouter()
+  const router = useRouter();
 
   function isActive(pathname: string) {
-    return router.pathname === pathname
+    return router.pathname === pathname;
   }
 
   return (
     <nav>
-      <div className="left">
-        <Link href="/" legacyBehavior>
-          <a className="bold" data-active={isActive("/")}>
-            Blog
-          </a>
-        </Link>
-        <Link href="/drafts" legacyBehavior>
-          <a data-active={isActive("/drafts")}>Drafts</a>
-        </Link>
-      </div>
-      <div className="right">
-        <Link href="/signup" legacyBehavior>
-          <a data-active={isActive("/signup")}>Signup</a>
-        </Link>
-        <Link href="/create" legacyBehavior>
-          <a data-active={isActive("/create")}>+ Create draft</a>
-        </Link>
-      </div>
       <style jsx>{`
         nav {
           display: flex;
@@ -65,6 +47,6 @@ const Header = () => {
       `}</style>
     </nav>
   );
-}
+};
 
-export default Header
+export default Header;
