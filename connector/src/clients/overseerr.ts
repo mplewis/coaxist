@@ -1,27 +1,51 @@
 export type OverseerrRequest = {
   id: number;
-  media: { tmdbId: number; tvdbId: number };
+  media: { mediaType: "movie" | "tv"; tmdbId: number; tvdbId: number };
   seasons: { seasonNumber: number }[];
+};
+
+export type OverseerrMetadata = {
+  type: "movie" | "tv";
+  externalIds: { imdbId: string };
 };
 
 export class OverseerrClient {
   constructor(private a: { host: string; apiKey: string }) {}
 
-  async getApprovedRequests() {
-    const res = await fetch(
-      `http://${this.a.host}/api/v1/request?take=99999999&filter=approved`,
-      { method: "GET", headers: { "X-Api-Key": this.a.apiKey } }
-    );
-    const json = await res.json();
-    return json.results as OverseerrRequest[];
-  }
-
-  async getRequest(id: number) {
-    const res = await fetch(`http://${this.a.host}/api/v1/request/${id}`, {
+  private async get(path: string) {
+    const url = `http://${this.a.host}/api/v1${path}`;
+    const res = await fetch(url, {
       method: "GET",
       headers: { "X-Api-Key": this.a.apiKey },
     });
-    const json = await res.json();
-    return json as OverseerrRequest;
+    return res.json();
+  }
+
+  async getApprovedRequests(): Promise<OverseerrRequest[]> {
+    const resp = await this.get(`/request?take=99999999&filter=approved`);
+    return resp.results;
+  }
+
+  async getRequest(id: number): Promise<OverseerrRequest> {
+    return this.get(`/request/${id}`);
+  }
+
+  async getMetadata(
+    type: "movie" | "tv",
+    tmdbID: number
+  ): Promise<OverseerrMetadata> {
+    return { type, ...(await this.get(`/${type}/${tmdbID}`)) };
+  }
+
+  async getMetadataForApprovedRequests(): Promise<
+    { request: OverseerrRequest; metadata: OverseerrMetadata }[]
+  > {
+    const requests = await this.getApprovedRequests();
+    const inFlight = requests.map(async (request) => {
+      const { mediaType, tmdbId } = request.media;
+      const metadata = await this.getMetadata(mediaType, tmdbId);
+      return { request, metadata };
+    });
+    return Promise.all(inFlight);
   }
 }

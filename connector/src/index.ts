@@ -10,11 +10,13 @@ async function main() {
     apiKey: process.env.OVERSEERR_API_KEY!,
   });
 
-  const requests = await overseerrClient.getApprovedRequests();
-  for (const request of requests) {
-    const requestDetails = await overseerrClient.getRequest(request.id);
-    console.log(requestDetails.media.tmdbId);
-  }
+  const resp = await overseerrClient.getMetadataForApprovedRequests();
+  console.log(
+    resp.map(
+      (r) =>
+        `${r.request.id}: ${r.request.media.tmdbId} => ${r.metadata.externalIds.imdbId}`
+    )
+  );
 }
 
 main();
