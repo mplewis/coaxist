@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { log, serve } from "./server";
 import { OverseerrClient } from "./clients/overseerr";
 import { getConfig } from "./util/config";
