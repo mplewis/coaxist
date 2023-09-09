@@ -1,24 +1,12 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
-import { LRUCache } from "lru-cache";
-import ms from "ms";
-
+import { cacheFor } from "../../../utils/cache";
 const cinemetaHost = "https://v3-cinemeta.strem.io";
 const torrentioHost = "https://torrentio.strem.fun";
 
 const settings = `alldebrid=${process.env.ALLDEBRID_API_KEY}`;
 
-const fetchCache = new LRUCache({ ttl: ms("1h"), max: 1000 });
-
-async function fetchCachedJSON(url: string): Promise<any> {
-  const val = fetchCache.get(url);
-  if (val) return Promise.resolve(val);
-  const res = await fetch(url);
-  const json = await res.json();
-  fetchCache.set(url, json);
-  // console.log(JSON.stringify(json, null, 2));
-  return json;
-}
+const cache = cacheFor("routers.media");
 
 export interface CinemetaSearchResult {
   type: "movie" | "series" | string;
@@ -87,22 +75,26 @@ export interface TorrentioStream {
 async function search(q: string): Promise<CinemetaSearchResult[]> {
   if (q.trim() === "") return [];
   const [movie, series] = await Promise.all([
-    fetchCachedJSON(`${cinemetaHost}/catalog/movie/top/search=${q}.json`),
-    fetchCachedJSON(`${cinemetaHost}/catalog/series/top/search=${q}.json`),
+    cache.getJSON("searchMovie", () =>
+      fetch(`${cinemetaHost}/catalog/movie/top/search=${q}.json`)
+    ),
+    cache.getJSON("searchSeries", () =>
+      fetch(`${cinemetaHost}/catalog/series/top/search=${q}.json`)
+    ),
   ]);
   return [...movie.metas, ...series.metas];
 }
 
 async function metaMovie(imdbID: string): Promise<CinemetaMovie> {
-  const data = await fetchCachedJSON(
-    `${cinemetaHost}/meta/movie/${imdbID}.json`
+  const data = await cache.getJSON(`metaMovie-${imdbID}`, () =>
+    fetch(`${cinemetaHost}/meta/movie/${imdbID}.json`)
   );
   return data.meta;
 }
 
 async function metaSeries(imdbID: string): Promise<CinemetaSeries> {
-  const data = await fetchCachedJSON(
-    `${cinemetaHost}/meta/series/${imdbID}.json`
+  const data = await cache.getJSON(`metaSeries-${imdbID}`, () =>
+    fetch(`${cinemetaHost}/meta/series/${imdbID}.json`)
   );
   return data.meta;
 }
@@ -111,8 +103,8 @@ async function torrentMovie(
   settings: string,
   imdbID: string
 ): Promise<TorrentioStream[]> {
-  const data = await fetchCachedJSON(
-    `${torrentioHost}/${settings}/stream/movie/${imdbID}.json`
+  const data = await cache.getJSON(`torrentMovie-${imdbID}`, () =>
+    fetch(`${torrentioHost}/${settings}/stream/movie/${imdbID}.json`)
   );
   return data.streams;
 }
@@ -123,8 +115,12 @@ async function torrentSeries(
   season: number,
   episode: number
 ): Promise<TorrentioStream[]> {
-  const data = await fetchCachedJSON(
-    `${torrentioHost}/${settings}/stream/series/${imdbID}:${season}:${episode}.json`
+  const data = await cache.getJSON(
+    `torrentSeries-${imdbID}-${season}-${episode}`,
+    () =>
+      fetch(
+        `${torrentioHost}/${settings}/stream/series/${imdbID}:${season}:${episode}.json`
+      )
   );
   return data.streams;
 }
