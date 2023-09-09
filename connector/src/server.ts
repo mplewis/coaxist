@@ -1,16 +1,25 @@
+import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import Fastify from "fastify";
-const fastify = Fastify({
+import { createContext } from "./api/context";
+import { router } from "./api/router";
+
+const server = Fastify({
   logger: true,
 });
 
-fastify.get("/", function (req, res) {
+server.get("/", function (req, res) {
   res.send({ hello: "world" });
 });
 
+server.register(fastifyTRPCPlugin, {
+  prefix: "/api",
+  trpcOptions: { router, createContext },
+});
+
 export function serve() {
-  fastify.listen({ port: 3000 }, (err) => {
+  server.listen({ port: 3000 }, (err) => {
     if (err) {
-      fastify.log.error(err);
+      server.log.error(err);
       process.exit(1);
     }
   });
