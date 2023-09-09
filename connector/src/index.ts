@@ -1,13 +1,16 @@
 import "dotenv/config";
 import { serve } from "./server";
 import { OverseerrClient } from "./clients/overseerr";
+import { getConfig } from "./util/config";
 
 async function main() {
   serve();
 
+  const config = getConfig();
+
   const overseerrClient = new OverseerrClient({
-    host: process.env.OVERSEERR_HOST!,
-    apiKey: process.env.OVERSEERR_API_KEY!,
+    host: config.OVERSEERR_HOST,
+    apiKey: config.OVERSEERR_API_KEY,
   });
 
   const resp = await overseerrClient.getMetadataForApprovedRequests();
