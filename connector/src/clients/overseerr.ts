@@ -4,7 +4,21 @@ export type OverseerrRequest = {
   seasons: { seasonNumber: number }[];
 };
 
-export type OverseerrMetadata = { externalIds: { imdbId: string } };
+export type OverseerrMetadata = {
+  name: string;
+  externalIds: { imdbId: string };
+};
+
+export type OverseerrSeason = {
+  seasonNumber: number;
+  episodes: [
+    {
+      episodeNumber: number;
+      /** Episode air date in YYYY-MM-DD format */
+      airDate: string;
+    },
+  ];
+};
 
 export class OverseerrClient {
   constructor(private a: { host: string; apiKey: string }) {}
@@ -27,21 +41,30 @@ export class OverseerrClient {
     return this.get(`/request/${id}`);
   }
 
+  async getSeason(tmdbID: number, season: number): Promise<OverseerrSeason> {
+    return this.get(`/tv/${tmdbID}/season/${season}`);
+  }
+
   async getMetadata(
     type: "movie" | "tv",
     tmdbID: number
   ): Promise<OverseerrMetadata> {
-    return this.get(`/${type}/${tmdbID}`);
+    const raw = await this.get(`/${type}/${tmdbID}`);
+    if (raw.title) raw.name = raw.title;
+    return raw;
   }
 
-  async getMetadataForApprovedRequests(): Promise<
-    { request: OverseerrRequest; metadata: OverseerrMetadata }[]
-  > {
+  async getMetadataForApprovedRequests() {
     const requests = await this.getApprovedRequests();
     const inFlight = requests.map(async (request) => {
       const { mediaType, tmdbId } = request.media;
       const metadata = await this.getMetadata(mediaType, tmdbId);
-      return { request, metadata };
+      const seasons = await Promise.all(
+        request.seasons.map(async (season) =>
+          this.getSeason(tmdbId, season.seasonNumber)
+        )
+      );
+      return { request, metadata, seasons };
     });
     return Promise.all(inFlight);
   }

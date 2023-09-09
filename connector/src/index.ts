@@ -17,9 +17,16 @@ async function main() {
     requests: resp.map((r) => ({
       type: r.request.media.mediaType,
       id: r.request.id,
+      name: r.metadata.name,
       tmdbId: r.request.media.tmdbId,
       imdbId: r.metadata.externalIds.imdbId,
-      seasons: r.request.seasons.map((s) => s.seasonNumber),
+      seasons: r.seasons.map((s) => ({
+        season: s.seasonNumber,
+        episodes: s.episodes.map((e) => ({
+          episode: e.episodeNumber,
+          airDate: e.airDate,
+        })),
+      })),
     })),
   });
 }
