@@ -4,10 +4,7 @@ export type OverseerrRequest = {
   seasons: { seasonNumber: number }[];
 };
 
-export type OverseerrMetadata = {
-  type: "movie" | "tv";
-  externalIds: { imdbId: string };
-};
+export type OverseerrMetadata = { externalIds: { imdbId: string } };
 
 export class OverseerrClient {
   constructor(private a: { host: string; apiKey: string }) {}
@@ -34,7 +31,7 @@ export class OverseerrClient {
     type: "movie" | "tv",
     tmdbID: number
   ): Promise<OverseerrMetadata> {
-    return { type, ...(await this.get(`/${type}/${tmdbID}`)) };
+    return this.get(`/${type}/${tmdbID}`);
   }
 
   async getMetadataForApprovedRequests(): Promise<

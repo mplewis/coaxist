@@ -15,9 +15,11 @@ async function main() {
   const resp = await overseerrClient.getMetadataForApprovedRequests();
   log.info({
     requests: resp.map((r) => ({
+      type: r.request.media.mediaType,
       id: r.request.id,
       tmdbId: r.request.media.tmdbId,
       imdbId: r.metadata.externalIds.imdbId,
+      seasons: r.request.seasons.map((s) => s.seasonNumber),
     })),
   });
 }
