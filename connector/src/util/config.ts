@@ -1,4 +1,5 @@
 import { readFileSync, statSync, writeFileSync } from "fs";
+import { log } from "../server";
 
 const keys = ["OVERSEERR_API_KEY", "OVERSEERR_HOST"] as const;
 export type Config = Record<(typeof keys)[number], string>;
@@ -18,8 +19,9 @@ export function getConfig(): Config {
     if (!exist) {
       const tmpl = keys.map((k) => `${k}=<YOUR_${k}_HERE>`).join("\n");
       writeFileSync(path, tmpl);
-      console.log(
-        `Wrote a new config file to ${path}. Please edit it and fill in your values.`
+      log.warn(
+        { path },
+        "Wrote a new config file. Please edit it and fill in your values."
       );
     }
 

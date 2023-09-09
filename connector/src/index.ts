@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { serve } from "./server";
+import { log, serve } from "./server";
 import { OverseerrClient } from "./clients/overseerr";
 import { getConfig } from "./util/config";
 
@@ -14,12 +14,13 @@ async function main() {
   });
 
   const resp = await overseerrClient.getMetadataForApprovedRequests();
-  console.log(
-    resp.map(
-      (r) =>
-        `${r.request.id}: ${r.request.media.tmdbId} => ${r.metadata.externalIds.imdbId}`
-    )
-  );
+  log.info({
+    requests: resp.map((r) => ({
+      id: r.request.id,
+      tmdbId: r.request.media.tmdbId,
+      imdbId: r.metadata.externalIds.imdbId,
+    })),
+  });
 }
 
 main();
