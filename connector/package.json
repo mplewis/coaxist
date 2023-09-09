@@ -4,16 +4,19 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "node --watch --loader=ts-node/esm ./src/index.ts"
+    "dev": "node --watch --loader=ts-node/esm ./src/index.ts | pnpm pino-pretty"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^20.6.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
+    "dotenv": "^16.3.1",
     "eslint": "^8.49.0",
     "eslint-config-airbnb-typescript": "^17.1.0",
+    "pino-pretty": "^10.2.0",
     "prettier": "^3.0.3",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2"

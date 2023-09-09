@@ -7,10 +7,6 @@ const server = Fastify({
   logger: true,
 });
 
-server.get("/", function (req, res) {
-  res.send({ hello: "world" });
-});
-
 server.register(fastifyTRPCPlugin, {
   prefix: "/api",
   trpcOptions: { router, createContext },
