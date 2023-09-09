@@ -18,6 +18,9 @@ dependencies:
     version: 3.22.2
 
 devDependencies:
+  '@types/ms':
+    specifier: ^0.7.31
+    version: 0.7.31
   '@types/node':
     specifier: ^20.6.0
     version: 20.6.0
@@ -205,6 +208,10 @@ packages:
 
   /@types/json5@0.0.29:
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
+    dev: true
+
+  /@types/ms@0.7.31:
+    resolution: {integrity: sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==}
     dev: true
 
   /@types/node@20.6.0:
