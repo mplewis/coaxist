@@ -6,17 +6,21 @@ export type Config = Record<(typeof keys)[number], string>;
 
 const placeholderRx = /<YOUR_\w+_HERE>/g;
 
-let _config: Config | null = null;
+let cachedConfig: Config | null = null;
+
+function exist(path: string) {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
 
 export function getConfig(): Config {
-  if (!_config) {
+  if (!cachedConfig) {
     const path = process.env.CONFIG || "config.env";
-    let exist = false;
-    try {
-      exist = statSync(path).isFile();
-    } catch {}
 
-    if (!exist) {
+    if (!exist(path)) {
       const tmpl = keys.map((k) => `${k}=<YOUR_${k}_HERE>`).join("\n");
       writeFileSync(path, tmpl);
       log.warn(
@@ -45,7 +49,7 @@ export function getConfig(): Config {
         );
       config[key] = val;
     }
-    _config = config;
+    cachedConfig = config;
   }
-  return _config;
+  return cachedConfig;
 }
