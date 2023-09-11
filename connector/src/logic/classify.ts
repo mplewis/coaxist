@@ -1,32 +1,78 @@
-const QUALITY_RANKING = ["2160p", "1080p", "720p", "576p", "480p"];
-
-export type Quality = (typeof QUALITY_RANKING)[number];
-
-type TagConsumer = {
-  tag: string;
+type TokenMatcher = {
+  name: string;
   match: readonly (string | readonly string[])[];
   consume?: boolean;
 };
 
-const dv: TagConsumer["match"] = ["dv", ["dolby", "vision"]];
+const QUALITY_MATCHERS = [
+  { name: "2160p", match: ["2160p", "4k"] },
+  { name: "1080p", match: ["1080p", "fullhd", "fhd"] },
+  { name: "720p", match: ["720p"] },
+  { name: "576p", match: ["576p", "pal"] },
+  { name: "480p", match: ["480p", "ntsc", "sd"] },
+] as const satisfies readonly TokenMatcher[];
+export const QUALITY_RANKING = QUALITY_MATCHERS.map((m) => m.name);
+export type Quality = (typeof QUALITY_MATCHERS)[number]["name"];
 
-const TAG_CONSUMERS = [
-  { tag: "bluray", match: ["bluray", "bdrip", "bdremux", "brremux"] },
-  { tag: "dv", match: dv },
-  { tag: "hdr", match: ["hdr", "hdr10", ...dv] },
-  { tag: "hdtv", match: ["hdtv"] },
-  { tag: "remux", match: ["remux"] },
-  { tag: "web", match: ["web", "webdl", "webrip"] },
-  { tag: "cam", match: ["cam", "camrip", "ts", "telesync", "telecine"] },
-  { tag: "multisub", match: [["multi", "sub"]], consume: true },
-  { tag: "dualaudio", match: ["dual"] },
-  { tag: "multiaudio", match: ["multi"] },
-] as const satisfies readonly TagConsumer[];
+const dv: TokenMatcher["match"] = ["dv", ["dolby", "vision"]];
+const TAG_MATCHERS = [
+  // video features
+  { name: "dv", match: dv },
+  { name: "hdr", match: ["hdr", "hdr10", ...dv] },
+  { name: "10bit", match: ["10bit"] },
+  { name: "x265", match: ["x265", "h265", ["x", "265"], ["h", "265"], "hevc"] },
+  { name: "x264", match: ["x264", "h264", ["x", "264"], ["h", "264"], "avc"] },
 
-export type Tag = (typeof TAG_CONSUMERS)[number]["tag"];
+  // source/quality
+  { name: "remux", match: ["remux"] },
+  { name: "bluray", match: ["bluray", "bdrip", "bdremux", "brremux"] },
+  { name: "web", match: ["web", "webdl", "webrip"] },
+  { name: "hdtv", match: ["hdtv", "hdrip"] },
+  {
+    name: "cam",
+    match: ["cam", "camrip", "ts", "telesync", "telecine", "hdcam"],
+  },
 
-const splitter = /[\s.]+/;
+  // internationalization
+  { name: "multisub", match: [["multi", "sub"]], consume: true },
+  { name: "dualaudio", match: ["dual"] },
+  { name: "multiaudio", match: ["multi"] },
+] as const satisfies readonly TokenMatcher[];
+export type Tag = (typeof TAG_MATCHERS)[number]["name"];
 
+const TOKEN_SPLITTER = /[\s.]+/;
+const SEASON_MATCHER = /\bs(\d+)\b/i;
+const EPISODE_MATCHER = /\bs(\d+)e(\d+)\b/i;
+const GROUP_SUFFIX_MATCHER = /([^-]+)-(.+)$/; // x265-SomeGroup -> x265
+const VIDEO_EXTENSIONS = ["mkv", "mp4", "avi", "wmv", "mov", "flv", "webm"];
+
+/** Drop the last token if it's a video extension. */
+function dropVideoExtension(tokens: string[]): string[] {
+  const last = tokens[tokens.length - 1];
+  if (VIDEO_EXTENSIONS.includes(last))
+    return tokens.slice(0, tokens.length - 1);
+  return tokens;
+}
+
+/** Convert a raw torrent name to parsable tokens. */
+function tokenize(s: string): string[] {
+  const x = s.toLowerCase();
+  const tok = dropVideoExtension(
+    x.replace("-", "").split(TOKEN_SPLITTER).filter(Boolean)
+  );
+  const leaveHyphens = dropVideoExtension(
+    x.split(TOKEN_SPLITTER).filter(Boolean)
+  );
+  const last = leaveHyphens[leaveHyphens.length - 1];
+  const match = last.match(GROUP_SUFFIX_MATCHER);
+  if (match) {
+    const tagWithoutGroup = match[1];
+    tok[tok.length - 1] = tagWithoutGroup;
+  }
+  return tok;
+}
+
+/** Find the first match in an array for a single term or series of terms. */
 export function findSlidingWindowMatch(
   tokens: string[],
   match: string | readonly string[]
@@ -45,22 +91,26 @@ export function findSlidingWindowMatch(
   return { match: false };
 }
 
-export function parseTags(s: string): Tag[] {
-  let tokens = s.toLowerCase().replace("-", "").split(splitter);
-  const tags = new Set<Tag>();
+/** Parse known values from a series of raw tokens using a series of matchers. */
+function parseFromTokens(
+  tokens: string[],
+  matchers: readonly TokenMatcher[]
+): string[] {
+  let tok = [...tokens];
+  const found = new Set<string>();
 
-  for (const consumer of TAG_CONSUMERS) {
-    const { tag, match: matchers } = consumer;
-    const consume = "consume" in consumer ? consumer.consume : false;
+  for (const matcher of matchers) {
+    const { name: tag, match: candidates } = matcher;
+    const consume = "consume" in matcher ? matcher.consume : false;
 
-    for (const matcher of matchers) {
-      const result = findSlidingWindowMatch(tokens, matcher);
+    for (const cand of candidates) {
+      const result = findSlidingWindowMatch(tok, cand);
       if (result.match) {
-        tags.add(tag);
+        found.add(tag);
         if (consume) {
-          tokens = [
-            ...tokens.slice(0, result.index),
-            ...tokens.slice(result.index + matcher.length),
+          tok = [
+            ...tok.slice(0, result.index),
+            ...tok.slice(result.index + cand.length),
           ];
         }
         break;
@@ -68,5 +118,31 @@ export function parseTags(s: string): Tag[] {
     }
   }
 
-  return [...tags].sort();
+  return [...found].sort();
+}
+
+/** Classify a torrent based on its raw name. */
+export function classify(
+  s: string
+): { quality: Quality; tags: Tag[] } & (
+  | {}
+  | { season: number }
+  | { season: number; episode: number }
+) {
+  const tokens = tokenize(s);
+  const quality = parseFromTokens(tokens, QUALITY_MATCHERS)[0] as Quality;
+  const tags = parseFromTokens(tokens, TAG_MATCHERS) as Tag[];
+
+  if (s.match(EPISODE_MATCHER)) {
+    const [, seasonRaw, episodeRaw] = s.match(EPISODE_MATCHER)!;
+    const season = parseInt(seasonRaw, 10);
+    const episode = parseInt(episodeRaw, 10);
+    return { quality, tags, season, episode };
+  }
+  if (s.match(SEASON_MATCHER)) {
+    const [, seasonRaw] = s.match(SEASON_MATCHER)!;
+    const season = parseInt(seasonRaw, 10);
+    return { quality, tags, season };
+  }
+  return { quality, tags };
 }
