@@ -1,7 +1,7 @@
 import ms from "ms";
 import * as R from "remeda";
-import z from "zod";
 import { OverseerrFullRequestInfo } from "../clients/overseerr";
+import { Quality, Tag } from "./classify";
 
 const SNATCH_EXPIRY = ms("15d"); // debrid services often expire files at 15 days
 const REFRESH_WITHIN_EXPIRY = ms("2d"); // refresh snatch if within 3 days of expiry
@@ -13,32 +13,6 @@ export type Snatch = {
   mediaType: "movie" | "tv";
   tmdbId: number;
 } & ({} | { season: number } | { season: number; episode: number });
-
-export type Criteria = {
-  quality: string[];
-  tags: Tag[];
-};
-
-export type Profile = {
-  name: string;
-  minimum?: { quality: Quality };
-  maximum?: { quality: Quality };
-  required?: Partial<Criteria>;
-  discouraged?: Partial<Criteria>;
-  forbidden?: Partial<Criteria>;
-};
-
-const myProfiles: Profile[] = [
-  {
-    name: "Best Available",
-    discouraged: { tags: ["remux"] },
-  },
-  {
-    name: "Accessible",
-    maximum: { quality: "1080p" },
-    forbidden: { tags: ["remux", "hdr"] },
-  },
-];
 
 function isStale(snatchedAt: Date, now = new Date()) {
   const deadline = new Date(

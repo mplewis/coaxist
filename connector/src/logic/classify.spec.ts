@@ -1,5 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { classify, findSlidingWindowMatch } from "./classify";
+import {
+  Quality,
+  classify,
+  findSlidingWindowMatch,
+  sortQuality,
+} from "./classify";
+
+describe("sortQuality", () => {
+  it("sorts qualities as expected", () => {
+    const qualities: Quality[] = ["720p", "1080p", "2160p", "480p"];
+    expect(qualities.sort(sortQuality)).toEqual([
+      "2160p",
+      "1080p",
+      "720p",
+      "480p",
+    ]);
+  });
+});
 
 describe("findSlidingWindowMatch", () => {
   it("finds matches as expected", () => {

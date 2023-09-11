@@ -14,6 +14,21 @@ const QUALITY_MATCHERS = [
 export const QUALITY_RANKING = QUALITY_MATCHERS.map((m) => m.name);
 export type Quality = (typeof QUALITY_MATCHERS)[number]["name"];
 
+export const Q1_HIGHER = -1;
+export const Q2_HIGHER = 1;
+export const EQUAL = 0;
+/** A compare function for sorting Qualities, highest quality first. */
+export function sortQuality(
+  q1: Quality,
+  q2: Quality
+): typeof Q1_HIGHER | typeof Q2_HIGHER | typeof EQUAL {
+  const q1i = QUALITY_RANKING.indexOf(q1);
+  const q2i = QUALITY_RANKING.indexOf(q2);
+  if (q1i < q2i) return Q1_HIGHER;
+  if (q1i > q2i) return Q2_HIGHER;
+  return EQUAL;
+}
+
 const brremux = ["bdremux", "brremux"];
 const dv: TokenMatcher["match"] = ["dv", ["dolby", "vision"]];
 const TAG_MATCHERS = [

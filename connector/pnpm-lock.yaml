@@ -13,6 +13,9 @@ dependencies:
   ms:
     specifier: ^2.1.3
     version: 2.1.3
+  remeda:
+    specifier: ^1.26.0
+    version: 1.26.0
   zod:
     specifier: ^3.22.2
     version: 3.22.2
@@ -2250,6 +2253,10 @@ packages:
       define-properties: 1.2.0
       functions-have-names: 1.2.3
     dev: true
+
+  /remeda@1.26.0:
+    resolution: {integrity: sha512-v+Qbi2krvXknCvG60gviLUSBJQPxXUVBAvi64m3Awoua3X+ygAmPYPrbFgqwPpiM1tBHNBVrHPBKtza7if+HyQ==}
+    dev: false
 
   /require-from-string@2.0.2:
     resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
