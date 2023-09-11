@@ -9,6 +9,7 @@ export type OverseerrMetadata = {
   externalIds: { imdbId: string };
 };
 
+/** A requested season for a series */
 export type OverseerrSeason = {
   seasonNumber: number;
   episodes: [
@@ -18,6 +19,16 @@ export type OverseerrSeason = {
       airDate: string;
     },
   ];
+};
+
+/** The full information for an Overseerr request */
+export type OverseerrFullRequestInfo = {
+  /** Request info */
+  request: OverseerrRequest;
+  /** Full metadata on the movie/series */
+  metadata: OverseerrMetadata;
+  /** All requested seasons for a series; empty array for a movie. */
+  seasons: OverseerrSeason[];
 };
 
 export class OverseerrClient {
@@ -54,7 +65,7 @@ export class OverseerrClient {
     return raw;
   }
 
-  async getMetadataForApprovedRequests() {
+  async getMetadataForApprovedRequests(): Promise<OverseerrFullRequestInfo[]> {
     const requests = await this.getApprovedRequests();
     const inFlight = requests.map(async (request) => {
       const { mediaType, tmdbId } = request.media;

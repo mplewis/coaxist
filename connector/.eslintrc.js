@@ -3,8 +3,10 @@ module.exports = {
   ignorePatterns: [".eslintrc.js"],
   extends: ["airbnb-base", "airbnb-typescript/base", "prettier"],
   rules: {
-    "no-console": "error",
     "import/prefer-default-export": "off",
+    "no-continue": "off",
+    "no-labels": "off",
+    "no-plusplus": "off",
     "no-restricted-syntax": "off",
   },
 };
