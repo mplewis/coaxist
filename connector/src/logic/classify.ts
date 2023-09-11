@@ -31,10 +31,11 @@ const TAG_MATCHERS = [
   { name: "hdtv", match: ["hdtv", "hdrip"] },
   {
     name: "cam",
-    match: ["cam", "camrip", "ts", "telesync", "telecine", "hdcam"],
+    match: ["cam", "camrip", "hdts", "ts", "telesync", "telecine", "hdcam"],
   },
 
   // internationalization
+  { name: "hardsub", match: ["hc"] },
   { name: "multisub", match: [["multi", "sub"]], consume: true },
   { name: "dualaudio", match: ["dual"] },
   { name: "multiaudio", match: ["multi"] },

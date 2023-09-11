@@ -65,7 +65,7 @@ describe("classify", () => {
         raw: "Barbie.2023.HC.1080p.WEB-DL.AAC2.0.H.264-APEX[TGx]",
         expected: {
           quality: "1080p",
-          tags: ["web", "x264"],
+          tags: ["hardsub", "web", "x264"],
         },
       },
       {
