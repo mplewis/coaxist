@@ -57,6 +57,13 @@ const TAG_MATCHERS = [
 ] as const satisfies readonly TokenMatcher[];
 export type Tag = (typeof TAG_MATCHERS)[number]["name"];
 
+/** A piece of media that has been classified with a known quality, numbered (if applicable), and tagged. */
+export type Classification = { quality: Quality; tags: Tag[] } & (
+  | {}
+  | { season: number }
+  | { season: number; episode: number }
+);
+
 const TOKEN_SPLITTER = /[\s.]+/;
 const SEASON_MATCHER = /\bs(\d+)\b/i;
 const EPISODE_MATCHER = /\bs(\d+)e(\d+)\b/i;
@@ -139,13 +146,7 @@ function parseFromTokens(
 }
 
 /** Classify a torrent based on its raw name. */
-export function classify(
-  s: string
-): { quality: Quality; tags: Tag[] } & (
-  | {}
-  | { season: number }
-  | { season: number; episode: number }
-) {
+export function classify(s: string): Classification {
   const tokens = tokenize(s);
   const quality = parseFromTokens(tokens, QUALITY_MATCHERS)[0] as Quality;
   const tags = parseFromTokens(tokens, TAG_MATCHERS) as Tag[];

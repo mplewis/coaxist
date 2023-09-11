@@ -1,4 +1,4 @@
-import { QUALITY_RANKING, Quality } from "./classify";
+import { Classification, QUALITY_RANKING, Quality } from "./classify";
 
 export type Criteria = {
   quality: Quality[];
@@ -26,3 +26,26 @@ export const myProfiles: Profile[] = [
     forbidden: { tags: ["remux", "hdr"] },
   },
 ];
+
+export function satisfiesQuality(
+  q: Pick<Profile, "minimum" | "maximum">,
+  item: Pick<Classification, "quality">
+): boolean {
+  if (q.minimum) {
+    if (
+      QUALITY_RANKING.indexOf(item.quality) >
+      QUALITY_RANKING.indexOf(q.minimum.quality)
+    ) {
+      return false;
+    }
+  }
+  if (q.maximum) {
+    if (
+      QUALITY_RANKING.indexOf(item.quality) <
+      QUALITY_RANKING.indexOf(q.maximum.quality)
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
