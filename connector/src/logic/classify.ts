@@ -14,6 +14,7 @@ const QUALITY_MATCHERS = [
 export const QUALITY_RANKING = QUALITY_MATCHERS.map((m) => m.name);
 export type Quality = (typeof QUALITY_MATCHERS)[number]["name"];
 
+const brremux = ["bdremux", "brremux"];
 const dv: TokenMatcher["match"] = ["dv", ["dolby", "vision"]];
 const TAG_MATCHERS = [
   // video features
@@ -24,8 +25,8 @@ const TAG_MATCHERS = [
   { name: "x264", match: ["x264", "h264", ["x", "264"], ["h", "264"], "avc"] },
 
   // source/quality
-  { name: "remux", match: ["remux"] },
-  { name: "bluray", match: ["bluray", "bdrip", "bdremux", "brremux"] },
+  { name: "remux", match: ["remux", ...brremux] },
+  { name: "bluray", match: ["bluray", ...brremux] },
   { name: "web", match: ["web", "webdl", "webrip"] },
   { name: "hdtv", match: ["hdtv", "hdrip"] },
   {
