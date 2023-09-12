@@ -1,75 +1,73 @@
-import parseBytes from "bytes";
-import { Classification, Numbering, classify } from "./classify";
+import { findSlidingWindowMatch } from "../util/search";
+import { TokenMatcher } from "./classify.types";
 
-export type TorrentInfo = Classification & {
-  tracker: string;
-  seeders: number;
-  bytes: number;
-  url: string;
-};
+const TOKEN_SPLITTER = /[\s.]+/;
+const GROUP_SUFFIX_MATCHER = /([^-]+)-(.+)$/; // x265-SomeGroup -> x265
+const VIDEO_EXTENSIONS = ["mkv", "mp4", "avi", "wmv", "mov", "flv", "webm"];
 
-const SEEDERS_PARSER = /👤\s*(\d+)/;
-const SIZE_PARSER = /💾\s*([\d.]+\s*[A-Za-z]*B)/;
-const TRACKER_PARSER = /⚙️\s*(.+)/;
-
-/**
- * Build numbering from the torrent and filename.
- * Since we're parsing info for a torrent, if the torrent is for an entire season,
- * return the torrent's season rather than the file's episode number.
- */
-function numberingFrom(
-  filename: Classification | null,
-  torrent: Classification | null
-): Numbering {
-  if (torrent && "season" in torrent && !("episode" in torrent)) return torrent; // Torrent is for a full season
-  if (filename && "episode" in filename) return filename;
-  if (filename && "season" in filename) return filename;
-  if (torrent && "season" in torrent) return torrent;
-  return {};
+/** Drop the last token if it's a video extension. */
+function dropVideoExtension(tokens: string[]): string[] {
+  const last = tokens[tokens.length - 1];
+  if (VIDEO_EXTENSIONS.includes(last))
+    return tokens.slice(0, tokens.length - 1);
+  return tokens;
 }
 
-export function parseTorrentInfo(
-  torrentioTitle: string,
-  url: string
-): TorrentInfo | null {
-  const lines = torrentioTitle.split("\n");
+/** Strip the given characters from the given string. */
+function stripChars(chars: string, s: string): string {
+  return chars.split("").reduce((r, c) => r.replace(c, ""), s);
+}
 
-  // Always present. Looks like: 👤 89 💾 5.76 GB ⚙️ ThePirateBay
-  const metaLineIdx = lines.findIndex((l) => l.includes("👤"));
-  if (!metaLineIdx) return null;
-  const metaLine = lines[metaLineIdx];
+/** Convert a raw torrent name to parsable tokens. */
+export function tokenize(s: string): string[] {
+  const x = s.toLowerCase();
+  const tok = dropVideoExtension(
+    x
+      .split(TOKEN_SPLITTER)
+      .filter(Boolean)
+      .map((t) => stripChars("[]()-", t))
+  );
+  const leaveHyphens = dropVideoExtension(
+    x
+      .split(TOKEN_SPLITTER)
+      .filter(Boolean)
+      .map((t) => stripChars("[]()", t))
+  );
+  const last = leaveHyphens[leaveHyphens.length - 1];
+  const match = last.match(GROUP_SUFFIX_MATCHER);
+  if (match) {
+    const tagWithoutGroup = match[1];
+    tok[tok.length - 1] = tagWithoutGroup;
+  }
+  return tok;
+}
 
-  const seedersMatch = metaLine.match(SEEDERS_PARSER);
-  const seeders = seedersMatch ? parseInt(seedersMatch[1], 10) : -1;
-  const sizeMatch = metaLine.match(SIZE_PARSER);
-  const sizeRaw = sizeMatch ? sizeMatch[1] : null;
-  const bytes = sizeRaw ? parseBytes(sizeRaw) : -1;
-  const trackerMatch = metaLine.match(TRACKER_PARSER);
-  const tracker = trackerMatch ? trackerMatch[1] : "<unknown>";
+/** Parse known values from a series of raw tokens using a series of matchers. */
+export function parseFromTokens(
+  tokens: string[],
+  matchers: readonly TokenMatcher[]
+): string[] {
+  let tok = [...tokens];
+  const found = new Set<string>();
 
-  // Always present. The name of the file. Doesn't always include an extension.
-  const fnLineIdx = metaLineIdx - 1;
-  const fnLine = lines[fnLineIdx];
+  for (const matcher of matchers) {
+    const { name: tag, match: candidates } = matcher;
+    const consume = "consume" in matcher ? matcher.consume : false;
 
-  // Sometimes present. The name of the torrent, if it's for more than one file.
-  const torrentLineIdx = metaLineIdx - 2;
-  const torrentLine = lines[torrentLineIdx];
+    for (const cand of candidates) {
+      const result = findSlidingWindowMatch(tok, cand);
+      if (result.match) {
+        found.add(tag);
+        if (consume) {
+          tok = [
+            ...tok.slice(0, result.index),
+            ...tok.slice(result.index + cand.length),
+          ];
+        }
+        break;
+      }
+    }
+  }
 
-  const cl: Classification | null = (() => {
-    if (!fnLine) return null;
-    if (!torrentLine) return classify(fnLine);
-
-    // The filename is often more descriptive than the torrent name, so prefer it
-    const clF = classify(fnLine);
-    const clT = classify(torrentLine);
-    const quality = (clF && clF.quality) || (clT && clT.quality);
-    if (!quality) return null;
-    const tagsT = (clT && clT.tags) || [];
-    const tagsF = (clF && clF.tags) || [];
-    const tags = [...new Set([...tagsT, ...tagsF])].sort();
-    return { ...numberingFrom(clF, clT), quality, tags };
-  })();
-  if (!cl) return null;
-
-  return { ...cl, tracker, seeders, bytes, url };
+  return [...found].sort();
 }

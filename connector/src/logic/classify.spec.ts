@@ -1,13 +1,11 @@
 import { describe, expect, it } from "vitest";
-import {
-  Quality,
-  TAG_MATCHERS,
-  classify,
-  findSlidingWindowMatch,
-  parseFromTokens,
-  sortQuality,
-  tokenize,
-} from "./classify";
+import { stripIndent } from "common-tags";
+import { TorrentInfo, classify, parseTorrentInfo, pickBest } from "./classify";
+import { TAG_MATCHERS, Tag } from "../data/tag";
+import { Profile } from "./profile";
+import { Quality, sortQuality } from "../data/quality";
+import { parseFromTokens, tokenize } from "./parse";
+import { findSlidingWindowMatch } from "../util/search";
 
 describe("sortQuality", () => {
   it("sorts qualities as expected", () => {
@@ -128,5 +126,157 @@ describe("classify", () => {
     for (const { raw, expected } of examples) {
       expect(classify(raw), raw).toEqual(expected);
     }
+  });
+});
+
+describe("parseTorrentInfo", () => {
+  it("parses torrent info as expected", () => {
+    const url = "https://tracker.example.com/some-path";
+    const examples: { raw: string; expected: TorrentInfo }[] = [
+      {
+        raw: stripIndent`
+          Star Trek Strange New World S02e05 [1080p Ita Eng Spa h265 10bit SubS] byMe7alh
+          👤 27 💾 1021.66 MB ⚙️ ThePirateBay
+          🇬🇧 / 🇮🇹 / 🇪🇸
+        `,
+        expected: {
+          url,
+          quality: "1080p",
+          season: 2,
+          episode: 5,
+          tags: ["h265", "hdr"],
+          tracker: "ThePirateBay",
+          seeders: 27,
+          bytes: 1071288156,
+        },
+      },
+      {
+        raw: stripIndent`
+          Звездный путь: Странные новые миры / Star Trek: Strange New Worlds / Сезон: 2 / Серии: 1-9 из 10 [2023 HEVC HDR10+ Dolby Vision WEB-DL 2160p 4k] 3x MVO (LostFilm HDrezka Studio TVShows) + Original + Sub (Rus Eng)
+          Star.Trek.Strange.New.Worlds.S02E05.Charades.2160p.PMTP.WEB-DL.DDP5.1.DV.HDR.H.265.RGzsRutracker.mkv
+          👤 1 💾 6.48 GB ⚙️ Rutracker
+          🇬🇧 / 🇷🇺
+        `,
+        expected: {
+          url,
+          quality: "2160p",
+          season: 2,
+          episode: 5,
+          tags: ["dolbyvision", "h265", "hdr", "hdr10plus", "web"],
+          tracker: "Rutracker",
+          seeders: 1,
+          bytes: 6957847019,
+        },
+      },
+      {
+        raw: stripIndent`
+          Star.Trek.Strange.New.Worlds.S02E05.HDR.2160p.WEB.h265-ETHEL[TGx
+          👤 89 💾 5.76 GB ⚙️ ThePirateBay
+        `,
+        expected: {
+          url,
+          quality: "2160p",
+          season: 2,
+          episode: 5,
+          tags: ["h265", "hdr", "web"],
+          tracker: "ThePirateBay",
+          seeders: 89,
+          bytes: 6184752906,
+        },
+      },
+      {
+        raw: stripIndent`
+          Star.Trek.Strange.New.Worlds.S02.COMPLETE.2160p.AMZN.WEB-DL.DDP5.1.H.265-NTb[TGx]
+          Star.Trek.Strange.New.Worlds.S02E05.Charades.2160p.AMZN.WEB-DL.DDP5.1.H.265-NTb.mkv
+          👤 68 💾 6.45 GB ⚙️ TorrentGalaxy
+        `,
+        expected: {
+          url,
+          quality: "2160p",
+          season: 2,
+          tags: ["h265", "web"],
+          tracker: "TorrentGalaxy",
+          seeders: 68,
+          bytes: 6925634764,
+        },
+      },
+    ];
+    for (const { raw, expected } of examples) {
+      const actual = parseTorrentInfo(raw, url);
+      expect(actual, raw).toEqual(expected);
+    }
+  });
+});
+
+describe("pickBest", () => {
+  function cand(seeders: number, quality: Quality, tags: Tag[]): TorrentInfo {
+    return {
+      seeders,
+      quality,
+      tags,
+      url: "url",
+      bytes: 0,
+      tracker: "tracker",
+    };
+  }
+
+  it("picks the best candidate", () => {
+    const profile: Profile = {
+      name: "Most Compatible",
+      maximum: { quality: "1080p" },
+      required: ["multiaudio"],
+      discouraged: ["hdr"],
+      forbidden: ["hdtv"],
+    };
+    const cands = [
+      cand(333, "2160p", []),
+      cand(105, "1080p", ["hdr"]),
+      cand(105, "1080p", []),
+      cand(105, "1080p", ["hdtv", "multiaudio"]),
+      cand(100, "1080p", ["multiaudio"]), // pick!
+      cand(97, "1080p", []),
+      cand(333, "720p", []),
+    ];
+    expect(pickBest(profile, cands)).toEqual(cands[4]);
+  });
+
+  it("downranks candidates that match discouraged criteria", () => {
+    const profile: Profile = {
+      name: "No HDR",
+      discouraged: ["hdr"],
+    };
+    const cands = [
+      cand(100, "2160p", ["hdr"]),
+      cand(5, "480p", []), // pick!
+    ];
+    expect(pickBest(profile, cands)).toEqual(cands[1]);
+  });
+
+  it("ignores candidates missing the required criteria", () => {
+    const profile: Profile = {
+      name: "HDR required",
+      required: ["hdr"],
+    };
+    const cands = [
+      cand(100, "2160p", []),
+      cand(100, "1080p", []),
+      cand(100, "480p", []),
+    ];
+    expect(pickBest(profile, cands)).toEqual(null);
+  });
+
+  it("returns no candidate if none are acceptable", () => {
+    const profile: Profile = {
+      name: "1080p",
+      minimum: { quality: "1080p" },
+      maximum: { quality: "1080p" },
+      forbidden: ["hdr"],
+    };
+    const cands = [
+      cand(100, "2160p", []),
+      cand(100, "1080p", ["hdr"]),
+      cand(100, "720p", []),
+    ];
+    expect(pickBest(profile, cands)).toEqual(null);
   });
 });

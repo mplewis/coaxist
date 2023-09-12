@@ -1,4 +1,5 @@
-import { Classification, QUALITY_RANKING, Quality, Tag } from "./classify";
+import { QUALITY_RANKING, Quality } from "../data/quality";
+import { Tag } from "../data/tag";
 
 export type Profile = {
   name: string;
@@ -23,8 +24,8 @@ export const myProfiles: Profile[] = [
 ];
 
 export function satisfiesQuality(
-  q: Pick<Profile, "minimum" | "maximum">,
-  item: Pick<Classification, "quality">
+  q: { minimum?: { quality: Quality }; maximum?: { quality: Quality } },
+  item: { quality: Quality }
 ): boolean {
   if (q.minimum) {
     if (
@@ -47,7 +48,7 @@ export function satisfiesQuality(
 
 export function satisfiesTags(
   q: Pick<Profile, "required" | "forbidden">,
-  item: Pick<Classification, "tags">
+  item: { tags: Tag[] }
 ): boolean {
   if (q.required) {
     for (const tag of q.required ?? []) {
@@ -62,11 +63,17 @@ export function satisfiesTags(
   return true;
 }
 
-export function satisfies(profile: Profile, item: Classification): boolean {
+export function satisfies(
+  profile: Profile,
+  item: { quality: Quality; tags: Tag[] }
+): boolean {
   return satisfiesQuality(profile, item) && satisfiesTags(profile, item);
 }
 
-export function isPreferred(profile: Profile, item: Classification): boolean {
+export function isPreferred(
+  profile: Profile,
+  item: { quality: Quality; tags: Tag[] }
+): boolean {
   for (const tag of profile.discouraged ?? []) {
     if (item.tags.includes(tag)) return false;
   }
