@@ -3,6 +3,7 @@ type TokenMatcher = {
   match: readonly (string | readonly string[])[];
   consume?: boolean;
 };
+type Matchers = TokenMatcher["match"];
 
 const QUALITY_MATCHERS = [
   { name: "2160p", match: ["2160p", "4k"] },
@@ -30,12 +31,17 @@ export function sortQuality(
 }
 
 const brremux = ["bdremux", "brremux"];
-const dv: TokenMatcher["match"] = ["dv", ["dolby", "vision"]];
+const dolbyvision: Matchers = ["dv", ["dolby", "vision"]];
+const hdr10: Matchers = ["hdr10"];
+const hdr10plus: Matchers = ["hdr10plus", ["hdr10", "plus"], "hdr10+"];
+const hdr = [...hdr10, ...hdr10plus, ...dolbyvision, "10bit"];
+
 const TAG_MATCHERS = [
   // video features
-  { name: "dv", match: dv },
-  { name: "hdr", match: ["hdr", "hdr10", ...dv] },
-  { name: "10bit", match: ["10bit"] },
+  { name: "hdr", match: hdr },
+  { name: "hdr10", match: hdr10 },
+  { name: "hdr10plus", match: hdr10plus },
+  { name: "dolbyvision", match: dolbyvision },
   { name: "h265", match: ["x265", "h265", ["x", "265"], ["h", "265"], "hevc"] },
   { name: "h264", match: ["x264", "h264", ["x", "264"], ["h", "264"], "avc"] },
 
@@ -57,12 +63,14 @@ const TAG_MATCHERS = [
 ] as const satisfies readonly TokenMatcher[];
 export type Tag = (typeof TAG_MATCHERS)[number]["name"];
 
-/** A piece of media that has been classified with a known quality, numbered (if applicable), and tagged. */
-export type Classification = { quality: Quality; tags: Tag[] } & (
-  | {}
-  | { season: number }
+/** A piece of media that has been classified with a known quality, numbering (if applicable), and tagged. */
+export type Classification = { quality: Quality; tags: Tag[] } & Numbering;
+
+/** The numbering of a piece of series media. */
+export type Numbering =
   | { season: number; episode: number }
-);
+  | { season: number }
+  | {};
 
 const TOKEN_SPLITTER = /[\s.]+/;
 const SEASON_MATCHER = /\bs(\d+)\b/i;
@@ -156,9 +164,10 @@ function parseFromTokens(
 }
 
 /** Classify a torrent based on its raw name. */
-export function classify(s: string): Classification {
+export function classify(s: string): Classification | null {
   const tokens = tokenize(s);
   const quality = parseFromTokens(tokens, QUALITY_MATCHERS)[0] as Quality;
+  if (!quality) return null;
   const tags = parseFromTokens(tokens, TAG_MATCHERS) as Tag[];
 
   if (s.match(EPISODE_MATCHER)) {

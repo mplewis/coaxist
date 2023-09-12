@@ -66,4 +66,9 @@ export function satisfies(profile: Profile, item: Classification): boolean {
   return satisfiesQuality(profile, item) && satisfiesTags(profile, item);
 }
 
-// TODO: Order options by preference
+export function isPreferred(profile: Profile, item: Classification): boolean {
+  for (const tag of profile.discouraged ?? []) {
+    if (item.tags.includes(tag)) return false;
+  }
+  return true;
+}

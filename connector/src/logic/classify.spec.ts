@@ -62,7 +62,7 @@ describe("classify", () => {
           quality: "2160p",
           season: 2,
           episode: 5,
-          tags: ["dv", "h265", "hdr", "multisub"],
+          tags: ["dolbyvision", "h265", "hdr", "multisub"],
         },
       },
       {
@@ -102,6 +102,10 @@ describe("classify", () => {
           episode: 5,
           tags: ["h265"],
         },
+      },
+      {
+        raw: "this is not a valid name",
+        expected: null,
       },
     ];
 
