@@ -36,8 +36,8 @@ const TAG_MATCHERS = [
   { name: "dv", match: dv },
   { name: "hdr", match: ["hdr", "hdr10", ...dv] },
   { name: "10bit", match: ["10bit"] },
-  { name: "x265", match: ["x265", "h265", ["x", "265"], ["h", "265"], "hevc"] },
-  { name: "x264", match: ["x264", "h264", ["x", "264"], ["h", "264"], "avc"] },
+  { name: "h265", match: ["x265", "h265", ["x", "265"], ["h", "265"], "hevc"] },
+  { name: "h264", match: ["x264", "h264", ["x", "264"], ["h", "264"], "avc"] },
 
   // source/quality
   { name: "remux", match: ["remux", ...brremux] },

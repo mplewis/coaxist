@@ -45,7 +45,7 @@ describe("classify", () => {
     const examples = [
       {
         raw: "Star.Trek.Strange.New.Worlds.S02.COMPLETE.2160p.AMZN.WEB-DL.DDP5.1.H.265-NTb[TGx]",
-        expected: { quality: "2160p", season: 2, tags: ["web", "x265"] },
+        expected: { quality: "2160p", season: 2, tags: ["h265", "web"] },
       },
       {
         raw: "Star Trek Strange New Worlds S02E05 MULTI 1080p WEB x264-HiggsBoson",
@@ -53,7 +53,7 @@ describe("classify", () => {
           quality: "1080p",
           season: 2,
           episode: 5,
-          tags: ["multiaudio", "web", "x264"],
+          tags: ["h264", "multiaudio", "web"],
         },
       },
       {
@@ -62,7 +62,7 @@ describe("classify", () => {
           quality: "2160p",
           season: 2,
           episode: 5,
-          tags: ["dv", "hdr", "multisub", "x265"],
+          tags: ["dv", "h265", "hdr", "multisub"],
         },
       },
       {
@@ -76,13 +76,13 @@ describe("classify", () => {
       },
       {
         raw: "Barbie.2023.FRENCH.720p.WEBRip.x264-RZP",
-        expected: { quality: "720p", tags: ["web", "x264"] },
+        expected: { quality: "720p", tags: ["h264", "web"] },
       },
       {
         raw: "Barbie.2023.HC.1080p.WEB-DL.AAC2.0.H.264-APEX[TGx]",
         expected: {
           quality: "1080p",
-          tags: ["hardsub", "web", "x264"],
+          tags: ["h264", "hardsub", "web"],
         },
       },
       {
@@ -91,7 +91,7 @@ describe("classify", () => {
           quality: "1080p",
           season: 2,
           episode: 5,
-          tags: ["web", "x264"],
+          tags: ["h264", "web"],
         },
       },
     ];

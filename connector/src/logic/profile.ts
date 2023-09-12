@@ -65,3 +65,5 @@ export function satisfiesTags(
 export function satisfies(profile: Profile, item: Classification): boolean {
   return satisfiesQuality(profile, item) && satisfiesTags(profile, item);
 }
+
+// TODO: Order options by preference

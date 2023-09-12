@@ -68,7 +68,7 @@ describe("satisfies", () => {
   it("returns the expected results", () => {
     const item: Classification = {
       quality: "1080p",
-      tags: ["web", "hdr", "x265"],
+      tags: ["web", "hdr", "h265"],
     };
     const examples: {
       profile: Profile;
@@ -78,12 +78,12 @@ describe("satisfies", () => {
         profile: {
           name: "My Profile",
           minimum: { quality: "1080p" },
-          required: ["x265"],
+          required: ["h265"],
         },
         expected: true,
       },
       {
-        profile: { name: "My Profile", required: ["x265"], forbidden: ["cam"] },
+        profile: { name: "My Profile", required: ["h265"], forbidden: ["cam"] },
         expected: true,
       },
       {
