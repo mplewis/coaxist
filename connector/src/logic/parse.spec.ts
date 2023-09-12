@@ -1,11 +1,11 @@
 import { stripIndent } from "common-tags";
 import { describe, expect, it } from "vitest";
-import { parseTorrentInfo } from "./parse";
+import { TorrentInfo, parseTorrentInfo } from "./parse";
 
 describe("parseTorrentInfo", () => {
   it("parses torrent info as expected", () => {
     const url = "https://tracker.example.com/some-path";
-    const examples = [
+    const examples: { raw: string; expected: TorrentInfo }[] = [
       {
         raw: stripIndent`
           Star Trek Strange New World S02e05 [1080p Ita Eng Spa h265 10bit SubS] byMe7alh

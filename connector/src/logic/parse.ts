@@ -67,7 +67,7 @@ export function parseTorrentInfo(
     const tagsT = (clT && clT.tags) || [];
     const tagsF = (clF && clF.tags) || [];
     const tags = [...new Set([...tagsT, ...tagsF])].sort();
-    return { quality, tags, ...numberingFrom(clF, clT) };
+    return { ...numberingFrom(clF, clT), quality, tags };
   })();
   if (!cl) return null;
 
