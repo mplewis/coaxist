@@ -12,14 +12,19 @@ const SEEDERS_PARSER = /👤\s*(\d+)/;
 const SIZE_PARSER = /💾\s*([\d.]+\s*[A-Za-z]*B)/;
 const TRACKER_PARSER = /⚙️\s*(.+)/;
 
+/**
+ * Build numbering from the torrent and filename.
+ * Since we're parsing info for a torrent, if the torrent is for an entire season,
+ * return the torrent's season rather than the file's episode number.
+ */
 function numberingFrom(
-  prefer: Classification | null,
-  fallback: Classification | null
+  filename: Classification | null,
+  torrent: Classification | null
 ): Numbering {
-  if (prefer && "episode" in prefer) return prefer;
-  if (fallback && "episode" in fallback) return fallback;
-  if (prefer && "season" in prefer) return prefer;
-  if (fallback && "season" in fallback) return fallback;
+  if (torrent && "season" in torrent && !("episode" in torrent)) return torrent; // Torrent is for a full season
+  if (filename && "episode" in filename) return filename;
+  if (filename && "season" in filename) return filename;
+  if (torrent && "season" in torrent) return torrent;
   return {};
 }
 

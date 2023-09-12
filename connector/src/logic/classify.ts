@@ -34,9 +34,9 @@ const brremux = ["bdremux", "brremux"];
 const dolbyvision: Matchers = ["dv", ["dolby", "vision"]];
 const hdr10: Matchers = ["hdr10"];
 const hdr10plus: Matchers = ["hdr10plus", ["hdr10", "plus"], "hdr10+"];
-const hdr = [...hdr10, ...hdr10plus, ...dolbyvision, "10bit"];
+const hdr = [...hdr10, ...hdr10plus, ...dolbyvision, "hdr", "10bit"];
 
-const TAG_MATCHERS = [
+export const TAG_MATCHERS = [
   // video features
   { name: "hdr", match: hdr },
   { name: "hdr10", match: hdr10 },
@@ -91,7 +91,7 @@ function stripChars(chars: string, s: string): string {
 }
 
 /** Convert a raw torrent name to parsable tokens. */
-function tokenize(s: string): string[] {
+export function tokenize(s: string): string[] {
   const x = s.toLowerCase();
   const tok = dropVideoExtension(
     x
@@ -134,7 +134,7 @@ export function findSlidingWindowMatch(
 }
 
 /** Parse known values from a series of raw tokens using a series of matchers. */
-function parseFromTokens(
+export function parseFromTokens(
   tokens: string[],
   matchers: readonly TokenMatcher[]
 ): string[] {

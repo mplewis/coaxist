@@ -35,10 +35,42 @@ describe("parseTorrentInfo", () => {
           quality: "2160p",
           season: 2,
           episode: 5,
-          tags: ["dolbyvision", "h265", "hdr", "web"],
+          tags: ["dolbyvision", "h265", "hdr", "hdr10plus", "web"],
           tracker: "Rutracker",
           seeders: 1,
           bytes: 6957847019,
+        },
+      },
+      {
+        raw: stripIndent`
+          Star.Trek.Strange.New.Worlds.S02E05.HDR.2160p.WEB.h265-ETHEL[TGx
+          👤 89 💾 5.76 GB ⚙️ ThePirateBay
+        `,
+        expected: {
+          url,
+          quality: "2160p",
+          season: 2,
+          episode: 5,
+          tags: ["h265", "hdr", "web"],
+          tracker: "ThePirateBay",
+          seeders: 89,
+          bytes: 6184752906,
+        },
+      },
+      {
+        raw: stripIndent`
+          Star.Trek.Strange.New.Worlds.S02.COMPLETE.2160p.AMZN.WEB-DL.DDP5.1.H.265-NTb[TGx]
+          Star.Trek.Strange.New.Worlds.S02E05.Charades.2160p.AMZN.WEB-DL.DDP5.1.H.265-NTb.mkv
+          👤 68 💾 6.45 GB ⚙️ TorrentGalaxy
+        `,
+        expected: {
+          url,
+          quality: "2160p",
+          season: 2,
+          tags: ["h265", "web"],
+          tracker: "TorrentGalaxy",
+          seeders: 68,
+          bytes: 6925634764,
         },
       },
     ];

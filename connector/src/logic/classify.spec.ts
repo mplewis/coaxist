@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   Quality,
+  TAG_MATCHERS,
   classify,
   findSlidingWindowMatch,
+  parseFromTokens,
   sortQuality,
+  tokenize,
 } from "./classify";
 
 describe("sortQuality", () => {
@@ -15,6 +18,19 @@ describe("sortQuality", () => {
       "720p",
       "480p",
     ]);
+  });
+});
+
+describe("parseFromTokens", () => {
+  it("works with certain symbols", async () => {
+    const tagMatchersByName = TAG_MATCHERS.reduce(
+      (acc, m) => ({ ...acc, [m.name]: m }),
+      {} as Record<string, (typeof TAG_MATCHERS)[number]>
+    );
+    const matchers = [tagMatchersByName.hdr10plus];
+    const raw = "some.tokens.with.HDR10+.in.them";
+    const tokens = tokenize(raw);
+    expect(await parseFromTokens(tokens, matchers)).toEqual(["hdr10plus"]);
   });
 });
 
