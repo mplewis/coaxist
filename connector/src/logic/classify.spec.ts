@@ -94,6 +94,15 @@ describe("classify", () => {
           tags: ["h264", "web"],
         },
       },
+      {
+        raw: "Star Trek Strange New World S02e05 [1080p Ita Eng Spa h265]",
+        expected: {
+          quality: "1080p",
+          season: 2,
+          episode: 5,
+          tags: ["h265"],
+        },
+      },
     ];
 
     for (const { raw, expected } of examples) {

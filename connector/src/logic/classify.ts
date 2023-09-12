@@ -78,14 +78,24 @@ function dropVideoExtension(tokens: string[]): string[] {
   return tokens;
 }
 
+function stripChars(chars: string, s: string): string {
+  return chars.split("").reduce((r, c) => r.replace(c, ""), s);
+}
+
 /** Convert a raw torrent name to parsable tokens. */
 function tokenize(s: string): string[] {
   const x = s.toLowerCase();
   const tok = dropVideoExtension(
-    x.replace("-", "").split(TOKEN_SPLITTER).filter(Boolean)
+    x
+      .split(TOKEN_SPLITTER)
+      .filter(Boolean)
+      .map((t) => stripChars("[]()-", t))
   );
   const leaveHyphens = dropVideoExtension(
-    x.split(TOKEN_SPLITTER).filter(Boolean)
+    x
+      .split(TOKEN_SPLITTER)
+      .filter(Boolean)
+      .map((t) => stripChars("[]()", t))
   );
   const last = leaveHyphens[leaveHyphens.length - 1];
   const match = last.match(GROUP_SUFFIX_MATCHER);
