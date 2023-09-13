@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^5.2.0",
     "@trpc/server": "^10.38.1",
     "bytes": "^3.1.2",
     "fastify": "^4.22.2",
@@ -32,6 +33,7 @@
     "eslint-config-prettier": "^9.0.0",
     "pino-pretty": "^10.2.0",
     "prettier": "^3.0.3",
+    "prisma": "^5.2.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2",
     "vitest": "^0.34.4"

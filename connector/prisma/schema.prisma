@@ -1,0 +1,33 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Snatch represents a torrent that we have sent to Debrid for download.
+model Snatch {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  /// The last time we sent this snatch to Debrid
+  lastSnatchedAt DateTime @default(now())
+
+  /// `movie` or `tv`
+  mediaType  String
+  /// IMDB ID of the media
+  imdbID     String
+  /// The URL which will send this snatch to Debrid when fetched
+  refreshURL String
+  /// The raw title of the torrent from Torrentio
+  title      String
+  /// If this snatch is for a TV show, the season number
+  season     Int?
+  /// If this snatch is for a specific episode of a TV show, the episode number
+  episode    Int?
+}
