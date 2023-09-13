@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { stripIndent } from "common-tags";
-import { TorrentInfo, classify, parseTorrentInfo, pickBest } from "./classify";
+import {
+  TorrentInfo,
+  classify,
+  classifyTorrentioResult,
+  pickBest,
+} from "./classify";
 import { TAG_MATCHERS, Tag } from "../data/tag";
 import { Profile } from "./profile";
 import { Quality, sortQuality } from "../data/quality";
@@ -131,7 +136,6 @@ describe("classify", () => {
 
 describe("parseTorrentInfo", () => {
   it("parses torrent info as expected", () => {
-    const url = "https://tracker.example.com/some-path";
     const examples: { raw: string; expected: TorrentInfo }[] = [
       {
         raw: stripIndent`
@@ -140,7 +144,6 @@ describe("parseTorrentInfo", () => {
           🇬🇧 / 🇮🇹 / 🇪🇸
         `,
         expected: {
-          url,
           quality: "1080p",
           season: 2,
           episode: 5,
@@ -158,7 +161,6 @@ describe("parseTorrentInfo", () => {
           🇬🇧 / 🇷🇺
         `,
         expected: {
-          url,
           quality: "2160p",
           season: 2,
           episode: 5,
@@ -174,7 +176,6 @@ describe("parseTorrentInfo", () => {
           👤 89 💾 5.76 GB ⚙️ ThePirateBay
         `,
         expected: {
-          url,
           quality: "2160p",
           season: 2,
           episode: 5,
@@ -191,7 +192,6 @@ describe("parseTorrentInfo", () => {
           👤 68 💾 6.45 GB ⚙️ TorrentGalaxy
         `,
         expected: {
-          url,
           quality: "2160p",
           season: 2,
           tags: ["h265", "web"],
@@ -202,7 +202,7 @@ describe("parseTorrentInfo", () => {
       },
     ];
     for (const { raw, expected } of examples) {
-      const actual = parseTorrentInfo(raw, url);
+      const actual = classifyTorrentioResult(raw);
       expect(actual, raw).toEqual(expected);
     }
   });
@@ -214,7 +214,6 @@ describe("pickBest", () => {
       seeders,
       quality,
       tags,
-      url: "url",
       bytes: 0,
       tracker: "tracker",
     };

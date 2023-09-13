@@ -1,23 +1,19 @@
 import * as R from "remeda";
-import parseBytes from "bytes";
 import { QUALITY_MATCHERS, QUALITY_RANKING, Quality } from "../data/quality";
 import { TAG_MATCHERS, Tag } from "../data/tag";
-import { parseFromTokens, tokenize } from "./parse";
+import {
+  TorrentioResultMetadata,
+  parseFromTokens,
+  parseTorrentioTitle,
+  tokenize,
+} from "./parse";
 import { Profile, isPreferred, satisfies } from "./profile";
 
 const SEASON_MATCHER = /\bs(\d+)\b/i;
 const EPISODE_MATCHER = /\bs(\d+)e(\d+)\b/i;
-const SEEDERS_MATCHER = /👤\s*(\d+)/;
-const SIZE_MATCHER = /💾\s*([\d.]+\s*[A-Za-z]*B)/;
-const TRACKER_MATCHER = /⚙️\s*(.+)/;
 
 /** Information parsed from a torrent's raw title. */
-export type TorrentInfo = Classification & {
-  tracker: string;
-  seeders: number;
-  bytes: number;
-  url: string;
-};
+export type TorrentInfo = Classification & TorrentioResultMetadata;
 
 /** A piece of media that has been classified with a known quality, numbering (if applicable), and tagged. */
 export type Classification = { quality: Quality; tags: Tag[] } & Numbering;
@@ -65,40 +61,19 @@ function numberingFrom(
   return {};
 }
 
-/** Parse info from the raw title of a torrent and build a complete TorrentInfo. */
-export function parseTorrentInfo(
-  torrentioTitle: string,
-  url: string
+/** Parse info from the raw Torrentio title data and build a complete TorrentInfo. */
+export function classifyTorrentioResult(
+  torrentioTitle: string
 ): TorrentInfo | null {
-  const lines = torrentioTitle.split("\n");
-
-  // Always present. Looks like: 👤 89 💾 5.76 GB ⚙️ ThePirateBay
-  const metaLineIdx = lines.findIndex((l) => l.includes("👤"));
-  if (!metaLineIdx) return null;
-  const metaLine = lines[metaLineIdx];
-
-  const seedersMatch = metaLine.match(SEEDERS_MATCHER);
-  const seeders = seedersMatch ? parseInt(seedersMatch[1], 10) : -1;
-  const sizeMatch = metaLine.match(SIZE_MATCHER);
-  const sizeRaw = sizeMatch ? sizeMatch[1] : null;
-  const bytes = sizeRaw ? parseBytes(sizeRaw) : -1;
-  const trackerMatch = metaLine.match(TRACKER_MATCHER);
-  const tracker = trackerMatch ? trackerMatch[1] : "<unknown>";
-
-  // Always present. The name of the file. Doesn't always include an extension.
-  const fnLineIdx = metaLineIdx - 1;
-  const fnLine = lines[fnLineIdx];
-
-  // Sometimes present. The name of the torrent, if it's for more than one file.
-  const torrentLineIdx = metaLineIdx - 2;
-  const torrentLine = lines[torrentLineIdx];
+  const parsed = parseTorrentioTitle(torrentioTitle);
+  if (!parsed) return null;
+  const { torrentLine, filenameLine, seeders, bytes, tracker } = parsed;
 
   const cl: Classification | null = (() => {
-    if (!fnLine) return null;
-    if (!torrentLine) return classify(fnLine);
+    if (!torrentLine) return classify(filenameLine);
 
     // The filename is often more descriptive than the torrent name, so prefer it
-    const clF = classify(fnLine);
+    const clF = classify(filenameLine);
     const clT = classify(torrentLine);
     const quality = (clF && clF.quality) || (clT && clT.quality);
     if (!quality) return null;
@@ -109,7 +84,7 @@ export function parseTorrentInfo(
   })();
   if (!cl) return null;
 
-  return { ...cl, tracker, seeders, bytes, url };
+  return { ...cl, tracker, seeders, bytes };
 }
 
 /** Build an ordered list of candidates, grouped by quality in descending order. */

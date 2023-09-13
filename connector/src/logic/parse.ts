@@ -1,9 +1,31 @@
+import parseBytes from "bytes";
 import { findSlidingWindowMatch } from "../util/search";
 import { TokenMatcher } from "./classify.types";
 
 const TOKEN_SPLITTER = /[\s.]+/;
 const GROUP_SUFFIX_MATCHER = /([^-]+)-(.+)$/; // x265-SomeGroup -> x265
+const SEEDERS_MATCHER = /👤\s*(\d+)/;
+const SIZE_MATCHER = /💾\s*([\d.]+\s*[A-Za-z]*B)/;
+const TRACKER_MATCHER = /⚙️\s*(.+)/;
 const VIDEO_EXTENSIONS = ["mkv", "mp4", "avi", "wmv", "mov", "flv", "webm"];
+
+/** Semi-parsed fields for a Torrentio search result. */
+export type TorrentioFields = {
+  /** If this torrent is for multiple files, the name of the torrent */
+  torrentLine?: string;
+  /** The name of the search result file */
+  filenameLine: string;
+} & TorrentioResultMetadata;
+
+/** Metadata for a Torrentio search result */
+export type TorrentioResultMetadata = {
+  /** The tracker where we found this torrent */
+  tracker: string;
+  /** The number of seeders for this torrent */
+  seeders: number;
+  /** The total size of this torrent */
+  bytes: number;
+};
 
 /** Drop the last token if it's a video extension. */
 function dropVideoExtension(tokens: string[]): string[] {
@@ -70,4 +92,34 @@ export function parseFromTokens(
   }
 
   return [...found].sort();
+}
+
+/** Parse info from the raw title of a Torrentio result. */
+export function parseTorrentioTitle(title: string): TorrentioFields | null {
+  const lines = title.split("\n");
+
+  // Always present. Looks like: 👤 89 💾 5.76 GB ⚙️ ThePirateBay
+  const metaLineIdx = lines.findIndex((l) => l.includes("👤"));
+  if (!metaLineIdx) return null;
+  const metaLine = lines[metaLineIdx];
+
+  // Always present. The name of the file. Doesn't always include an extension.
+  const filenameLineIdx = metaLineIdx - 1;
+  const filenameLine = lines[filenameLineIdx];
+  if (!filenameLine) return null;
+
+  // Sometimes present. The name of the torrent, if it's for more than one file.
+  const torrentLineIdx = metaLineIdx - 2;
+  const torrentLine = lines[torrentLineIdx];
+
+  // Always present, but be defensive
+  const seedersMatch = metaLine.match(SEEDERS_MATCHER);
+  const seeders = seedersMatch ? parseInt(seedersMatch[1], 10) : -1;
+  const sizeMatch = metaLine.match(SIZE_MATCHER);
+  const sizeRaw = sizeMatch ? sizeMatch[1] : null;
+  const bytes = sizeRaw ? parseBytes(sizeRaw) : -1;
+  const trackerMatch = metaLine.match(TRACKER_MATCHER);
+  const tracker = trackerMatch ? trackerMatch[1] : "<unknown>";
+
+  return { seeders, bytes, tracker, torrentLine, filenameLine };
 }
