@@ -12,9 +12,9 @@ const users: Record<string, User> = {};
 export const t = initTRPC.create();
 
 export const router = t.router({
-  getUserById: t.procedure.input(z.string()).query((opts) => {
-    return users[opts.input]; // input type is string
-  }),
+  getUserById: t.procedure.input(z.string()).query(
+    (opts) => users[opts.input] // input type is string
+  ),
   createUser: t.procedure
     .input(
       z.object({

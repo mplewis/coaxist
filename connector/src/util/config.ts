@@ -1,7 +1,11 @@
 import { readFileSync, statSync, writeFileSync } from "fs";
 import { log } from "../server";
 
-const keys = ["OVERSEERR_API_KEY", "OVERSEERR_HOST"] as const;
+const keys = [
+  "ALLDEBRID_API_KEY",
+  "OVERSEERR_API_KEY",
+  "OVERSEERR_HOST",
+] as const;
 export type Config = Record<(typeof keys)[number], string>;
 
 const placeholderRx = /<YOUR_\w+_HERE>/g;
