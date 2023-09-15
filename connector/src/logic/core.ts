@@ -58,7 +58,8 @@ export async function fetchOutstanding(a: {
   // );
 }
 
-export function latestSnatch(snatches: Snatch[]): Snatch {
+// TODO: test
+function latestSnatch(snatches: Snatch[]): Snatch {
   return snatches.reduce(
     (acc, s) =>
       s.lastSnatchedAt.getTime() > acc.lastSnatchedAt.getTime() ? s : acc,
@@ -67,27 +68,43 @@ export function latestSnatch(snatches: Snatch[]): Snatch {
 }
 
 // TODO: test
+function resnatchAfter(snatch: Snatch): Date {
+  return new Date(
+    snatch.lastSnatchedAt.getTime() + SNATCH_EXPIRY - REFRESH_WITHIN_EXPIRY
+  );
+}
+
+function startSearchingAt(
+  item: { airDate: string } | { releaseDate: string }
+): Date {
+  const raw = "airDate" in item ? item.airDate : item.releaseDate;
+  const releaseDate = new Date(raw);
+  return new Date(releaseDate.getTime() - SEARCH_BEFORE_RELEASE_DATE);
+}
+
+// TODO: test
 function listOverdueMovie(
   request: OverseerrRequestMovie,
   relevantSnatches: Snatch[]
 ): MovieToFetch | null {
   const now = new Date();
-  const releaseDate = new Date(request.releaseDate);
-  const searchStartingAt = new Date(
-    releaseDate.getTime() - SEARCH_BEFORE_RELEASE_DATE
-  );
-  if (searchStartingAt.getTime() > now.getTime()) return null;
+  if (relevantSnatches.length > 0) {
+    const latestSnatchForMovie = latestSnatch(relevantSnatches);
+    if (now > resnatchAfter(latestSnatchForMovie)) {
+      return {
+        type: "movie",
+        imdbID: request.imdbID,
+        snatch: latestSnatchForMovie,
+      };
+    }
+    return null; // if we've snatched this movie, no need to keep searching
+  }
 
-  if (relevantSnatches.length === 0)
+  if (now > startSearchingAt(request)) {
     return { type: "movie", imdbID: request.imdbID };
+  }
 
-  const snatch = latestSnatch(relevantSnatches);
-  const resnatchAfter = new Date(
-    snatch.lastSnatchedAt.getTime() + SNATCH_EXPIRY - REFRESH_WITHIN_EXPIRY
-  );
-  if (now > resnatchAfter)
-    return { type: "movie", imdbID: request.imdbID, snatch };
-  return DONT_FETCH;
+  return null;
 }
 
 // TODO: test
@@ -106,12 +123,7 @@ function listOverdueTV(
     );
 
     if (latestSnatchForSeason) {
-      const resnatchAfter = new Date(
-        latestSnatchForSeason.lastSnatchedAt.getTime() +
-          SNATCH_EXPIRY -
-          REFRESH_WITHIN_EXPIRY
-      );
-      if (now > resnatchAfter) {
+      if (now > resnatchAfter(latestSnatchForSeason)) {
         toFetch.push({
           type: "season",
           imdbID: request.imdbID,
@@ -119,7 +131,6 @@ function listOverdueTV(
           snatch: latestSnatchForSeason,
         });
       }
-
       continue; // if we've snatched this season, no need to keep searching
     }
 
@@ -148,12 +159,7 @@ function listOverdueTV(
       );
 
       if (latestSnatchForEpisode) {
-        const resnatchAfter = new Date(
-          latestSnatchForEpisode.lastSnatchedAt.getTime() +
-            SNATCH_EXPIRY -
-            REFRESH_WITHIN_EXPIRY
-        );
-        if (now > resnatchAfter) {
+        if (now > resnatchAfter(latestSnatchForEpisode)) {
           toFetch.push({
             type: "episode",
             imdbID: request.imdbID,
@@ -162,22 +168,17 @@ function listOverdueTV(
             snatch: latestSnatchForEpisode,
           });
         }
-
         continue; // if we've snatched this episode, no need to keep searching
       }
 
-      const startSearchingAt = new Date(
-        new Date(episode.airDate).getTime() - SEARCH_BEFORE_RELEASE_DATE
-      );
-
-      if (startSearchingAt > now) continue;
-
-      toFetch.push({
-        type: "episode",
-        imdbID: request.imdbID,
-        season: season.season,
-        episode: episode.episode,
-      });
+      if (now > startSearchingAt(episode)) {
+        toFetch.push({
+          type: "episode",
+          imdbID: request.imdbID,
+          season: season.season,
+          episode: episode.episode,
+        });
+      }
     }
   }
 
