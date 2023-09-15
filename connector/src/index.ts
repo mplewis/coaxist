@@ -24,12 +24,13 @@ async function main() {
         name: r.metadata.name,
         tmdbId: r.request.media.tmdbId,
         imdbId: r.metadata.externalIds.imdbId,
+        releaseDate:
+          r.metadata.mediaType === "movie" ? r.metadata.releaseDate : "<n/a>",
         seasons: r.seasons.map((s) => ({
           season: s.seasonNumber,
           episodes: s.episodes.map((e) => ({
             episode: e.episodeNumber,
             airDate: e.airDate,
-            aired: e.aired,
           })),
         })),
       })),

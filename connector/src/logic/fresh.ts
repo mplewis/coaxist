@@ -1,11 +1,4 @@
-import ms from "ms";
-import * as R from "remeda";
 import { OverseerrFullRequestInfo } from "../clients/overseerr";
-import { Quality, Tag } from "./classify";
-
-const SNATCH_EXPIRY = ms("15d"); // debrid services often expire files at 15 days
-const REFRESH_WITHIN_EXPIRY = ms("2d"); // refresh snatch if within 3 days of expiry
-const SEARCH_FOR_EPS_BEFORE_RELEASE_WITHIN = ms("7d"); // search for episodes up to 7 days before their official release date
 
 export type Snatch = {
   snatchedAt: Date;
@@ -13,13 +6,6 @@ export type Snatch = {
   mediaType: "movie" | "tv";
   tmdbId: number;
 } & ({} | { season: number } | { season: number; episode: number });
-
-function isStale(snatchedAt: Date, now = new Date()) {
-  const deadline = new Date(
-    snatchedAt.getTime() + SNATCH_EXPIRY - REFRESH_WITHIN_EXPIRY
-  );
-  return now > deadline;
-}
 
 export function correlateSnatches(
   requestInfos: OverseerrFullRequestInfo[],
@@ -45,18 +31,4 @@ export function correlateSnatches(
   }
 
   return Object.values(snatchesByRequest);
-}
-
-// if the season is stale and all episodes are available, refresh the season
-// otherwise, if any episodes are stale, refresh them
-
-export function staleRequests(
-  requestInfos: OverseerrFullRequestInfo[],
-  snatches: Snatch[]
-) {
-  const snatchesByRequest = correlateSnatches(requestInfos, snatches);
-  const [movies, tvs] = R.partition(
-    snatchesByRequest,
-    (x) => x.info.request.media.mediaType === "movie"
-  );
 }
