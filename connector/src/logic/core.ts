@@ -119,6 +119,11 @@ function listOverdueTV(
   const now = new Date();
 
   for (const season of request.seasons) {
+    const seasonToFetch: SeasonToFetch = {
+      type: "season",
+      imdbID: request.imdbID,
+      season: season.season,
+    };
     const snatchesForSeason = snatches.filter(
       (s) =>
         s.imdbID === request.imdbID && s.season === season.season && !s.episode
@@ -126,12 +131,7 @@ function listOverdueTV(
     if (snatchesForSeason.length > 0) {
       const latestSnatchForSeason = latestSnatch(snatchesForSeason);
       if (now > resnatchAfter(latestSnatchForSeason)) {
-        toFetch.push({
-          type: "season",
-          imdbID: request.imdbID,
-          season: season.season,
-          snatch: latestSnatchForSeason,
-        });
+        toFetch.push({ ...seasonToFetch, snatch: latestSnatchForSeason });
       }
       continue; // if we've snatched this season, no need to keep searching
     }
@@ -142,16 +142,17 @@ function listOverdueTV(
       (e) => new Date(e.airDate) <= now
     );
     if (allEpisodesReleased) {
-      toFetch.push({
-        type: "season",
-        imdbID: request.imdbID,
-        season: season.season,
-      });
+      toFetch.push(seasonToFetch);
       continue;
     }
 
     // The season has not yet completely aired. Fetch episodes.
     for (const episode of season.episodes) {
+      const episodeToFetch: EpisodeToFetch = {
+        ...seasonToFetch,
+        type: "episode",
+        episode: episode.episode,
+      };
       const snatchesForEpisode = snatches.filter(
         (s) =>
           s.imdbID === request.imdbID &&
@@ -161,24 +162,14 @@ function listOverdueTV(
       if (snatchesForEpisode.length > 0) {
         const latestSnatchForEpisode = latestSnatch(snatchesForEpisode);
         if (now > resnatchAfter(latestSnatchForEpisode)) {
-          toFetch.push({
-            type: "episode",
-            imdbID: request.imdbID,
-            season: season.season,
-            episode: episode.episode,
-            snatch: latestSnatchForEpisode,
-          });
+          toFetch.push({ ...episodeToFetch, snatch: latestSnatchForEpisode });
         }
         continue; // if we've snatched this episode, no need to keep searching
       }
 
+      // Start searching for episodes a few days before the release date.
       if (now > startSearchingAt(episode)) {
-        toFetch.push({
-          type: "episode",
-          imdbID: request.imdbID,
-          season: season.season,
-          episode: episode.episode,
-        });
+        toFetch.push(episodeToFetch);
       }
     }
   }
