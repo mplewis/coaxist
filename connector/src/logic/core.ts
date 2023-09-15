@@ -85,11 +85,14 @@ function startSearchingAt(
 // TODO: test
 function listOverdueMovie(
   request: OverseerrRequestMovie,
-  relevantSnatches: Snatch[]
+  snatches: Snatch[]
 ): MovieToFetch | null {
   const now = new Date();
-  if (relevantSnatches.length > 0) {
-    const latestSnatchForMovie = latestSnatch(relevantSnatches);
+  const snatchesForMovie = snatches.filter(
+    (s) => s.imdbID === request.imdbID && !s.season && !s.episode
+  );
+  if (snatchesForMovie.length > 0) {
+    const latestSnatchForMovie = latestSnatch(snatches);
     if (now > resnatchAfter(latestSnatchForMovie)) {
       return {
         type: "movie",
@@ -110,19 +113,18 @@ function listOverdueMovie(
 // TODO: test
 function listOverdueTV(
   request: OverseerrRequestTV,
-  relevantSnatches: Snatch[]
+  snatches: Snatch[]
 ): (SeasonToFetch | EpisodeToFetch)[] {
   const toFetch: (SeasonToFetch | EpisodeToFetch)[] = [];
   const now = new Date();
 
   for (const season of request.seasons) {
-    // Refresh the latest snatch for this season,
-    // if it exists and it's about to expire
-    const latestSnatchForSeason = latestSnatch(
-      relevantSnatches.filter((s) => s.season === season.season && !s.episode)
+    const snatchesForSeason = snatches.filter(
+      (s) =>
+        s.imdbID === request.imdbID && s.season === season.season && !s.episode
     );
-
-    if (latestSnatchForSeason) {
+    if (snatchesForSeason.length > 0) {
+      const latestSnatchForSeason = latestSnatch(snatchesForSeason);
       if (now > resnatchAfter(latestSnatchForSeason)) {
         toFetch.push({
           type: "season",
@@ -150,15 +152,14 @@ function listOverdueTV(
 
     // The season has not yet completely aired. Fetch episodes.
     for (const episode of season.episodes) {
-      // Refresh the latest snatch for this episode,
-      // if it exists and it's about to expire
-      const latestSnatchForEpisode = latestSnatch(
-        relevantSnatches.filter(
-          (s) => s.season === season.season && s.episode === episode.episode
-        )
+      const snatchesForEpisode = snatches.filter(
+        (s) =>
+          s.imdbID === request.imdbID &&
+          s.season === season.season &&
+          s.episode === episode.episode
       );
-
-      if (latestSnatchForEpisode) {
+      if (snatchesForEpisode.length > 0) {
+        const latestSnatchForEpisode = latestSnatch(snatchesForEpisode);
         if (now > resnatchAfter(latestSnatchForEpisode)) {
           toFetch.push({
             type: "episode",
