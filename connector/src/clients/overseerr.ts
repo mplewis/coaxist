@@ -17,6 +17,8 @@ export type OverseerrSeason = {
       episodeNumber: number;
       /** Episode air date in YYYY-MM-DD format */
       airDate: string;
+      /** Whether this episode has aired or not. Populated by us. */
+      aired: boolean;
     },
   ];
 };
@@ -71,9 +73,15 @@ export class OverseerrClient {
       const { mediaType, tmdbId } = request.media;
       const metadata = await this.getMetadata(mediaType, tmdbId);
       const seasons = await Promise.all(
-        request.seasons.map(async (season) =>
-          this.getSeason(tmdbId, season.seasonNumber)
-        )
+        request.seasons.map(async (season) => {
+          const s = await this.getSeason(tmdbId, season.seasonNumber);
+          const now = new Date();
+          s.episodes.forEach((e) => {
+            const airDate = new Date(e.airDate);
+            e.aired = airDate < now;
+          });
+          return s;
+        })
       );
       return { request, metadata, seasons };
     });
