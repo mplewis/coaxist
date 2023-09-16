@@ -22,13 +22,13 @@ type MovieToFetch = {
 };
 type SeasonToFetch = {
   snatch?: Snatch;
-  type: "season";
+  type: "tv";
   imdbID: string;
   season: number;
 };
 type EpisodeToFetch = {
   snatch?: Snatch;
-  type: "episode";
+  type: "tv";
   imdbID: string;
   season: number;
   episode: number;
@@ -83,7 +83,7 @@ export function startSearchingAt(
 export function listOverdueMovie(
   request: OverseerrRequestMovie,
   snatches: Snatch[],
-  now = new Date()
+  now: Date
 ): MovieToFetch | null {
   const snatchesForMovie = snatches.filter(
     (s) => s.imdbID === request.imdbID && !s.season && !s.episode
@@ -110,13 +110,13 @@ export function listOverdueMovie(
 export function listOverdueTV(
   request: OverseerrRequestTV,
   snatches: Snatch[],
-  now = new Date()
+  now: Date
 ): (SeasonToFetch | EpisodeToFetch)[] {
   const toFetch: (SeasonToFetch | EpisodeToFetch)[] = [];
 
   for (const season of request.seasons) {
     const seasonToFetch: SeasonToFetch = {
-      type: "season",
+      type: "tv",
       imdbID: request.imdbID,
       season: season.season,
     };
@@ -146,7 +146,6 @@ export function listOverdueTV(
     for (const episode of season.episodes) {
       const episodeToFetch: EpisodeToFetch = {
         ...seasonToFetch,
-        type: "episode",
         episode: episode.episode,
       };
       const snatchesForEpisode = snatches.filter(
@@ -173,14 +172,14 @@ export function listOverdueTV(
   return toFetch;
 }
 
-// TODO: test
-function listOverdue(
+export function listOverdue(
   request: OverseerrRequest,
-  relevantSnatches: Snatch[]
+  relevantSnatches: Snatch[],
+  now = new Date()
 ): ToFetch[] {
   if (request.type === "movie") {
-    const toFetch = listOverdueMovie(request, relevantSnatches);
+    const toFetch = listOverdueMovie(request, relevantSnatches, now);
     return toFetch ? [toFetch] : [];
   }
-  return listOverdueTV(request, relevantSnatches);
+  return listOverdueTV(request, relevantSnatches, now);
 }

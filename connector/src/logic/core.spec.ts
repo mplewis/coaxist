@@ -7,6 +7,7 @@ import {
 } from "../clients/overseerr";
 import {
   latestSnatch,
+  listOverdue,
   listOverdueMovie,
   listOverdueTV,
   resnatchAfter,
@@ -192,7 +193,7 @@ describe("listOverdueTV", () => {
         it("requests fetch with last snatch", () => {
           expect(subject()).toEqual([
             {
-              type: "season",
+              type: "tv",
               imdbID: "tt123",
               season: 1,
               snatch: {
@@ -216,7 +217,7 @@ describe("listOverdueTV", () => {
         it("requests fetch", () => {
           expect(subject()).toEqual([
             {
-              type: "season",
+              type: "tv",
               imdbID: "tt123",
               season: 1,
             },
@@ -249,10 +250,10 @@ describe("listOverdueTV", () => {
       describe("last snatch is stale", () => {
         given("now", () => new Date("2020-02-05"));
 
-        it.only("requests fetch with last snatch", () => {
+        it("requests fetch with last snatch", () => {
           expect(subject()).toEqual([
             {
-              type: "episode",
+              type: "tv",
               imdbID: "tt123",
               season: 1,
               episode: 1,
@@ -273,7 +274,7 @@ describe("listOverdueTV", () => {
       given("snatches", () => []);
 
       describe("no episodes have aired", () => {
-        given("now", () => new Date("2020-01-14"));
+        given("now", () => new Date("2020-01-01"));
 
         it("does not request fetch", () => {
           expect(subject()).toEqual([]);
@@ -286,7 +287,7 @@ describe("listOverdueTV", () => {
         it("requests fetch", () => {
           expect(subject()).toEqual([
             {
-              type: "episode",
+              type: "tv",
               imdbID: "tt123",
               season: 1,
               episode: 1,
@@ -301,13 +302,75 @@ describe("listOverdueTV", () => {
         it("requests fetch", () => {
           expect(subject()).toEqual([
             {
-              type: "episode",
+              type: "tv",
               imdbID: "tt123",
               season: 1,
               episode: 1,
             },
+            {
+              type: "tv",
+              imdbID: "tt123",
+              season: 1,
+              episode: 2,
+            },
           ]);
         });
+      });
+    });
+  });
+});
+
+describe("listOverdue", () => {
+  const snatches = [] as Snatch[];
+
+  describe("movie", () => {
+    const request = {
+      type: "movie",
+      imdbID: "tt123",
+      releaseDate: "2020-01-01",
+    } as OverseerrRequestMovie;
+
+    it("returns overdue movies", () => {
+      const now = new Date("2020-01-02");
+      expect(listOverdue(request, snatches, now)).toEqual([
+        { type: "movie", imdbID: "tt123" },
+      ]);
+    });
+  });
+
+  describe("TV season", () => {
+    const request = {
+      type: "tv",
+      imdbID: "tt123",
+      seasons: [
+        {
+          season: 1,
+          episodes: [
+            { episode: 1, airDate: "2020-01-15" },
+            { episode: 2, airDate: "2020-02-15" },
+          ],
+        },
+      ],
+    } as OverseerrRequestTV;
+
+    describe("almost fully aired", () => {
+      const now = new Date("2020-02-14");
+
+      it("returns overdue episodes", () => {
+        expect(listOverdue(request, snatches, now)).toEqual([
+          { type: "tv", imdbID: "tt123", season: 1, episode: 1 },
+          { type: "tv", imdbID: "tt123", season: 1, episode: 2 },
+        ]);
+      });
+    });
+
+    describe("fully aired", () => {
+      const now = new Date("2020-02-16");
+
+      it("returns overdue season", () => {
+        expect(listOverdue(request, snatches, now)).toEqual([
+          { type: "tv", imdbID: "tt123", season: 1 },
+        ]);
       });
     });
   });
