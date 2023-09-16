@@ -82,12 +82,11 @@ function startSearchingAt(
   return new Date(releaseDate.getTime() - SEARCH_BEFORE_RELEASE_DATE);
 }
 
-// TODO: test
-function listOverdueMovie(
+export function listOverdueMovie(
   request: OverseerrRequestMovie,
-  snatches: Snatch[]
+  snatches: Snatch[],
+  now = new Date()
 ): MovieToFetch | null {
-  const now = new Date();
   const snatchesForMovie = snatches.filter(
     (s) => s.imdbID === request.imdbID && !s.season && !s.episode
   );
