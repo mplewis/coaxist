@@ -66,8 +66,7 @@ export function latestSnatch(snatches: Snatch[]): Snatch {
   );
 }
 
-// TODO: test
-function resnatchAfter(snatch: Snatch): Date {
+export function resnatchAfter(snatch: Snatch): Date {
   return new Date(
     snatch.lastSnatchedAt.getTime() + SNATCH_EXPIRY - REFRESH_WITHIN_EXPIRY
   );
