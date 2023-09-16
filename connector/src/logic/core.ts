@@ -107,13 +107,12 @@ export function listOverdueMovie(
   return null;
 }
 
-// TODO: test
-function listOverdueTV(
+export function listOverdueTV(
   request: OverseerrRequestTV,
-  snatches: Snatch[]
+  snatches: Snatch[],
+  now = new Date()
 ): (SeasonToFetch | EpisodeToFetch)[] {
   const toFetch: (SeasonToFetch | EpisodeToFetch)[] = [];
-  const now = new Date();
 
   for (const season of request.seasons) {
     const seasonToFetch: SeasonToFetch = {
