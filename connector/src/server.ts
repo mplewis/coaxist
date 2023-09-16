@@ -6,7 +6,6 @@ import { router } from "./api/router";
 const server = Fastify({
   logger: true,
 });
-export const { log } = server;
 
 server.register(fastifyTRPCPlugin, {
   prefix: "/api",

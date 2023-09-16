@@ -19,6 +19,9 @@ dependencies:
   ms:
     specifier: ^2.1.3
     version: 2.1.3
+  pino:
+    specifier: ^8.15.1
+    version: 8.15.1
   remeda:
     specifier: ^1.26.0
     version: 1.26.0

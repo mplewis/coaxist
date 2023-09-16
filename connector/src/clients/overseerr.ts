@@ -3,6 +3,7 @@ import z from "zod";
 export type OverseerrRequest = OverseerrRequestTV | OverseerrRequestMovie;
 export type OverseerrRequestTV = {
   type: "tv";
+  title: string;
   id: number;
   imdbID: string;
   seasons: {
@@ -12,6 +13,7 @@ export type OverseerrRequestTV = {
 };
 export type OverseerrRequestMovie = {
   type: "movie";
+  title: string;
   id: number;
   imdbID: string;
   releaseDate: string;
@@ -90,6 +92,7 @@ export class OverseerrClient {
         const metadata = await this.getMetadataMovie(tmdbId);
         const ret: OverseerrRequestMovie = {
           type: "movie",
+          title: metadata.title,
           id: request.id,
           imdbID: metadata.imdbId,
           releaseDate: metadata.releaseDate,
@@ -106,6 +109,7 @@ export class OverseerrClient {
       );
       const ret: OverseerrRequestTV = {
         type: "tv",
+        title: metadata.name,
         id: request.id,
         imdbID: metadata.imdbId,
         seasons: seasons.map((s) => ({
