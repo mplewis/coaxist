@@ -58,8 +58,7 @@ export async function fetchOutstanding(a: {
   // );
 }
 
-// TODO: test
-function latestSnatch(snatches: Snatch[]): Snatch {
+export function latestSnatch(snatches: Snatch[]): Snatch {
   return snatches.reduce(
     (acc, s) =>
       s.lastSnatchedAt.getTime() > acc.lastSnatchedAt.getTime() ? s : acc,
