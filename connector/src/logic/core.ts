@@ -1,5 +1,6 @@
 import { PrismaClient, Snatch } from "@prisma/client";
 import ms from "ms";
+import { pick } from "remeda";
 import {
   OverseerrClient,
   OverseerrRequest,
@@ -98,21 +99,24 @@ export function listOverdueMovie(
   snatches: Snatch[],
   now: Date
 ): MovieToFetch | null {
-  const mlog = log.child({ request });
+  const mlog = log.child({ ...pick(request, ["title", "imdbID"]) });
   const snatchesForMovie = snatches.filter(
     (s) => s.imdbID === request.imdbID && !s.season && !s.episode
   );
   if (snatchesForMovie.length > 0) {
     const latestSnatchForMovie = latestSnatch(snatches);
+    const mslog = mlog.child({
+      snatch: pick(latestSnatchForMovie, ["id", "lastSnatchedAt"]),
+    });
     if (now > resnatchAfter(latestSnatchForMovie)) {
-      mlog.debug({ snatch: latestSnatchForMovie }, "resnatching stale movie");
+      mslog.debug({ snatch: latestSnatchForMovie }, "resnatching stale movie");
       return {
         type: "movie",
         imdbID: request.imdbID,
         snatch: latestSnatchForMovie,
       };
     }
-    mlog.debug(
+    mslog.debug(
       { snatch: latestSnatchForMovie },
       "movie was snatched recently, skipping"
     );
@@ -141,7 +145,7 @@ export function listOverdueTV(
   now: Date
 ): (SeasonToFetch | EpisodeToFetch)[] {
   const toFetch: (SeasonToFetch | EpisodeToFetch)[] = [];
-  const clog = log.child({ request });
+  const clog = log.child({ ...pick(request, ["title", "imdbID"]) });
 
   for (const season of request.seasons) {
     const seasonToFetch: SeasonToFetch = {
@@ -149,21 +153,24 @@ export function listOverdueTV(
       imdbID: request.imdbID,
       season: season.season,
     };
-    const slog = clog.child({ season: seasonToFetch });
+    const slog = clog.child({ season: season.season });
     const snatchesForSeason = snatches.filter(
       (s) =>
         s.imdbID === request.imdbID && s.season === season.season && !s.episode
     );
     if (snatchesForSeason.length > 0) {
       const latestSnatchForSeason = latestSnatch(snatchesForSeason);
+      const sslog = slog.child({
+        snatch: pick(latestSnatchForSeason, ["id", "lastSnatchedAt"]),
+      });
       if (now > resnatchAfter(latestSnatchForSeason)) {
-        clog.debug(
+        sslog.debug(
           { snatch: latestSnatchForSeason },
           "resnatching stale season"
         );
         toFetch.push({ ...seasonToFetch, snatch: latestSnatchForSeason });
       } else {
-        clog.debug("season was snatched recently, skipping");
+        sslog.debug("season was snatched recently, skipping");
       }
       continue;
     }
@@ -185,7 +192,7 @@ export function listOverdueTV(
         ...seasonToFetch,
         episode: episode.episode,
       };
-      const elog = slog.child({ episode: episodeToFetch });
+      const elog = slog.child({ episode: episode.episode });
       const snatchesForEpisode = snatches.filter(
         (s) =>
           s.imdbID === request.imdbID &&
@@ -194,14 +201,17 @@ export function listOverdueTV(
       );
       if (snatchesForEpisode.length > 0) {
         const latestSnatchForEpisode = latestSnatch(snatchesForEpisode);
+        const eslog = elog.child({
+          snatch: pick(latestSnatchForEpisode, ["id", "lastSnatchedAt"]),
+        });
         if (now > resnatchAfter(latestSnatchForEpisode)) {
-          elog.debug(
+          eslog.debug(
             { snatch: latestSnatchForEpisode },
             "resnatching stale episode"
           );
           toFetch.push({ ...episodeToFetch, snatch: latestSnatchForEpisode });
         } else {
-          elog.debug("episode was snatched recently, skipping");
+          eslog.debug("episode was snatched recently, skipping");
         }
         continue;
       }
