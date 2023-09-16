@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Given } from "./given";
 
-const { given, v } = new Given();
+const { given, v } = new Given({ a: 0, b: 0 });
 
 describe("given demo", () => {
   given("a", () => 1);
@@ -36,6 +36,6 @@ describe("given demo", () => {
 
   it("respects the unset value", () => {
     expect(v.a).toEqual(1);
-    expect(v.b).toBeUndefined();
+    expect(v.b).toEqual(0);
   });
 });
