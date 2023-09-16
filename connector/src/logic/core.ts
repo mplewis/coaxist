@@ -72,7 +72,7 @@ export function resnatchAfter(snatch: Snatch): Date {
   );
 }
 
-function startSearchingAt(
+export function startSearchingAt(
   item: { airDate: string } | { releaseDate: string }
 ): Date {
   const raw = "airDate" in item ? item.airDate : item.releaseDate;

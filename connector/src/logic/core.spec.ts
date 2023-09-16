@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { Snatch } from "@prisma/client";
 import { Given } from "../test/given";
 import { OverseerrRequestMovie } from "../clients/overseerr";
-import { latestSnatch, listOverdueMovie, resnatchAfter } from "./core";
+import {
+  latestSnatch,
+  listOverdueMovie,
+  resnatchAfter,
+  startSearchingAt,
+} from "./core";
 
 describe("latestSnatch", () => {
   it("returns the latest snatch", () => {
@@ -35,6 +40,17 @@ describe("resnatchAfter", () => {
         lastSnatchedAt: new Date("2020-04-19"),
       } as Snatch)
     ).toEqual(new Date("2020-05-01"));
+  });
+});
+
+describe("startSearchingAt", () => {
+  it("returns the expected date", () => {
+    expect(startSearchingAt({ airDate: "2020-01-15" })).toEqual(
+      new Date("2020-01-08")
+    );
+    expect(startSearchingAt({ airDate: "2020-02-03" })).toEqual(
+      new Date("2020-01-27")
+    );
   });
 });
 
