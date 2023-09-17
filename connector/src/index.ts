@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { serve } from "./server";
 import { OverseerrClient } from "./clients/overseerr";
 import { getConfig } from "./util/config";
-import { listOutstanding } from "./logic/core";
+import { listOutstanding } from "./logic/list";
 import log from "./log";
 
 async function main() {

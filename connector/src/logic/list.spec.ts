@@ -12,7 +12,7 @@ import {
   listOverdueTV,
   resnatchAfter,
   startSearchingAt,
-} from "./core";
+} from "./list";
 
 describe("latestSnatch", () => {
   it("returns the latest snatch", () => {
