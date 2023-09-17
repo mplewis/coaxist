@@ -1,5 +1,8 @@
 import { readFileSync, statSync, writeFileSync } from "fs";
 import log from "../log";
+import packageJSON from "../../package.json";
+
+export const { version: VERSION } = packageJSON;
 
 const keys = [
   "ALLDEBRID_API_KEY",

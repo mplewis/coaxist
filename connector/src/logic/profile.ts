@@ -10,19 +10,6 @@ export type Profile = {
   forbidden?: Tag[];
 };
 
-// demo
-export const myProfiles: Profile[] = [
-  {
-    name: "Best Available",
-    discouraged: ["remux"],
-  },
-  {
-    name: "Accessible",
-    maximum: { quality: "1080p" },
-    forbidden: ["remux", "hdr"],
-  },
-];
-
 export function satisfiesQuality(
   q: { minimum?: { quality: Quality }; maximum?: { quality: Quality } },
   item: { quality: Quality }

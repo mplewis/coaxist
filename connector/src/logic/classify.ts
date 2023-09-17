@@ -8,12 +8,16 @@ import {
   tokenize,
 } from "./parse";
 import { Profile, isPreferred, satisfies } from "./profile";
+import { TorrentioSearchResult } from "../clients/torrentio";
 
 const SEASON_MATCHER = /\bs(\d+)\b/i;
 const EPISODE_MATCHER = /\bs(\d+)e(\d+)\b/i;
 
 /** Information parsed from a torrent's raw title. */
-export type TorrentInfo = Classification & TorrentioResultMetadata;
+export type TorrentInfo = Classification &
+  TorrentioResultMetadata & {
+    originalResult: TorrentioSearchResult;
+  };
 
 /** A piece of media that has been classified with a known quality, numbering (if applicable), and tagged. */
 export type Classification = { quality: Quality; tags: Tag[] } & Numbering;
@@ -63,9 +67,9 @@ function numberingFrom(
 
 /** Parse info from the raw Torrentio title data and build a complete TorrentInfo. */
 export function classifyTorrentioResult(
-  torrentioTitle: string
+  tsr: TorrentioSearchResult
 ): TorrentInfo | null {
-  const parsed = parseTorrentioTitle(torrentioTitle);
+  const parsed = parseTorrentioTitle(tsr.title);
   if (!parsed) return null;
   const { torrentLine, filenameLine, seeders, bytes, tracker } = parsed;
 
@@ -84,7 +88,7 @@ export function classifyTorrentioResult(
   })();
   if (!cl) return null;
 
-  return { ...cl, tracker, seeders, bytes };
+  return { ...cl, tracker, seeders, bytes, originalResult: tsr };
 }
 
 /** Build an ordered list of candidates, grouped by quality in descending order. */

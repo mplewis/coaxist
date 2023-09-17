@@ -2,8 +2,22 @@ import { PrismaClient } from "@prisma/client";
 import { serve } from "./server";
 import { OverseerrClient } from "./clients/overseerr";
 import { getConfig } from "./util/config";
-import { listOutstanding } from "./logic/list";
 import log from "./log";
+import { fetchOutstanding } from "./logic/fetch";
+import { DebridCreds } from "./clients/torrentio";
+import { Profile } from "./logic/profile";
+
+const profiles: Profile[] = [
+  {
+    name: "Best Available",
+    discouraged: ["remux"],
+  },
+  {
+    name: "Accessible",
+    maximum: { quality: "1080p" },
+    forbidden: ["remux", "hdr"],
+  },
+];
 
 async function main() {
   const config = getConfig();
@@ -16,7 +30,16 @@ async function main() {
   const dbClient = new PrismaClient();
   await dbClient.$connect();
 
-  const results = await listOutstanding({ dbClient, overseerrClient });
+  const debridCreds: DebridCreds = {
+    allDebridAPIKey: config.ALLDEBRID_API_KEY,
+  };
+
+  const results = await fetchOutstanding({
+    dbClient,
+    overseerrClient,
+    debridCreds,
+    profiles,
+  });
   log.info({ results }, "listOutstanding");
 
   try {
