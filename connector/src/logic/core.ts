@@ -1,6 +1,7 @@
 import { PrismaClient, Snatch } from "@prisma/client";
 import ms from "ms";
 import { pick } from "remeda";
+import pLimit from "p-limit";
 import {
   OverseerrClient,
   OverseerrRequest,
@@ -19,48 +20,23 @@ const SEARCH_BEFORE_RELEASE_DATE = ms("7d");
 const OVERSEERR_REQUEST_CONCURRENCY = 5;
 
 type ToFetch = MovieToFetch | SeasonToFetch | EpisodeToFetch;
-type MovieToFetch = {
+type BaseToFetch = {
   snatch?: Snatch;
-  type: "movie";
   imdbID: string;
+  title: string;
 };
-type SeasonToFetch = {
-  snatch?: Snatch;
+type MovieToFetch = BaseToFetch & {
+  type: "movie";
+};
+type SeasonToFetch = BaseToFetch & {
   type: "tv";
-  imdbID: string;
   season: number;
 };
-type EpisodeToFetch = {
-  snatch?: Snatch;
+type EpisodeToFetch = BaseToFetch & {
   type: "tv";
-  imdbID: string;
   season: number;
   episode: number;
 };
-
-export async function fetchOutstanding(a: {
-  dbClient: PrismaClient;
-  overseerrClient: OverseerrClient;
-}) {
-  // const requests = await a.overseerrClient.getMetadataForApprovedRequests();
-  // const requestsByImdbID = requests.reduce(
-  //   (acc, r) => {
-  //     acc[r.metadata.externalIds.imdbId] = r;
-  //     return acc;
-  //   },
-  //   {} as Record<string, OverseerrRequest>
-  // );
-  // const snatches = await a.dbClient.snatch.findMany({
-  //   where: { imdbID: { in: Object.keys(requestsByImdbID) } },
-  // });
-  // const snatchesByImdbID = snatches.reduce(
-  //   (acc, s) => {
-  //     acc[s.imdbID] = s;
-  //     return acc;
-  //   },
-  //   {} as Record<string, Snatch>
-  // );
-}
 
 /** Pick the most recently snatched item from a list of snatches. */
 export function latestSnatch(snatches: Snatch[]): Snatch {
@@ -112,6 +88,7 @@ export function listOverdueMovie(
       mslog.debug({ snatch: latestSnatchForMovie }, "resnatching stale movie");
       return {
         type: "movie",
+        title: request.title,
         imdbID: request.imdbID,
         snatch: latestSnatchForMovie,
       };
@@ -126,7 +103,7 @@ export function listOverdueMovie(
   const mrlog = mlog.child({ releaseDate: request.releaseDate });
   if (now > startSearchingAt(request)) {
     mrlog.debug("requesting movie which is released or about to be released");
-    return { type: "movie", imdbID: request.imdbID };
+    return { type: "movie", title: request.title, imdbID: request.imdbID };
   }
   mrlog.debug("not close enough to movie release date, skipping");
   return null;
@@ -150,6 +127,7 @@ export function listOverdueTV(
   for (const season of request.seasons) {
     const seasonToFetch: SeasonToFetch = {
       type: "tv",
+      title: request.title,
       imdbID: request.imdbID,
       season: season.season,
     };
@@ -249,4 +227,56 @@ export function listOverdue(
     return toFetch ? [toFetch] : [];
   }
   return listOverdueTV(request, relevantSnatches, now);
+}
+
+/**
+ * List the media that should be fetched for approved Radarr requests.
+ * @param a.dbClient The database client to use
+ * @param a.overseerrClient The Overseerr client to use
+ * @returns A list of media to fetch
+ */
+export async function listOutstanding(a: {
+  dbClient: PrismaClient;
+  overseerrClient: OverseerrClient;
+}) {
+  log.debug("fetching all Overseerr requests and relevant snatches");
+  const requests = await a.overseerrClient.getMetadataForApprovedRequests();
+  const snatches = await a.dbClient.snatch.findMany({
+    where: { imdbID: { in: requests.map((r) => r.imdbID) } },
+  });
+  const snatchesByImdbID = snatches.reduce(
+    (acc, s) => {
+      if (!acc[s.imdbID]) acc[s.imdbID] = [];
+      acc[s.imdbID].push(s);
+      return acc;
+    },
+    {} as Record<string, Snatch[]>
+  );
+
+  log.debug(
+    { requests: requests.map((r) => pick(r, ["imdbID", "title", "type"])) },
+    "determining what media needs to be fetched"
+  );
+  const pool = pLimit(OVERSEERR_REQUEST_CONCURRENCY);
+  const jobs = requests.map((r) =>
+    pool(async () => listOverdue(r, snatchesByImdbID[r.imdbID] || []))
+  );
+  const results = (await Promise.all(jobs)).flat();
+
+  log.info(
+    {
+      results: results.map((r) => ({
+        type: r.type,
+        imdbID: r.imdbID,
+        title: r.title,
+        season: "season" in r ? r.season : undefined,
+        episode: "episode" in r ? r.episode : undefined,
+        resnatch: r.snatch
+          ? { id: r.snatch.id, lastSnatchedAt: r.snatch.lastSnatchedAt }
+          : false,
+      })),
+    },
+    "determined what media needs to be fetched"
+  );
+  return results.flat();
 }

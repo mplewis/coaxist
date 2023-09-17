@@ -1,4 +1,5 @@
 import z from "zod";
+import log from "../log";
 
 export type OverseerrRequest = OverseerrRequestTV | OverseerrRequestMovie;
 export type OverseerrRequestTV = {
@@ -24,6 +25,7 @@ export class OverseerrClient {
 
   private async get(path: string) {
     const url = `http://${this.a.host}/api/v1${path}`;
+    log.debug({ url }, "fetching from Overseerr");
     const res = await fetch(url, {
       method: "GET",
       headers: { "X-Api-Key": this.a.apiKey },
@@ -61,15 +63,15 @@ export class OverseerrClient {
         })
       ),
     });
-    const resp = this.get(`/tv/${tmdbID}/season/${season}`);
+    const resp = await this.get(`/tv/${tmdbID}/season/${season}`);
     return schema.parse(resp); // TODO: error handling
   }
 
   async getMetadataMovie(tmdbID: number) {
     const schema = z.object({
       title: z.string(),
-      imdbId: z.string(),
       releaseDate: z.string(),
+      externalIds: z.object({ imdbId: z.string() }),
     });
     const resp = await this.get(`/movie/${tmdbID}`);
     return schema.parse(resp); // TODO: error handling
@@ -78,7 +80,7 @@ export class OverseerrClient {
   async getMetadataTV(tmdbID: number) {
     const schema = z.object({
       name: z.string(),
-      imdbId: z.string(),
+      externalIds: z.object({ imdbId: z.string() }),
     });
     const resp = await this.get(`/tv/${tmdbID}`);
     return schema.parse(resp); // TODO: error handling
@@ -94,7 +96,7 @@ export class OverseerrClient {
           type: "movie",
           title: metadata.title,
           id: request.id,
-          imdbID: metadata.imdbId,
+          imdbID: metadata.externalIds.imdbId,
           releaseDate: metadata.releaseDate,
         };
         return ret;
@@ -111,7 +113,7 @@ export class OverseerrClient {
         type: "tv",
         title: metadata.name,
         id: request.id,
-        imdbID: metadata.imdbId,
+        imdbID: metadata.externalIds.imdbId,
         seasons: seasons.map((s) => ({
           season: s.seasonNumber,
           episodes: s.data.episodes.map((e) => ({

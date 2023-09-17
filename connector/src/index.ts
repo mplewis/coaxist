@@ -1,8 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-import { log, serve } from "./server";
+import { serve } from "./server";
 import { OverseerrClient } from "./clients/overseerr";
 import { getConfig } from "./util/config";
-import { buildDebridFetchURL, search } from "./clients/torrentio";
+import { listOutstanding } from "./logic/core";
+import log from "./log";
 
 async function main() {
   const config = getConfig();
@@ -15,56 +16,10 @@ async function main() {
   const dbClient = new PrismaClient();
   await dbClient.$connect();
 
+  const results = await listOutstanding({ dbClient, overseerrClient });
+  log.info({ results }, "listOutstanding");
+
   try {
-    const resp = await overseerrClient.getMetadataForApprovedRequests();
-    log.info({
-      requests: resp.map((r) => ({
-        type: r.request.media.mediaType,
-        id: r.request.id,
-        name: r.metadata.name,
-        tmdbId: r.request.media.tmdbId,
-        imdbId: r.metadata.externalIds.imdbId,
-        releaseDate:
-          r.metadata.mediaType === "movie" ? r.metadata.releaseDate : "<n/a>",
-        seasons: r.seasons.map((s) => ({
-          season: s.seasonNumber,
-          episodes: s.episodes.map((e) => ({
-            episode: e.episodeNumber,
-            airDate: e.airDate,
-          })),
-        })),
-      })),
-    });
-
-    // const tvResults = await search({
-    //   imdbID: "tt0804484",
-    //   season: 1,
-    //   episode: 1,
-    // });
-    // log.info({ tvResults });
-
-    // if (tvResults.ok) {
-    //   tvResults.results.forEach((r) => {
-    //     const fetchURL = buildDebridFetchURL(
-    //       { allDebridAPIKey: config.ALLDEBRID_API_KEY },
-    //       r
-    //     );
-    //     console.log({ title: r.title, fetchURL });
-    //   });
-    // }
-
-    // const movieResults = await search({ imdbID: "tt9198364" });
-    // log.info({ movieResults });
-    // if (movieResults.ok) {
-    //   movieResults.results.forEach((r) => {
-    //     const fetchURL = buildDebridFetchURL(
-    //       { allDebridAPIKey: config.ALLDEBRID_API_KEY },
-    //       r
-    //     );
-    //     console.log({ title: r.title, fetchURL });
-    //   });
-    // }
-
     serve();
   } finally {
     await dbClient.$disconnect();

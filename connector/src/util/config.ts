@@ -1,5 +1,5 @@
 import { readFileSync, statSync, writeFileSync } from "fs";
-import { log } from "../server";
+import log from "../log";
 
 const keys = [
   "ALLDEBRID_API_KEY",
