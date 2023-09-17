@@ -7,6 +7,8 @@ CREATE TABLE "Snatch" (
     "mediaType" TEXT NOT NULL,
     "imdbID" TEXT NOT NULL,
     "refreshURL" TEXT NOT NULL,
+    "debridCredsHash" TEXT NOT NULL,
+    "profileHash" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "season" INTEGER,
     "episode" INTEGER

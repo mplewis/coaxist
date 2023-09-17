@@ -19,15 +19,19 @@ model Snatch {
   lastSnatchedAt DateTime @default(now())
 
   /// `movie` or `tv`
-  mediaType  String
+  mediaType       String
   /// IMDB ID of the media
-  imdbID     String
+  imdbID          String
   /// The URL which will send this snatch to Debrid when fetched
-  refreshURL String
+  refreshURL      String
+  /// A secure hash of the credentials used to build the refresh URL
+  debridCredsHash String
+  /// A hash of the profile this torrent satisfies
+  profileHash     String
   /// The raw title of the torrent from Torrentio
-  title      String
+  title           String
   /// If this snatch is for a TV show, the season number
-  season     Int?
+  season          Int?
   /// If this snatch is for a specific episode of a TV show, the episode number
-  episode    Int?
+  episode         Int?
 }

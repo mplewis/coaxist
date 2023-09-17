@@ -25,6 +25,11 @@ export type Media = { imdbID: string } & (
   | { season: number; episode: number }
 );
 
+/** A Torrentio URL that can be used to load an item into Debrid. */
+export type Snatchable = {
+  snatchURL: string;
+};
+
 const torrentioSearchResultsSchema = z.object({ streams: z.array(z.any()) });
 
 const torrentioSearchResultSchema = z.object({
@@ -78,6 +83,11 @@ export async function searchTorrentio(
     results.push(rs.data);
   }
   return results;
+}
+
+export function snatchViaURL(s: Snatchable) {
+  log.debug({ url: s.snatchURL }, "snatching via Torrentio");
+  return fetch(s.snatchURL, { method: "HEAD", headers });
 }
 
 export function buildDebridFetchURL(

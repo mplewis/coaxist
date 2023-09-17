@@ -34,13 +34,12 @@ async function main() {
     allDebridAPIKey: config.ALLDEBRID_API_KEY,
   };
 
-  const results = await fetchOutstanding({
+  await fetchOutstanding({
     dbClient,
     overseerrClient,
     debridCreds,
     profiles,
   });
-  log.info({ results }, "listOutstanding");
 
   try {
     serve();

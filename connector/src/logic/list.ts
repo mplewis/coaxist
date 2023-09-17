@@ -93,10 +93,7 @@ export function listOverdueMovie(
         snatch: latestSnatchForMovie,
       };
     }
-    mslog.debug(
-      { snatch: latestSnatchForMovie },
-      "movie was snatched recently, skipping"
-    );
+    mslog.debug("movie was snatched recently, skipping");
     return null;
   }
 
