@@ -24,7 +24,7 @@ export class OverseerrClient {
   constructor(private a: { host: string; apiKey: string }) {}
 
   private async get(path: string) {
-    const url = `http://${this.a.host}/api/v1${path}`;
+    const url = `${this.a.host}/api/v1${path}`;
     log.debug({ url }, "fetching from Overseerr");
     const res = await fetch(url, {
       method: "GET",

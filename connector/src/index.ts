@@ -2,7 +2,6 @@ import { PrismaClient } from "@prisma/client";
 import { serve } from "./server";
 import { OverseerrClient } from "./clients/overseerr";
 import { getConfig } from "./util/config";
-import log from "./log";
 import { fetchOutstanding } from "./logic/fetch";
 import { DebridCreds } from "./clients/torrentio";
 import { Profile } from "./logic/profile";
@@ -20,7 +19,7 @@ const profiles: Profile[] = [
 ];
 
 async function main() {
-  const config = getConfig();
+  const config = await getConfig();
 
   const overseerrClient = new OverseerrClient({
     host: config.OVERSEERR_HOST,
