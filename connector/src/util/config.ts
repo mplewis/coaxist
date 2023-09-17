@@ -13,12 +13,12 @@ const storageDir = process.env.STORAGE_DIR || "/config/connector";
 
 const CONFIG_SCHEMA = z.object({
   ALLDEBRID_API_KEY: z.string(),
-  DATABASE_URI: z.string(),
+  DATABASE_URL: z.string(),
   OVERSEERR_API_KEY: z.string(),
   OVERSEERR_HOST: z.string().url(),
 });
 const CONFIG_DEFAULTS: Partial<Config> = {
-  DATABASE_URI: `file:${join(storageDir, "db.sqlite")}`,
+  DATABASE_URL: `file:${join(storageDir, "db.sqlite")}`,
   OVERSEERR_HOST: "http://localhost:5055",
 };
 export type Config = z.infer<typeof CONFIG_SCHEMA>;
