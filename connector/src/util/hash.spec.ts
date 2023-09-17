@@ -1,5 +1,4 @@
-import { describe, expect } from "vitest";
-import { it } from "node:test";
+import { describe, expect, it } from "vitest";
 import { secureHash } from "./hash";
 
 describe("secureHash", () => {
