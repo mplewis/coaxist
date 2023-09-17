@@ -5,7 +5,7 @@ source .env
 
 if docker ps -a --format '{{.Names}}' | grep -q '^coaxist$'; then
 	echo "Starting existing coaxist container. To run a fresh copy, delete this container and run this script again."
-	docker start -ai coaxist
+	docker start -ai coaxist "$@"
 	exit
 fi
 
