@@ -238,7 +238,7 @@ export async function listOutstanding(a: {
   dbClient: PrismaClient;
   overseerrClient: OverseerrClient;
 }) {
-  log.debug("fetching all Overseerr requests and relevant snatches");
+  log.info("fetching all outstanding Overseerr requests");
   const requests = await a.overseerrClient.getMetadataForApprovedRequests();
   const snatches = await a.dbClient.snatch.findMany({
     where: { imdbID: { in: requests.map((r) => r.imdbID) } },
@@ -254,7 +254,7 @@ export async function listOutstanding(a: {
 
   log.debug(
     { requests: requests.map((r) => pick(r, ["imdbID", "title", "type"])) },
-    "determining what media needs to be fetched"
+    "building list of media to fetch"
   );
   const pool = pLimit(OVERSEERR_REQUEST_CONCURRENCY);
   const jobs = requests.map((r) =>
@@ -275,7 +275,7 @@ export async function listOutstanding(a: {
           : false,
       })),
     },
-    "determined what media needs to be fetched"
+    "built list of media to fetch"
   );
   return results.flat();
 }

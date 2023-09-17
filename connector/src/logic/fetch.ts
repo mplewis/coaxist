@@ -136,7 +136,7 @@ export async function fetchOutstanding(a: {
   const searchResults = (await Promise.all(searches)).filter(isTruthy).flat();
   log.info(
     { results: searchResults },
-    "determined what media needs to be fetched"
+    "discovered torrents that are available for snatch"
   );
 
   const debridCredsHash = secureHash(a.debridCreds);
