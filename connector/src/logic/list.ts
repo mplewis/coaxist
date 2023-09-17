@@ -19,20 +19,20 @@ const SEARCH_BEFORE_RELEASE_DATE = ms("7d");
 /** How many jobs for outstanding Overseerr requests should we handle at once? */
 const OVERSEERR_REQUEST_CONCURRENCY = 5;
 
-type ToFetch = MovieToFetch | SeasonToFetch | EpisodeToFetch;
+export type ToFetch = MovieToFetch | SeasonToFetch | EpisodeToFetch;
 type BaseToFetch = {
   snatch?: Snatch;
   imdbID: string;
   title: string;
 };
-type MovieToFetch = BaseToFetch & {
+export type MovieToFetch = BaseToFetch & {
   type: "movie";
 };
-type SeasonToFetch = BaseToFetch & {
+export type SeasonToFetch = BaseToFetch & {
   type: "tv";
   season: number;
 };
-type EpisodeToFetch = BaseToFetch & {
+export type EpisodeToFetch = BaseToFetch & {
   type: "tv";
   season: number;
   episode: number;

@@ -1,6 +1,7 @@
 import parseBytes from "bytes";
 import { findSlidingWindowMatch } from "../util/search";
 import { TokenMatcher } from "./classify.types";
+import log from "../log";
 
 const TOKEN_SPLITTER = /[\s.]+/;
 const GROUP_SUFFIX_MATCHER = /([^-]+)-(.+)$/; // x265-SomeGroup -> x265
@@ -100,13 +101,19 @@ export function parseTorrentioTitle(title: string): TorrentioFields | null {
 
   // Always present. Looks like: 👤 89 💾 5.76 GB ⚙️ ThePirateBay
   const metaLineIdx = lines.findIndex((l) => l.includes("👤"));
-  if (!metaLineIdx) return null;
+  if (!metaLineIdx) {
+    log.warn({ title }, "metadata line not found for Torrentio result");
+    return null;
+  }
   const metaLine = lines[metaLineIdx];
 
   // Always present. The name of the file. Doesn't always include an extension.
   const filenameLineIdx = metaLineIdx - 1;
   const filenameLine = lines[filenameLineIdx];
-  if (!filenameLine) return null;
+  if (!filenameLine) {
+    log.warn({ title }, "filename line not found for Torrentio result");
+    return null;
+  }
 
   // Sometimes present. The name of the torrent, if it's for more than one file.
   const torrentLineIdx = metaLineIdx - 2;

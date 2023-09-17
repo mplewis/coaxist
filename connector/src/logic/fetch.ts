@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import pLimit from "p-limit";
 import { isTruthy } from "remeda";
 import { OverseerrClient } from "../clients/overseerr";
-import { listOutstanding } from "./list";
+import { ToFetch, listOutstanding } from "./list";
 import {
   DebridCreds,
   buildDebridFetchURL,
@@ -10,10 +10,66 @@ import {
 } from "../clients/torrentio";
 import log from "../log";
 import { Profile } from "./profile";
-import { classify, classifyTorrentioResult, pickBest } from "./classify";
+import { TorrentInfo, classifyTorrentioResult, pickBest } from "./classify";
 
 /** How many jobs for outstanding Torrentio requests should we handle at once? */
 const TORRENTIO_REQUEST_CONCURRENCY = 5;
+
+async function findBestCandidate(
+  creds: DebridCreds,
+  profiles: Profile[],
+  f: ToFetch
+): Promise<
+  | {
+      profile: string;
+      info: TorrentInfo;
+      snatchURL: string;
+    }[]
+  | null
+> {
+  const meta =
+    "episode" in f
+      ? {
+          imdbID: f.imdbID,
+          season: f.season,
+          episode: f.episode,
+        }
+      : {
+          imdbID: f.imdbID,
+        };
+  const flog = log.child(meta);
+  if (f.snatch) {
+    // TODO: resnatch
+    return null;
+  }
+
+  const results = await searchTorrentio(meta);
+  if (!results) {
+    flog.error("torrent search failed");
+    return null;
+  }
+  const classified = results.map(classifyTorrentioResult).filter(isTruthy);
+  log.debug({ count: classified.length }, "validated torrent search results");
+
+  const bestResults = profiles
+    .map((p) => {
+      const b = pickBest(p, classified);
+      return b ? { profile: p.name, best: b } : null;
+    })
+    .filter(isTruthy);
+  log.debug({ bestResults }, "picked best candidates for each profile");
+
+  return bestResults
+    .map(({ profile, best }) => {
+      const snatchURL = buildDebridFetchURL(creds, best.originalResult);
+      if (!snatchURL) {
+        log.warn("could not build snatch URL");
+        return null;
+      }
+      return { profile, info: best, snatchURL };
+    })
+    .filter(isTruthy);
+}
 
 export async function fetchOutstanding(a: {
   dbClient: PrismaClient;
@@ -25,44 +81,9 @@ export async function fetchOutstanding(a: {
 
   const pool = pLimit(TORRENTIO_REQUEST_CONCURRENCY);
   const jobs = toFetch.map((f) =>
-    pool(async () => {
-      const meta =
-        "episode" in f
-          ? {
-              imdbID: f.imdbID,
-              season: f.season,
-              episode: f.episode,
-            }
-          : {
-              imdbID: f.imdbID,
-            };
-      const flog = log.child(meta);
-      if (f.snatch) {
-        // TODO: resnatch
-        return;
-      }
-      const results = await searchTorrentio(meta);
-      if (!results) {
-        flog.error("torrent search failed");
-        return;
-      }
-      const classified = results.map(classifyTorrentioResult).filter(isTruthy);
-      log.debug(
-        { count: classified.length },
-        "validated torrent search results"
-      );
-      const bestResults = a.profiles
-        .map((p) => {
-          const b = pickBest(p, classified);
-          return b ? { profile: p.name, best: b } : null;
-        })
-        .filter(isTruthy);
-      const downloadURLs = bestResults.map(({ profile, best }) => ({
-        profile,
-        url: buildDebridFetchURL(a.debridCreds, best.originalResult),
-      }));
-      flog.warn({ downloadURLs }, "dry run: will not fetch");
-    })
+    pool(async () => findBestCandidate(a.debridCreds, a.profiles, f))
   );
-  await Promise.all(jobs);
+  const results = (await Promise.all(jobs)).filter(isTruthy).flat();
+
+  log.info({ results }, "determined what media needs to be fetched");
 }
