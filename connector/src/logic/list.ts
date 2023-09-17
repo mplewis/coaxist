@@ -102,7 +102,9 @@ export function listOverdueMovie(
 
   const mrlog = mlog.child({ releaseDate: request.releaseDate });
   if (now > startSearchingAt(request)) {
-    mrlog.debug("requesting movie which is released or about to be released");
+    const relTimeDesc =
+      now > new Date(request.releaseDate) ? "released" : "about to be released";
+    mrlog.debug(`requesting movie which is ${relTimeDesc}`);
     return { type: "movie", title: request.title, imdbID: request.imdbID };
   }
   mrlog.debug("not close enough to movie release date, skipping");
@@ -197,9 +199,9 @@ export function listOverdueTV(
       // Start searching for episodes a few days before the release date.
       const ealog = elog.child({ airDate: episode.airDate });
       if (now > startSearchingAt(episode)) {
-        ealog.debug(
-          "requesting episode which is released or about to be released"
-        );
+        const relTimeDesc =
+          now > new Date(episode.airDate) ? "released" : "about to be released";
+        ealog.debug(`requesting episode which is ${relTimeDesc}`);
         toFetch.push(episodeToFetch);
       } else {
         ealog.debug("not close enough to episode release date, skipping");
