@@ -6,7 +6,7 @@ import log from "../log";
 import { OverseerrClient } from "../clients/overseerr";
 import { ToFetch, listOutstanding } from "./list";
 import { Profile } from "./profile";
-import { TorrentInfo, classifyTorrentioResult, pickBest } from "./classify";
+import { classifyTorrentioResult, pickBest } from "./classify";
 import { secureHash } from "../util/hash";
 import {
   DebridCreds,
@@ -21,7 +21,6 @@ const TORRENTIO_REQUEST_CONCURRENCY = 5;
 
 type FullSnatchInfo = {
   profile: Profile;
-  info: TorrentInfo;
   snatchable: Snatchable;
   origFetch: ToFetch;
 };
@@ -43,8 +42,29 @@ async function findBestCandidate(
         };
   const flog = log.child(meta);
   if (f.snatch) {
-    // TODO: resnatch
-    return null;
+    const fslog = flog.child({
+      snatch: f.snatch.id,
+      lastSnatchedAt: f.snatch.lastSnatchedAt,
+    });
+    // TODO: test
+    // TODO: how do we do this for each profile?
+    const snatchURL = f.snatch.refreshURL;
+    for (const profile of profiles) {
+      if (secureHash(profile) === f.snatch.profileHash) {
+        fslog.debug("found existing snatch for profile, refreshing");
+        return [
+          {
+            profile,
+            snatchable: { snatchURL },
+            origFetch: f,
+          },
+        ];
+      }
+    }
+    fslog.debug(
+      { profiles },
+      "existing snatch did not match any profile, finding best candidate"
+    );
   }
 
   const results = await searchTorrentio(meta);
