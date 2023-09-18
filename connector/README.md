@@ -5,7 +5,8 @@
 - [x] Build DB accessor
 - [x] Build API client for Torrentio
 - [x] Set up proper logging
-- [ ] Run on schedule
+- [x] Run on schedule
 - [ ] Profile preferred arg
-- [ ] Build UI
 - [ ] Upgrade fetch when better quality is available
+- [ ] Use shorter hashes
+- [ ] Integrate into Coaxist
