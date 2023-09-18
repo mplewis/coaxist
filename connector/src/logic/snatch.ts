@@ -1,10 +1,11 @@
 import ms from "ms";
 import { Snatch } from "@prisma/client";
+import { isTruthy, pick } from "remeda";
 import { DbClient } from "../clients/db";
 import { Snatchable, snatchViaURL } from "../clients/torrentio";
 import log from "../log";
 import { secureHash } from "../util/hash";
-import { ToFetch } from "./list";
+import { EpisodeToFetch, MovieToFetch, SeasonToFetch, ToFetch } from "./list";
 import { Profile } from "./profile";
 
 export type FullSnatchInfo = {
@@ -14,9 +15,9 @@ export type FullSnatchInfo = {
 };
 
 /** How long before the Debrid service expires a requested file? */
-const SNATCH_EXPIRY = ms("14d");
+const SNATCH_EXPIRY = ms("14d"); // TODO: config
 /** How many days before the file expires should we ask Debrid to refresh it? */
-const REFRESH_WITHIN_EXPIRY = ms("2d");
+const REFRESH_WITHIN_EXPIRY = ms("2d"); // TODO: config
 
 /** Pick the most recently snatched item from a list of snatches. */
 export function latestSnatch(snatches: Snatch[]): Snatch {
@@ -51,14 +52,72 @@ export async function snatchAndSave(a: {
     profileHash,
     debridCredsHash,
   });
-  log.info({ action, record }, "snatched media and logged to db");
+  const summary = pick(record, [
+    "id",
+    "title",
+    "mediaType",
+    "imdbID",
+    "season",
+    "episode",
+  ]);
+  log.info({ action, record: summary }, "snatched media and logged to db");
+  return record;
+}
+
+function snatchToFetch(s: Snatch): ToFetch {
+  const type = s.mediaType as "movie" | "tv";
+  const base = { type, imdbID: s.imdbID, title: s.title };
+  if (s.season && s.episode) {
+    return { ...base, season: s.season, episode: s.episode } as EpisodeToFetch;
+  }
+  if (s.season) {
+    return { ...base, season: s.season } as SeasonToFetch;
+  }
+  return base as MovieToFetch;
 }
 
 /** Re-snatch all overdue snatches which match the current profiles and Debrid creds. */
-export async function reSnatch(a: {
+export async function resnatchOverdue(a: {
   db: DbClient;
   profiles: Profile[];
   debridCredsHash: string;
 }) {
   const { db, profiles, debridCredsHash } = a;
+  log.info("refreshing overdue snatches");
+
+  const profileHashes = profiles.map(secureHash);
+  const fetchedBefore = new Date(
+    Date.now() - SNATCH_EXPIRY + REFRESH_WITHIN_EXPIRY
+  );
+  const overdue = await db.overdueSnatches({
+    profileHashes,
+    debridCredsHash,
+    fetchedBefore,
+  });
+
+  const jobs = overdue.map(async (record) => {
+    const profile = profiles.find((p) => secureHash(p) === record.profileHash);
+    if (!profile) {
+      log.warn({ record }, "overdue snatch no longer relevant, purging record");
+      await db.deleteSnatch(record.id);
+      return null;
+    }
+
+    const snatchInfo = {
+      profile,
+      snatchable: { snatchURL: record.refreshURL },
+      origFetch: snatchToFetch(record),
+    };
+    return snatchAndSave({
+      db,
+      snatchInfo,
+      debridCredsHash,
+    });
+  });
+  const results = await Promise.all(jobs);
+  const refreshed = results.filter(isTruthy);
+  const summary = refreshed.map((r) =>
+    pick(r, ["id", "title", "mediaType", "imdbID", "season", "episode"])
+  );
+  log.info({ refreshed: summary }, "refreshed overdue snatches");
 }

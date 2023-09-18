@@ -23,6 +23,19 @@ export class DbClient {
     });
   }
 
+  snatchesForConfig(a: {
+    profileHashes: string[];
+    debridCredsHash: string;
+  }): Promise<Snatch[]> {
+    const { profileHashes, debridCredsHash } = a;
+    return this.db.snatch.findMany({
+      where: {
+        profileHash: { in: profileHashes },
+        debridCredsHash,
+      },
+    });
+  }
+
   async firstSnatchFor(a: {
     media: ToFetch;
     profileHash: string;
@@ -70,5 +83,23 @@ export class DbClient {
       },
     });
     return { action: "create", record };
+  }
+
+  async deleteSnatch(id: number) {
+    return this.db.snatch.delete({ where: { id } });
+  }
+
+  async overdueSnatches(a: {
+    profileHashes: string[];
+    debridCredsHash: string;
+    fetchedBefore: Date;
+  }) {
+    return this.db.snatch.findMany({
+      where: {
+        profileHash: { in: a.profileHashes },
+        debridCredsHash: a.debridCredsHash,
+        lastSnatchedAt: { lt: a.fetchedBefore },
+      },
+    });
   }
 }

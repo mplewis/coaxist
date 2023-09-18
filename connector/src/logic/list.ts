@@ -10,9 +10,9 @@ import {
 import log from "../log";
 
 /** How long before the official release date should we search for content? */
-const SEARCH_BEFORE_RELEASE_DATE = ms("7d");
+const SEARCH_BEFORE_RELEASE_DATE = ms("7d"); // TODO: config
 /** How many jobs for outstanding Overseerr requests should we handle at once? */
-const OVERSEERR_REQUEST_CONCURRENCY = 5;
+const OVERSEERR_REQUEST_CONCURRENCY = 5; // TODO: config
 
 export type ToFetch = MovieToFetch | SeasonToFetch | EpisodeToFetch;
 type BaseToFetch = {
@@ -170,7 +170,7 @@ export async function listOutstanding(a: {
   const jobs = requests.map((r) => pool(async () => listOverdue(r)));
   const results = (await Promise.all(jobs)).flat();
 
-  log.info(
+  log.debug(
     {
       results: results.map((r) => ({
         type: r.type,
@@ -180,7 +180,7 @@ export async function listOutstanding(a: {
         episode: "episode" in r ? r.episode : undefined,
       })),
     },
-    "built list of media to fetch"
+    "built list of current Overseerr requests"
   );
   return results.flat();
 }

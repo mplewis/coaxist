@@ -1,5 +1,5 @@
 import pLimit from "p-limit";
-import { isTruthy } from "remeda";
+import { isTruthy, pick } from "remeda";
 import log from "../log";
 
 import { OverseerrClient } from "../clients/overseerr";
@@ -16,7 +16,7 @@ import { DbClient } from "../clients/db";
 import { FullSnatchInfo, snatchAndSave } from "./snatch";
 
 /** How many jobs for outstanding Torrentio requests should we handle at once? */
-const TORRENTIO_REQUEST_CONCURRENCY = 5;
+const TORRENTIO_REQUEST_CONCURRENCY = 5; // TODO: config
 
 async function findBestCandidate(
   creds: DebridCreds,
@@ -81,11 +81,38 @@ export async function fetchOutstanding(a: {
   const { db, debridCreds, profiles, ignoreCache } = a;
 
   log.info({ ignoreCache }, "fetching Overseerr requests");
-  const toFetch = await listOutstanding(a);
-  if (toFetch === "NO_NEW_OVERSEERR_REQUESTS") {
+  const requested = await listOutstanding(a);
+  if (requested === "NO_NEW_OVERSEERR_REQUESTS") {
     log.info("no new Overseerr requests, nothing to do");
     return;
   }
+
+  const profileHashes = profiles.map(secureHash);
+  const debridCredsHash = secureHash(debridCreds);
+  const existingSnatches = await db.snatchesForConfig({
+    profileHashes,
+    debridCredsHash,
+  });
+  const existingSnatchHashes = new Set(
+    existingSnatches.map((s) => {
+      const bits: (string | number)[] = [s.imdbID];
+      if (s.season) bits.push(s.season);
+      if (s.episode) bits.push(s.episode);
+      return secureHash(bits.join(":"));
+    })
+  );
+  const toFetch = requested.filter((r) => {
+    const bits: (string | number)[] = [r.imdbID];
+    if ("season" in r) bits.push(r.season);
+    if ("episode" in r) bits.push(r.episode);
+    const hash = secureHash(bits.join(":"));
+    return !existingSnatchHashes.has(hash);
+  });
+  log.debug(
+    { before: requested.length, after: toFetch.length },
+    "filtered Overseerr requests by existing snatches"
+  );
+  log.info({ toFetch }, "fetching media for Overseerr requests");
 
   const pool = pLimit(TORRENTIO_REQUEST_CONCURRENCY);
   const searches = toFetch.map((f) =>
@@ -97,7 +124,6 @@ export async function fetchOutstanding(a: {
     "discovered torrents that are available for snatch"
   );
 
-  const debridCredsHash = secureHash(debridCreds);
   const snatches = searchResults.map((snatchInfo) =>
     pool(async () => snatchAndSave({ db, snatchInfo, debridCredsHash }))
   );

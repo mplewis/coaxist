@@ -8,6 +8,8 @@ import { fetchOutstanding } from "./logic/fetch";
 import { DebridCreds } from "./clients/torrentio";
 import log from "./log";
 import { DbClient } from "./clients/db";
+import { resnatchOverdue } from "./logic/snatch";
+import { secureHash } from "./util/hash";
 
 async function main() {
   const config = await getConfig();
@@ -31,6 +33,7 @@ async function main() {
   const debridCreds: DebridCreds = {
     allDebridAPIKey: config.ALLDEBRID_API_KEY,
   };
+  const debridCredsHash = secureHash(debridCreds);
 
   const prismaClient = new PrismaClient({ datasourceUrl: config.DATABASE_URL });
   await prismaClient.$connect();
@@ -49,6 +52,10 @@ async function main() {
     );
   }
 
+  function refresh() {
+    return resnatchOverdue({ db, debridCredsHash, profiles });
+  }
+
   try {
     log.info("performing initial search");
     await fetch(true);
@@ -63,6 +70,13 @@ async function main() {
     log.info(
       { interval: ms(ms(config.TORRENT_SEARCH_INTERVAL), { long: true }) },
       "registered periodic torrent search"
+    );
+
+    await refresh();
+    setInterval(() => refresh(), ms("1h")); // TODO: config
+    log.info(
+      { interval: ms(ms("1h"), { long: true }) },
+      "registered periodic refresh of stale snatches"
     );
   } finally {
     await prismaClient.$disconnect();
