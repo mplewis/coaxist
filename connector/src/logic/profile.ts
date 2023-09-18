@@ -1,14 +1,34 @@
+import z from "zod";
 import { QUALITY_RANKING, Quality } from "../data/quality";
-import { Tag } from "../data/tag";
+import { TAGS, Tag } from "../data/tag";
 
-export type Profile = {
-  name: string;
-  minimum?: { quality: Quality };
-  maximum?: { quality: Quality };
-  required?: Tag[];
-  discouraged?: Tag[];
-  forbidden?: Tag[];
-};
+export const PROFILE_SCHEMA = z.object({
+  name: z.string(),
+  minimum: z.object({ quality: z.enum(QUALITY_RANKING) }).optional(),
+  maximum: z.object({ quality: z.enum(QUALITY_RANKING) }).optional(),
+  required: z.array(z.enum(TAGS)).optional(),
+  discouraged: z.array(z.enum(TAGS)).optional(),
+  forbidden: z.array(z.enum(TAGS)).optional(),
+});
+export type Profile = z.infer<typeof PROFILE_SCHEMA>;
+
+export const DEFAULT_PROFILES: Profile[] = [
+  {
+    name: "(example) Most Compatible",
+    maximum: { quality: "1080p" },
+    discouraged: ["hdr"],
+    forbidden: ["dolbyvision", "h265"],
+  },
+  {
+    name: "(example) Remux Only",
+    required: ["remux"],
+  },
+  {
+    name: "(example) High Definition",
+    minimum: { quality: "720p" },
+    forbidden: ["cam"],
+  },
+];
 
 export function satisfiesQuality(
   q: { minimum?: { quality: Quality }; maximum?: { quality: Quality } },
@@ -18,14 +38,6 @@ export function satisfiesQuality(
     if (
       QUALITY_RANKING.indexOf(item.quality) >
       QUALITY_RANKING.indexOf(q.minimum.quality)
-    ) {
-      return false;
-    }
-  }
-  if (q.maximum) {
-    if (
-      QUALITY_RANKING.indexOf(item.quality) <
-      QUALITY_RANKING.indexOf(q.maximum.quality)
     ) {
       return false;
     }

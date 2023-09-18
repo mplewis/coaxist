@@ -9,7 +9,10 @@ export const QUALITY_MATCHERS = [
   { name: "480p", match: ["480p", "ntsc", "sd"] },
 ] as const satisfies readonly TokenMatcher[];
 /** All known qualities, ordered in descending order. */
-export const QUALITY_RANKING = QUALITY_MATCHERS.map((m) => m.name);
+export const QUALITY_RANKING = QUALITY_MATCHERS.map((m) => m.name) as [
+  Quality,
+  ...Quality[],
+];
 /** Represents the quality of the media in a torrent. */
 export type Quality = (typeof QUALITY_MATCHERS)[number]["name"];
 
