@@ -127,8 +127,12 @@ export async function fetchOutstanding(a: {
   const snatches = searchResults.map((snatchInfo) =>
     pool(async () => snatchAndSave({ db, snatchInfo, debridCredsHash }))
   );
-  await Promise.all(snatches);
+  const records = await Promise.all(snatches);
 
-  const snatched = searchResults.map((r) => r.origFetch);
+  const snatched = searchResults.map((r, i) => ({
+    ...r.origFetch,
+    snatchID: records[i].id,
+    profile: r.profile.name,
+  }));
   log.info({ snatched }, "all snatches complete");
 }
