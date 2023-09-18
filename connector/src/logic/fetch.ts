@@ -1,6 +1,5 @@
 import pLimit from "p-limit";
 import { isTruthy } from "remeda";
-import { PrismaClient, Snatch } from "@prisma/client";
 import log from "../log";
 
 import { OverseerrClient } from "../clients/overseerr";
@@ -15,6 +14,7 @@ import {
   searchTorrentio,
   snatchViaURL,
 } from "../clients/torrentio";
+import { DbClient } from "../clients/db";
 
 /** How many jobs for outstanding Torrentio requests should we handle at once? */
 const TORRENTIO_REQUEST_CONCURRENCY = 5;
@@ -41,31 +41,6 @@ async function findBestCandidate(
           imdbID: f.imdbID,
         };
   const flog = log.child(meta);
-  if (f.snatch) {
-    const fslog = flog.child({
-      snatch: f.snatch.id,
-      lastSnatchedAt: f.snatch.lastSnatchedAt,
-    });
-    // TODO: test
-    // TODO: how do we do this for each profile?
-    const snatchURL = f.snatch.refreshURL;
-    for (const profile of profiles) {
-      if (secureHash(profile) === f.snatch.profileHash) {
-        fslog.debug("found existing snatch for profile, refreshing");
-        return [
-          {
-            profile,
-            snatchable: { snatchURL },
-            origFetch: f,
-          },
-        ];
-      }
-    }
-    fslog.debug(
-      { profiles },
-      "existing snatch did not match any profile, finding best candidate"
-    );
-  }
 
   const results = await searchTorrentio(meta);
   if (!results) {
@@ -96,49 +71,21 @@ async function findBestCandidate(
 }
 
 async function snatchAndLog(a: {
-  dbClient: PrismaClient;
+  db: DbClient;
   snatchInfo: FullSnatchInfo;
   debridCredsHash: string;
 }) {
-  const { dbClient: db, snatchInfo: i, debridCredsHash } = a;
-  const { profile, snatchable, origFetch } = i;
+  const { db, snatchInfo, debridCredsHash } = a;
+  const { profile, snatchable, origFetch } = snatchInfo;
   const profileHash = secureHash(profile);
 
   await snatchViaURL(snatchable);
-  const pastSnatch = await db.snatch.findFirst({
-    where: {
-      imdbID: origFetch.imdbID,
-      season: "season" in origFetch ? origFetch.season : null,
-      episode: "episode" in origFetch ? origFetch.episode : null,
-      profileHash,
-      debridCredsHash,
-    },
+  const { action, record } = await db.upsertSnatch({
+    media: origFetch,
+    snatchable,
+    profileHash,
+    debridCredsHash,
   });
-
-  let action: string;
-  let record: Snatch;
-  if (pastSnatch) {
-    action = "update";
-    pastSnatch.lastSnatchedAt = new Date();
-    record = await db.snatch.update({
-      where: { id: pastSnatch.id },
-      data: pastSnatch,
-    });
-  } else {
-    action = "create";
-    record = await db.snatch.create({
-      data: {
-        mediaType: origFetch.type,
-        imdbID: origFetch.imdbID,
-        refreshURL: snatchable.snatchURL,
-        title: origFetch.title,
-        season: "season" in origFetch ? origFetch.season : null,
-        episode: "episode" in origFetch ? origFetch.episode : null,
-        profileHash,
-        debridCredsHash,
-      },
-    });
-  }
   log.info({ action, record }, "snatched media and logged to db");
 }
 
@@ -151,13 +98,13 @@ async function snatchAndLog(a: {
  * @param a.ignoreCache Whether to ignore the Overseerr new requests cache
  */
 export async function fetchOutstanding(a: {
-  dbClient: PrismaClient;
+  db: DbClient;
   overseerrClient: OverseerrClient;
   debridCreds: DebridCreds;
   profiles: Profile[];
   ignoreCache: boolean;
 }) {
-  const { dbClient, debridCreds, profiles, ignoreCache } = a;
+  const { db, debridCreds, profiles, ignoreCache } = a;
 
   log.info({ ignoreCache }, "fetching Overseerr requests");
   const toFetch = await listOutstanding(a);
@@ -178,7 +125,7 @@ export async function fetchOutstanding(a: {
 
   const debridCredsHash = secureHash(debridCreds);
   const snatches = searchResults.map((snatchInfo) =>
-    pool(async () => snatchAndLog({ dbClient, snatchInfo, debridCredsHash }))
+    pool(async () => snatchAndLog({ db, snatchInfo, debridCredsHash }))
   );
   await Promise.all(snatches);
 

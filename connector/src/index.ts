@@ -7,6 +7,7 @@ import { getConfig, getProfiles } from "./util/config";
 import { fetchOutstanding } from "./logic/fetch";
 import { DebridCreds } from "./clients/torrentio";
 import log from "./log";
+import { DbClient } from "./clients/db";
 
 async function main() {
   const config = await getConfig();
@@ -31,14 +32,15 @@ async function main() {
     allDebridAPIKey: config.ALLDEBRID_API_KEY,
   };
 
-  const dbClient = new PrismaClient({ datasourceUrl: config.DATABASE_URL });
-  await dbClient.$connect();
+  const prismaClient = new PrismaClient({ datasourceUrl: config.DATABASE_URL });
+  await prismaClient.$connect();
+  const db = new DbClient(prismaClient);
 
   const fetchQueue = pLimit(1);
   function fetch(ignoreCache: boolean) {
     return fetchQueue(() =>
       fetchOutstanding({
-        dbClient,
+        db,
         overseerrClient,
         debridCreds,
         profiles,
@@ -63,7 +65,7 @@ async function main() {
       "registered periodic torrent search"
     );
   } finally {
-    await dbClient.$disconnect();
+    await prismaClient.$disconnect();
   }
 }
 
