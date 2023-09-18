@@ -1,4 +1,4 @@
-import { PrismaClient, Snatch } from "@prisma/client";
+import { Snatch } from "@prisma/client";
 import ms from "ms";
 import { pick } from "remeda";
 import pLimit from "p-limit";

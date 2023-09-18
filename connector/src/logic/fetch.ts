@@ -9,21 +9,14 @@ import { classifyTorrentioResult, pickBest } from "./classify";
 import { secureHash } from "../util/hash";
 import {
   DebridCreds,
-  Snatchable,
   buildDebridFetchURL,
   searchTorrentio,
-  snatchViaURL,
 } from "../clients/torrentio";
 import { DbClient } from "../clients/db";
+import { FullSnatchInfo, snatchAndSave } from "./snatch";
 
 /** How many jobs for outstanding Torrentio requests should we handle at once? */
 const TORRENTIO_REQUEST_CONCURRENCY = 5;
-
-type FullSnatchInfo = {
-  profile: Profile;
-  snatchable: Snatchable;
-  origFetch: ToFetch;
-};
 
 async function findBestCandidate(
   creds: DebridCreds,
@@ -70,25 +63,6 @@ async function findBestCandidate(
     .filter(isTruthy);
 }
 
-async function snatchAndLog(a: {
-  db: DbClient;
-  snatchInfo: FullSnatchInfo;
-  debridCredsHash: string;
-}) {
-  const { db, snatchInfo, debridCredsHash } = a;
-  const { profile, snatchable, origFetch } = snatchInfo;
-  const profileHash = secureHash(profile);
-
-  await snatchViaURL(snatchable);
-  const { action, record } = await db.upsertSnatch({
-    media: origFetch,
-    snatchable,
-    profileHash,
-    debridCredsHash,
-  });
-  log.info({ action, record }, "snatched media and logged to db");
-}
-
 /**
  * Fetch all outstanding media for approved Overseerr requests.
  * @param a.dbClient The database client to use
@@ -125,7 +99,7 @@ export async function fetchOutstanding(a: {
 
   const debridCredsHash = secureHash(debridCreds);
   const snatches = searchResults.map((snatchInfo) =>
-    pool(async () => snatchAndLog({ db, snatchInfo, debridCredsHash }))
+    pool(async () => snatchAndSave({ db, snatchInfo, debridCredsHash }))
   );
   await Promise.all(snatches);
 
