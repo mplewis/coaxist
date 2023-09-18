@@ -1,4 +1,3 @@
-import { Snatch } from "@prisma/client";
 import ms from "ms";
 import { pick } from "remeda";
 import pLimit from "p-limit";
@@ -10,10 +9,6 @@ import {
 } from "../clients/overseerr";
 import log from "../log";
 
-/** How long before the Debrid service expires a requested file? */
-const SNATCH_EXPIRY = ms("14d");
-/** How many days before the file expires should we ask Debrid to refresh it? */
-const REFRESH_WITHIN_EXPIRY = ms("2d");
 /** How long before the official release date should we search for content? */
 const SEARCH_BEFORE_RELEASE_DATE = ms("7d");
 /** How many jobs for outstanding Overseerr requests should we handle at once? */
@@ -36,22 +31,6 @@ export type EpisodeToFetch = BaseToFetch & {
   season: number;
   episode: number;
 };
-
-/** Pick the most recently snatched item from a list of snatches. */
-export function latestSnatch(snatches: Snatch[]): Snatch {
-  return snatches.reduce(
-    (acc, s) =>
-      s.lastSnatchedAt.getTime() > acc.lastSnatchedAt.getTime() ? s : acc,
-    snatches[0]
-  );
-}
-
-/** Determine the time after which a snatch is considered stale. */
-export function resnatchAfter(snatch: Snatch): Date {
-  return new Date(
-    snatch.lastSnatchedAt.getTime() + SNATCH_EXPIRY - REFRESH_WITHIN_EXPIRY
-  );
-}
 
 /** Determine the date at which we should start searching for a piece of media. */
 export function startSearchingAt(
