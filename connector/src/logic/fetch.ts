@@ -1,5 +1,5 @@
 import pLimit from "p-limit";
-import { isTruthy, pick } from "remeda";
+import { isTruthy } from "remeda";
 import log from "../log";
 
 import { OverseerrClient } from "../clients/overseerr";

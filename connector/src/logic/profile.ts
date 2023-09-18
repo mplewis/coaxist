@@ -42,6 +42,14 @@ export function satisfiesQuality(
       return false;
     }
   }
+  if (q.maximum) {
+    if (
+      QUALITY_RANKING.indexOf(item.quality) <
+      QUALITY_RANKING.indexOf(q.maximum.quality)
+    ) {
+      return false;
+    }
+  }
   return true;
 }
 
