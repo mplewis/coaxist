@@ -20,12 +20,16 @@ const CONFIG_SCHEMA = z.object({
   DATABASE_URL: z.string(),
   OVERSEERR_API_KEY: z.string(),
   OVERSEERR_HOST: z.string().url(),
+  OVERSEERR_POLL_INTERVAL: z.string(),
+  TORRENT_SEARCH_INTERVAL: z.string(),
 });
 const CONFIG_DEFAULTS: Config = {
   ALLDEBRID_API_KEY: "<your API key goes here>",
   DATABASE_URL: `file:${join(STORAGE_DIR, "db.sqlite")}`,
   OVERSEERR_API_KEY: "<your API key goes here>",
   OVERSEERR_HOST: "http://localhost:5055",
+  OVERSEERR_POLL_INTERVAL: "1m",
+  TORRENT_SEARCH_INTERVAL: "1h",
 };
 /** Core app config which includes API keys. */
 export type Config = z.infer<typeof CONFIG_SCHEMA>;

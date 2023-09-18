@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import execa from "execa";
+import ms from "ms";
+import pLimit from "p-limit";
 import { OverseerrClient } from "./clients/overseerr";
 import { getConfig, getProfiles } from "./util/config";
 import { fetchOutstanding } from "./logic/fetch";
@@ -25,22 +27,44 @@ async function main() {
   );
   log.info({ output: migrateOutput }, "Prisma migration complete");
 
-  const dbClient = new PrismaClient({ datasourceUrl: config.DATABASE_URL });
-  await dbClient.$connect();
-
   const debridCreds: DebridCreds = {
     allDebridAPIKey: config.ALLDEBRID_API_KEY,
   };
 
-  await fetchOutstanding({
-    dbClient,
-    overseerrClient,
-    debridCreds,
-    profiles,
-  });
+  const dbClient = new PrismaClient({ datasourceUrl: config.DATABASE_URL });
+  await dbClient.$connect();
 
-  // TODO: finally
-  await dbClient.$disconnect();
+  const fetchQueue = pLimit(1);
+  function fetch(ignoreCache: boolean) {
+    return fetchQueue(() =>
+      fetchOutstanding({
+        dbClient,
+        overseerrClient,
+        debridCreds,
+        profiles,
+        ignoreCache,
+      })
+    );
+  }
+
+  try {
+    log.info("performing initial search");
+    await fetch(true);
+
+    setInterval(() => fetch(false), ms(config.OVERSEERR_POLL_INTERVAL));
+    log.info(
+      { interval: ms(ms(config.OVERSEERR_POLL_INTERVAL), { long: true }) },
+      "registered Overseerr polling"
+    );
+
+    setInterval(() => fetch(true), ms(config.TORRENT_SEARCH_INTERVAL));
+    log.info(
+      { interval: ms(ms(config.TORRENT_SEARCH_INTERVAL), { long: true }) },
+      "registered periodic torrent search"
+    );
+  } finally {
+    await dbClient.$disconnect();
+  }
 }
 
 main();

@@ -232,15 +232,25 @@ export function listOverdue(
  * List the media that should be fetched for approved Radarr requests.
  * @param a.dbClient The database client to use
  * @param a.overseerrClient The Overseerr client to use
+ * @param a.ignoreCache Whether to ignore the Overseerr new requests cache
  * @returns A list of media to fetch
  */
 export async function listOutstanding(a: {
   dbClient: PrismaClient;
   overseerrClient: OverseerrClient;
-}) {
-  log.info("fetching all outstanding Overseerr requests");
-  const requests = await a.overseerrClient.getMetadataForApprovedRequests();
-  const snatches = await a.dbClient.snatch.findMany({
+  ignoreCache: boolean;
+}): Promise<ToFetch[] | "NO_NEW_OVERSEERR_REQUESTS"> {
+  const { dbClient, overseerrClient } = a;
+  const ignoreCache = a.ignoreCache ?? false;
+
+  const requests = await overseerrClient.getMetadataForApprovedRequests({
+    ignoreCache,
+  });
+  if (!requests) {
+    return "NO_NEW_OVERSEERR_REQUESTS";
+  }
+
+  const snatches = await dbClient.snatch.findMany({
     where: { imdbID: { in: requests.map((r) => r.imdbID) } },
   });
   const snatchesByImdbID = snatches.reduce(

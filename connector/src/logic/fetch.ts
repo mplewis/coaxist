@@ -121,17 +121,33 @@ async function snatchAndLog(a: {
   log.info({ action, record }, "snatched media and logged to db");
 }
 
+/**
+ * Fetch all outstanding media for approved Overseerr requests.
+ * @param a.dbClient The database client to use
+ * @param a.overseerrClient The Overseerr client to query for new requests
+ * @param a.debridCreds The Debrid credentials to use when building fetch URLs
+ * @param a.profiles The media profiles to evaluate when searching for media
+ * @param a.ignoreCache Whether to ignore the Overseerr new requests cache
+ */
 export async function fetchOutstanding(a: {
   dbClient: PrismaClient;
   overseerrClient: OverseerrClient;
   debridCreds: DebridCreds;
   profiles: Profile[];
+  ignoreCache: boolean;
 }) {
+  const { dbClient, debridCreds, profiles, ignoreCache } = a;
+
+  log.info({ ignoreCache }, "fetching Overseerr requests");
   const toFetch = await listOutstanding(a);
+  if (toFetch === "NO_NEW_OVERSEERR_REQUESTS") {
+    log.info("no new Overseerr requests, nothing to do");
+    return;
+  }
 
   const pool = pLimit(TORRENTIO_REQUEST_CONCURRENCY);
   const searches = toFetch.map((f) =>
-    pool(async () => findBestCandidate(a.debridCreds, a.profiles, f))
+    pool(async () => findBestCandidate(debridCreds, profiles, f))
   );
   const searchResults = (await Promise.all(searches)).filter(isTruthy).flat();
   log.info(
@@ -139,11 +155,9 @@ export async function fetchOutstanding(a: {
     "discovered torrents that are available for snatch"
   );
 
-  const debridCredsHash = secureHash(a.debridCreds);
+  const debridCredsHash = secureHash(debridCreds);
   const snatches = searchResults.map((snatchInfo) =>
-    pool(async () =>
-      snatchAndLog({ dbClient: a.dbClient, snatchInfo, debridCredsHash })
-    )
+    pool(async () => snatchAndLog({ dbClient, snatchInfo, debridCredsHash }))
   );
   await Promise.all(snatches);
 
