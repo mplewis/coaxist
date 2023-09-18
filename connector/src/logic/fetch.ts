@@ -81,14 +81,15 @@ async function snatchAndLog(a: {
   debridCredsHash: string;
 }) {
   const { dbClient: db, snatchInfo: i, debridCredsHash } = a;
-  const profileHash = secureHash(i.profile);
+  const { profile, snatchable, origFetch } = i;
+  const profileHash = secureHash(profile);
 
-  await snatchViaURL(i.snatchable);
+  await snatchViaURL(snatchable);
   const pastSnatch = await db.snatch.findFirst({
     where: {
-      imdbID: i.origFetch.imdbID,
-      season: "season" in i.origFetch ? i.origFetch.season : null,
-      episode: "episode" in i.origFetch ? i.origFetch.episode : null,
+      imdbID: origFetch.imdbID,
+      season: "season" in origFetch ? origFetch.season : null,
+      episode: "episode" in origFetch ? origFetch.episode : null,
       profileHash,
       debridCredsHash,
     },
@@ -107,12 +108,12 @@ async function snatchAndLog(a: {
     action = "create";
     record = await db.snatch.create({
       data: {
-        mediaType: i.origFetch.type,
-        imdbID: i.origFetch.imdbID,
-        refreshURL: i.snatchable.snatchURL,
-        title: i.origFetch.title,
-        season: "season" in i.origFetch ? i.origFetch.season : null,
-        episode: "episode" in i.origFetch ? i.origFetch.episode : null,
+        mediaType: origFetch.type,
+        imdbID: origFetch.imdbID,
+        refreshURL: snatchable.snatchURL,
+        title: origFetch.title,
+        season: "season" in origFetch ? origFetch.season : null,
+        episode: "episode" in origFetch ? origFetch.episode : null,
         profileHash,
         debridCredsHash,
       },
