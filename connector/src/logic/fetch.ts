@@ -79,10 +79,10 @@ export async function fetchOutstanding(a: {
   const { db, debridCreds, profiles, ignoreCache } = a;
   const { TORRENTIO_REQUEST_CONCURRENCY } = await getConfig();
 
-  log.info({ ignoreCache }, "fetching Overseerr requests");
+  log.debug({ ignoreCache }, "fetching Overseerr requests");
   const requested = await listOutstanding(a);
   if (requested === "NO_NEW_OVERSEERR_REQUESTS") {
-    log.info("no new Overseerr requests, nothing to do");
+    log.debug("no new Overseerr requests, nothing to do");
     return;
   }
 

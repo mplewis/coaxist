@@ -3,7 +3,7 @@ import execa from "execa";
 import ms from "ms";
 import pLimit from "p-limit";
 import { OverseerrClient } from "./clients/overseerr";
-import { getConfig, getProfiles, initAll } from "./util/config";
+import { Config, getConfig, getProfiles, initAll } from "./util/config";
 import { fetchOutstanding } from "./logic/fetch";
 import { DebridCreds } from "./clients/torrentio";
 import log from "./log";
@@ -17,16 +17,7 @@ function schedule(desc: string, interval: string, task: () => void) {
   log.info({ task: desc, interval: intervalDesc }, "registered periodic task");
 }
 
-async function main() {
-  initAll();
-  const config = getConfig();
-  const profiles = getProfiles();
-
-  const overseerrClient = new OverseerrClient({
-    host: config.OVERSEERR_HOST,
-    apiKey: config.OVERSEERR_API_KEY,
-  });
-
+async function connectDB(config: Config) {
   const { all: migrateOutput } = await execa(
     "pnpm",
     ["prisma", "migrate", "deploy"],
@@ -35,16 +26,32 @@ async function main() {
       env: { DATABASE_URL: config.DATABASE_URL },
     }
   );
-  log.info({ output: migrateOutput }, "Prisma migration complete");
+  log.info({ output: migrateOutput }, "database migration complete");
+
+  const client = new PrismaClient({ datasourceUrl: config.DATABASE_URL });
+  await client.$connect();
+  const db = new DbClient(client);
+  return { client, db };
+}
+
+async function main() {
+  log.info("starting Coaxist Connector");
+
+  initAll();
+  const config = getConfig();
+  const profiles = getProfiles();
 
   const debridCreds: DebridCreds = {
     allDebridAPIKey: config.ALLDEBRID_API_KEY,
   };
   const debridCredsHash = secureHash(debridCreds);
 
-  const prismaClient = new PrismaClient({ datasourceUrl: config.DATABASE_URL });
-  await prismaClient.$connect();
-  const db = new DbClient(prismaClient);
+  const overseerrClient = new OverseerrClient({
+    host: config.OVERSEERR_HOST,
+    apiKey: config.OVERSEERR_API_KEY,
+  });
+
+  const { client, db } = await connectDB(config);
 
   const fetchQueue = pLimit(1);
   function fetch(ignoreCache: boolean) {
@@ -58,7 +65,6 @@ async function main() {
       })
     );
   }
-
   function refresh() {
     return resnatchOverdue({ db, debridCredsHash, profiles });
   }
@@ -79,7 +85,7 @@ async function main() {
       () => refresh()
     );
   } finally {
-    await prismaClient.$disconnect();
+    await client.$disconnect();
   }
 }
 

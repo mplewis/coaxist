@@ -10,4 +10,4 @@
 - [ ] Upgrade fetch when better quality is available
 - [ ] Use shorter hashes
 - [x] Move all vars to config
-- [ ] Integrate into Coaxist
+- [x] Integrate into Coaxist
