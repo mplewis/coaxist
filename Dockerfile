@@ -32,5 +32,5 @@ RUN apt-get install -y \
 	;
 RUN curl https://rclone.org/install.sh | bash
 
-COPY --from=builder-overseerr /build/overseerr /overseerr
+COPY --from=builder-overseerr /build/overseerr /app/overseerr
 COPY root/ /

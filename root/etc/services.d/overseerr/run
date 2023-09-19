@@ -4,6 +4,6 @@ set -euo pipefail
 export CONFIG_DIRECTORY=/config/overseerr
 
 (
-	cd /overseerr
+	cd /app/overseerr
 	npm start
 )
