@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+
+export STORAGE_DIR=/config/connector
+
+(
+	cd /app/connector
+	pnpm start-in-coaxist
+)
