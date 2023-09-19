@@ -11,9 +11,15 @@ import { DbClient } from "./clients/db";
 import { resnatchOverdue } from "./logic/snatch";
 import { secureHash } from "./util/hash";
 
+function schedule(desc: string, interval: string, task: () => void) {
+  setInterval(() => task(), ms(interval));
+  const intervalDesc = ms(ms(interval), { long: true });
+  log.info({ task: desc, interval: intervalDesc }, "registered periodic task");
+}
+
 async function main() {
-  const config = await getConfig();
-  const profiles = await getProfiles();
+  const config = getConfig();
+  const profiles = getProfiles();
 
   const overseerrClient = new OverseerrClient({
     host: config.OVERSEERR_HOST,
@@ -57,26 +63,19 @@ async function main() {
   }
 
   try {
-    log.info("performing initial search");
     await fetch(true);
-
-    setInterval(() => fetch(false), ms(config.OVERSEERR_POLL_INTERVAL));
-    log.info(
-      { interval: ms(ms(config.OVERSEERR_POLL_INTERVAL), { long: true }) },
-      "registered Overseerr polling"
-    );
-
-    setInterval(() => fetch(true), ms(config.TORRENT_SEARCH_INTERVAL));
-    log.info(
-      { interval: ms(ms(config.TORRENT_SEARCH_INTERVAL), { long: true }) },
-      "registered periodic torrent search"
-    );
-
     await refresh();
-    setInterval(() => refresh(), ms("1h")); // TODO: config
-    log.info(
-      { interval: ms(ms("1h"), { long: true }) },
-      "registered periodic refresh of stale snatches"
+
+    schedule("Overseerr polling", config.OVERSEERR_POLL_INTERVAL, () =>
+      fetch(false)
+    );
+    schedule("torrent search", config.TORRENT_SEARCH_INTERVAL, () =>
+      fetch(true)
+    );
+    schedule(
+      "refresh of stale snatches",
+      config.SNATCH_REFRESH_CHECK_INTERVAL,
+      () => refresh()
     );
   } finally {
     await prismaClient.$disconnect();

@@ -8,11 +8,7 @@ import {
   OverseerrRequestTV,
 } from "../clients/overseerr";
 import log from "../log";
-
-/** How long before the official release date should we search for content? */
-const SEARCH_BEFORE_RELEASE_DATE = ms("7d"); // TODO: config
-/** How many jobs for outstanding Overseerr requests should we handle at once? */
-const OVERSEERR_REQUEST_CONCURRENCY = 5; // TODO: config
+import { getConfig } from "../util/config";
 
 export type ToFetch = MovieToFetch | SeasonToFetch | EpisodeToFetch;
 type BaseToFetch = {
@@ -36,9 +32,10 @@ export type EpisodeToFetch = BaseToFetch & {
 export function startSearchingAt(
   item: { airDate: string } | { releaseDate: string }
 ): Date {
+  const { SEARCH_BEFORE_RELEASE_DATE } = getConfig();
   const raw = "airDate" in item ? item.airDate : item.releaseDate;
   const releaseDate = new Date(raw);
-  return new Date(releaseDate.getTime() - SEARCH_BEFORE_RELEASE_DATE);
+  return new Date(releaseDate.getTime() - ms(SEARCH_BEFORE_RELEASE_DATE));
 }
 
 /**
@@ -154,6 +151,7 @@ export async function listOutstanding(a: {
 }): Promise<ToFetch[] | "NO_NEW_OVERSEERR_REQUESTS"> {
   const { overseerrClient } = a;
   const ignoreCache = a.ignoreCache ?? false;
+  const { OVERSEERR_REQUEST_CONCURRENCY } = getConfig();
 
   const requests = await overseerrClient.getMetadataForApprovedRequests({
     ignoreCache,

@@ -1,12 +1,12 @@
-import { statSync } from "fs";
 import yaml from "js-yaml";
 import z from "zod";
-import { mkdir, readFile, writeFile } from "fs/promises";
+// import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdirSync, readFileSync, writeFileSync, statSync } from "fs";
 import { join } from "path";
 import { exit } from "process";
 import log from "../log";
 import packageJSON from "../../package.json";
-import { DEFAULT_PROFILES, PROFILE_SCHEMA } from "../logic/profile";
+import { DEFAULT_PROFILES, PROFILE_SCHEMA, Profile } from "../logic/profile";
 
 export const { version: VERSION } = packageJSON;
 
@@ -15,22 +15,55 @@ const STORAGE_DIR = process.env.STORAGE_DIR || "/config/connector";
 const YAML_TEMPLATE_SENTINEL = (name: string) =>
   `# This is an example ${name}. Please fill in your values, then delete this line.`;
 
+// TODO: Custom validators for time strings
 const CONFIG_SCHEMA = z.object({
-  ALLDEBRID_API_KEY: z.string(),
+  /** The connection string for SQLite, e.g. `file:/path/to/your/db.sqlite` */
   DATABASE_URL: z.string(),
+
+  /** The API key for Overseerr */
   OVERSEERR_API_KEY: z.string(),
+  /** The URL for the Overseerr installation hosting requests */
   OVERSEERR_HOST: z.string().url(),
+  /** How often we check for new Overseerr requests */
   OVERSEERR_POLL_INTERVAL: z.string(),
+  /** How many jobs for outstanding Overseerr requests we should work on at once */
+  OVERSEERR_REQUEST_CONCURRENCY: z.number().int().positive(),
+
+  /** Generate an AllDebrid API key at https://alldebrid.com/apikeys/ */
+  ALLDEBRID_API_KEY: z.string(),
+  /** Ask the Debrid service to refresh a file this many days before it expires */
+  REFRESH_WITHIN_EXPIRY: z.string(),
+  /** How long before the Debrid service removes a file from the drive */
+  SNATCH_EXPIRY: z.string(),
+  /** How often we check for stale snatches that need to be refreshed */
+  SNATCH_REFRESH_CHECK_INTERVAL: z.string(),
+
+  /** How often we search for torrents for outstanding media, even if no new Overseerr requests have arrived */
   TORRENT_SEARCH_INTERVAL: z.string(),
+  /** How far before the official release date we should start searching for a piece of media */
+  SEARCH_BEFORE_RELEASE_DATE: z.string(),
+  /** How many outstanding Torrentio requests we should work on at once */
+  TORRENTIO_REQUEST_CONCURRENCY: z.number().int().positive(),
 });
+
 const CONFIG_DEFAULTS: Config = {
-  ALLDEBRID_API_KEY: "<your API key goes here>",
   DATABASE_URL: `file:${join(STORAGE_DIR, "db.sqlite")}`,
+
   OVERSEERR_API_KEY: "<your API key goes here>",
   OVERSEERR_HOST: "http://localhost:5055",
   OVERSEERR_POLL_INTERVAL: "1m",
+  OVERSEERR_REQUEST_CONCURRENCY: 5,
+
+  ALLDEBRID_API_KEY: "<your API key goes here>",
+  REFRESH_WITHIN_EXPIRY: "2d",
+  SNATCH_EXPIRY: "14d",
+  SNATCH_REFRESH_CHECK_INTERVAL: "1h",
+
   TORRENT_SEARCH_INTERVAL: "1h",
+  SEARCH_BEFORE_RELEASE_DATE: "7d",
+  TORRENTIO_REQUEST_CONCURRENCY: 5,
 };
+
 /** Core app config which includes API keys. */
 export type Config = z.infer<typeof CONFIG_SCHEMA>;
 
@@ -45,6 +78,14 @@ type Validator<T> = (x: any) =>
     };
 
 const cache: Record<string, unknown> = {};
+
+export function setForTestsOnly(k: string, v: unknown) {
+  cache[k] = v;
+}
+
+export function unsetForTestsOnly(k: string) {
+  delete cache[k];
+}
 
 function exist(path: string) {
   try {
@@ -64,28 +105,28 @@ function exist(path: string) {
  * @returns the parsed config file
  * @throws on validation error, or if the file still contains the example sentinel
  */
-async function getFile<T>(a: {
+function getFile<T>(a: {
   filename: string;
   desc: string;
   validator: Validator<T>;
   template: T;
-}) {
+}): T {
   const { filename, desc, validator, template } = a;
   if (cache[a.filename]) return cache[filename] as T;
 
   const sentinel = YAML_TEMPLATE_SENTINEL(desc);
 
-  await mkdir(STORAGE_DIR, { recursive: true });
+  mkdirSync(STORAGE_DIR, { recursive: true });
   const path = join(STORAGE_DIR, `${filename}.yaml`);
   if (!exist(path)) {
-    await writeFile(path, [sentinel, yaml.dump(template)].join("\n\n"));
+    writeFileSync(path, [sentinel, yaml.dump(template)].join("\n\n"));
     log.warn(
       { path },
       `Wrote a starter ${desc} template. Please edit it and fill in your values.`
     );
   }
 
-  const raw = await readFile(path, "utf-8");
+  const raw = readFileSync(path, "utf-8");
   if (raw.includes(sentinel)) {
     log.fatal(
       { path },
@@ -106,7 +147,7 @@ async function getFile<T>(a: {
   return data;
 }
 
-export async function getConfig() {
+export function getConfig(): Config {
   return getFile({
     filename: "config",
     desc: "config file",
@@ -115,7 +156,7 @@ export async function getConfig() {
   });
 }
 
-export async function getProfiles() {
+export function getProfiles(): Profile[] {
   return getFile({
     filename: "profiles",
     desc: "media profile configuration",

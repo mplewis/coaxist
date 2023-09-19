@@ -14,9 +14,7 @@ import {
 } from "../clients/torrentio";
 import { DbClient } from "../clients/db";
 import { FullSnatchInfo, snatchAndSave } from "./snatch";
-
-/** How many jobs for outstanding Torrentio requests should we handle at once? */
-const TORRENTIO_REQUEST_CONCURRENCY = 5; // TODO: config
+import { getConfig } from "../util/config";
 
 async function findBestCandidate(
   creds: DebridCreds,
@@ -79,6 +77,7 @@ export async function fetchOutstanding(a: {
   ignoreCache: boolean;
 }) {
   const { db, debridCreds, profiles, ignoreCache } = a;
+  const { TORRENTIO_REQUEST_CONCURRENCY } = await getConfig();
 
   log.info({ ignoreCache }, "fetching Overseerr requests");
   const requested = await listOutstanding(a);

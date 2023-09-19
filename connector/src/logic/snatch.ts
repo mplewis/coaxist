@@ -1,12 +1,13 @@
-import ms from "ms";
 import { Snatch } from "@prisma/client";
 import { isTruthy, pick } from "remeda";
+import ms from "ms";
 import { DbClient } from "../clients/db";
 import { Snatchable, snatchViaURL } from "../clients/torrentio";
 import log from "../log";
 import { secureHash } from "../util/hash";
 import { EpisodeToFetch, MovieToFetch, SeasonToFetch, ToFetch } from "./list";
 import { Profile } from "./profile";
+import { getConfig } from "../util/config";
 
 export type FullSnatchInfo = {
   profile: Profile;
@@ -14,24 +15,12 @@ export type FullSnatchInfo = {
   origFetch: ToFetch;
 };
 
-/** How long before the Debrid service expires a requested file? */
-const SNATCH_EXPIRY = ms("14d"); // TODO: config
-/** How many days before the file expires should we ask Debrid to refresh it? */
-const REFRESH_WITHIN_EXPIRY = ms("2d"); // TODO: config
-
 /** Pick the most recently snatched item from a list of snatches. */
 export function latestSnatch(snatches: Snatch[]): Snatch {
   return snatches.reduce(
     (acc, s) =>
       s.lastSnatchedAt.getTime() > acc.lastSnatchedAt.getTime() ? s : acc,
     snatches[0]
-  );
-}
-
-/** Determine the time after which a snatch is considered stale. */
-export function resnatchAfter(snatch: Snatch): Date {
-  return new Date(
-    snatch.lastSnatchedAt.getTime() + SNATCH_EXPIRY - REFRESH_WITHIN_EXPIRY
   );
 }
 
@@ -83,11 +72,12 @@ export async function resnatchOverdue(a: {
   debridCredsHash: string;
 }) {
   const { db, profiles, debridCredsHash } = a;
+  const { SNATCH_EXPIRY, REFRESH_WITHIN_EXPIRY } = getConfig();
   log.info("refreshing overdue snatches");
 
   const profileHashes = profiles.map(secureHash);
   const fetchedBefore = new Date(
-    Date.now() - SNATCH_EXPIRY + REFRESH_WITHIN_EXPIRY
+    Date.now() - ms(SNATCH_EXPIRY) + ms(REFRESH_WITHIN_EXPIRY)
   );
   const overdue = await db.overdueSnatches({
     profileHashes,
