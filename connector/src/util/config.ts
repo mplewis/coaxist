@@ -95,6 +95,22 @@ function exist(path: string) {
   }
 }
 
+function initFile(a: { filename: string; desc: string; template: any }) {
+  const { filename, desc, template } = a;
+  const sentinel = YAML_TEMPLATE_SENTINEL(desc);
+
+  mkdirSync(STORAGE_DIR, { recursive: true });
+  const path = join(STORAGE_DIR, `${filename}.yaml`);
+  if (!exist(path)) {
+    writeFileSync(path, [sentinel, yaml.dump(template)].join("\n\n"));
+    log.warn(
+      { path },
+      `Wrote a starter ${desc} template. Please edit it and fill in your values.`
+    );
+  }
+  return { path, sentinel };
+}
+
 /**
  * Get a config file, populating the template if it doesn't yet exist,
  * and returning it from cache if we've read it before.
@@ -111,21 +127,10 @@ function getFile<T>(a: {
   validator: Validator<T>;
   template: T;
 }): T {
-  const { filename, desc, validator, template } = a;
+  const { filename, desc, validator } = a;
   if (cache[a.filename]) return cache[filename] as T;
 
-  const sentinel = YAML_TEMPLATE_SENTINEL(desc);
-
-  mkdirSync(STORAGE_DIR, { recursive: true });
-  const path = join(STORAGE_DIR, `${filename}.yaml`);
-  if (!exist(path)) {
-    writeFileSync(path, [sentinel, yaml.dump(template)].join("\n\n"));
-    log.warn(
-      { path },
-      `Wrote a starter ${desc} template. Please edit it and fill in your values.`
-    );
-  }
-
+  const { path, sentinel } = initFile(a);
   const raw = readFileSync(path, "utf-8");
   if (raw.includes(sentinel)) {
     log.fatal(
@@ -147,20 +152,29 @@ function getFile<T>(a: {
   return data;
 }
 
+const CONFIG_SPEC = {
+  filename: "config",
+  desc: "config file",
+  validator: CONFIG_SCHEMA.safeParse,
+  template: CONFIG_DEFAULTS,
+};
+
+const PROFILE_SPEC = {
+  filename: "profiles",
+  desc: "media profile configuration",
+  validator: z.array(PROFILE_SCHEMA).safeParse,
+  template: DEFAULT_PROFILES,
+};
+
 export function getConfig(): Config {
-  return getFile({
-    filename: "config",
-    desc: "config file",
-    validator: CONFIG_SCHEMA.safeParse,
-    template: CONFIG_DEFAULTS,
-  });
+  return getFile(CONFIG_SPEC);
 }
 
 export function getProfiles(): Profile[] {
-  return getFile({
-    filename: "profiles",
-    desc: "media profile configuration",
-    validator: z.array(PROFILE_SCHEMA).safeParse,
-    template: DEFAULT_PROFILES,
-  });
+  return getFile(PROFILE_SPEC);
+}
+
+export function initAll() {
+  initFile(CONFIG_SPEC);
+  initFile(PROFILE_SPEC);
 }

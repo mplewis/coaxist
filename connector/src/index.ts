@@ -3,7 +3,7 @@ import execa from "execa";
 import ms from "ms";
 import pLimit from "p-limit";
 import { OverseerrClient } from "./clients/overseerr";
-import { getConfig, getProfiles } from "./util/config";
+import { getConfig, getProfiles, initAll } from "./util/config";
 import { fetchOutstanding } from "./logic/fetch";
 import { DebridCreds } from "./clients/torrentio";
 import log from "./log";
@@ -18,6 +18,7 @@ function schedule(desc: string, interval: string, task: () => void) {
 }
 
 async function main() {
+  initAll();
   const config = getConfig();
   const profiles = getProfiles();
 
