@@ -1,6 +1,5 @@
 # TODO
 
-- [ ] Write the update algorithm
-- [ ] Read from Overseerr config
-- [ ] Poll Overseerr for new requests
-- [ ] Accept webhook updates from Overseerr
+- [ ] Run tests in GitHub Actions
+- [ ] Deploy to Docker Hub on release tag
+- [ ] Write usage readme

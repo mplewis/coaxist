@@ -6,7 +6,7 @@ set -euxo pipefail
 # --allow-other: allow user `plex` to access our files
 # everything else are recommended settings for AllDebrid: https://help.alldebrid.com/en/faq/rclone-webdav
 
-rclone
+rclone \
 	--config /config/rclone.conf \
 	--allow-other \
 	--buffer-size=0 \
