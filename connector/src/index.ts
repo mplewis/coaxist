@@ -5,11 +5,11 @@ import pLimit from "p-limit";
 import { OverseerrClient } from "./clients/overseerr";
 import { Config, getConfig, getProfiles, initAll } from "./util/config";
 import { fetchOutstanding } from "./logic/fetch";
-import { DebridCreds } from "./clients/torrentio";
 import log from "./log";
 import { DbClient } from "./clients/db";
 import { resnatchOverdue } from "./logic/snatch";
 import { secureHash } from "./util/hash";
+import { parseDebridCreds } from "./data/debrid";
 
 function schedule(desc: string, interval: string, task: () => void) {
   setInterval(() => task(), ms(interval));
@@ -41,9 +41,7 @@ async function main() {
   const config = getConfig();
   const profiles = getProfiles();
 
-  const debridCreds: DebridCreds = {
-    allDebridAPIKey: config.ALLDEBRID_API_KEY,
-  };
+  const debridCreds = parseDebridCreds(config);
   const debridCredsHash = secureHash(debridCreds);
 
   const overseerrClient = new OverseerrClient({

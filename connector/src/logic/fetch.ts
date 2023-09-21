@@ -7,14 +7,11 @@ import { ToFetch, listOutstanding } from "./list";
 import { Profile } from "./profile";
 import { classifyTorrentioResult, pickBest } from "./classify";
 import { secureHash } from "../util/hash";
-import {
-  DebridCreds,
-  buildDebridFetchURL,
-  searchTorrentio,
-} from "../clients/torrentio";
+import { searchTorrentio } from "../clients/torrentio";
 import { DbClient } from "../clients/db";
 import { FullSnatchInfo, snatchAndSave } from "./snatch";
 import { getConfig } from "../util/config";
+import { DebridCreds } from "../data/debrid";
 
 async function findBestCandidate(
   creds: DebridCreds,
@@ -33,7 +30,7 @@ async function findBestCandidate(
         };
   const flog = log.child(meta);
 
-  const results = await searchTorrentio(meta);
+  const results = await searchTorrentio(creds, meta);
   if (!results) {
     flog.error("torrent search failed");
     return null;
@@ -49,16 +46,12 @@ async function findBestCandidate(
     .filter(isTruthy);
   log.debug({ bestResults }, "picked best candidates for each profile");
 
-  return bestResults
-    .map(({ profile, best }) => {
-      const snatchURL = buildDebridFetchURL(creds, best.originalResult);
-      if (!snatchURL) {
-        log.warn("could not build snatch URL");
-        return null;
-      }
-      return { profile, info: best, snatchable: { snatchURL }, origFetch: f };
-    })
-    .filter(isTruthy);
+  return bestResults.map(({ profile, best }) => ({
+    profile,
+    info: best,
+    snatchable: { snatchURL: best.originalResult.url },
+    origFetch: f,
+  }));
 }
 
 /**

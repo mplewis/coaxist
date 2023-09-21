@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { parseTorrentioTitle } from "../logic/parse";
 import { cacheFor } from "../util/cache";
 import { errorForResponse } from "../util/fetch";
 import { VERSION } from "../util/config";
 import log from "../log";
+import { DebridCreds, buildDebridPathPart } from "../data/debrid";
 
 const TORRENTIO_HOST = "https://torrentio.strem.fun";
 
@@ -11,12 +11,6 @@ const cache = cacheFor("torrentio");
 
 const headers = {
   "User-Agent": `Coaxist-Connector/${VERSION}; github.com/mplewis/coaxist`,
-};
-
-/** Credentials for connecting to Debrid. */
-export type DebridCreds = {
-  /** The API key for AllDebrid */
-  allDebridAPIKey: string;
 };
 
 /** A piece of media to search Torrentio for. */
@@ -34,11 +28,7 @@ const torrentioSearchResultsSchema = z.object({ streams: z.array(z.any()) });
 
 const torrentioSearchResultSchema = z.object({
   title: z.string(),
-  infoHash: z.string(),
-  // HACK: Torrentio sometimes returns missing fileIdx for single episode torrents.
-  // In this case, we don't care, because conversion of a single torrent to a
-  // Debrid URL will use null for the url index param anyway. So just put something here.
-  fileIdx: z.number().default(0),
+  url: z.string(),
 });
 export type TorrentioSearchResult = z.infer<typeof torrentioSearchResultSchema>;
 
@@ -48,15 +38,17 @@ function get(url: string) {
 }
 
 export async function searchTorrentio(
+  creds: DebridCreds,
   media: Media
 ): Promise<TorrentioSearchResult[] | null> {
+  const debridPathPart = buildDebridPathPart(creds);
   const type = "episode" in media ? "series" : "movie";
   const slug =
     "episode" in media
       ? `${media.imdbID}:${media.season}:${media.episode}`
       : `${media.imdbID}`;
 
-  const url = `${TORRENTIO_HOST}/stream/${type}/${slug}.json`;
+  const url = `${TORRENTIO_HOST}/${debridPathPart}/stream/${type}/${slug}.json`;
   const r = await get(url);
   if (!r.ok) {
     const error = await errorForResponse(r.res);
@@ -88,24 +80,4 @@ export async function searchTorrentio(
 export function snatchViaURL(s: Snatchable) {
   log.debug({ url: s.snatchURL }, "snatching via Torrentio");
   return fetch(s.snatchURL, { method: "HEAD", headers });
-}
-
-export function buildDebridFetchURL(
-  creds: DebridCreds,
-  result: TorrentioSearchResult
-): string | null {
-  const parsed = parseTorrentioTitle(result.title);
-  if (!parsed) return null;
-
-  const { allDebridAPIKey } = creds;
-  const { fileIdx } = result;
-  const bits = [
-    "alldebrid",
-    allDebridAPIKey,
-    result.infoHash,
-    parsed.filenameLine,
-    parsed.torrentLine ? fileIdx : "null",
-    parsed.filenameLine,
-  ];
-  return `${TORRENTIO_HOST}/${bits.map(encodeURIComponent).join("/")}`;
 }
