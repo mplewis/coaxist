@@ -21,6 +21,19 @@ export type OverseerrRequestMovie = {
   releaseDate: string;
 };
 
+interface Schema<T> {
+  safeParse: (
+    input: unknown
+  ) => { success: true; data: T } | { success: false; error: z.ZodError };
+}
+
+class ValidationError extends Error {
+  constructor(url: string, error: z.ZodError, data: unknown) {
+    const bits = [url, error.message, JSON.stringify(data, null, 2)];
+    super(`${ValidationError}: ${bits.join("\n\n")}`);
+  }
+}
+
 const RAW_REQUEST_SCHEMA = z.object({
   id: z.number(),
   media: z.object({
@@ -36,23 +49,30 @@ export class OverseerrClient {
 
   constructor(private a: { host: string; apiKey: string }) {}
 
-  private async get(path: string) {
+  private async get<T>(path: string, schema: Schema<T>) {
     const url = `${this.a.host}/api/v1${path}`;
     log.debug({ url }, "fetching from Overseerr");
     const res = await fetch(url, {
       method: "GET",
       headers: { "X-Api-Key": this.a.apiKey },
     });
-    return res.json();
+    const data = await res.json();
+    const result = schema.safeParse(data);
+    if (result.success) return result;
+    return { ...result, rawData: data };
   }
 
   /** List approved Overseerr requests. */
   async getApprovedRequests(): Promise<RawRequest[]> {
-    const schema = z.object({
-      results: z.array(RAW_REQUEST_SCHEMA),
-    });
-    const resp = await this.get(`/request?take=99999999&filter=approved`);
-    return schema.parse(resp).results; // TODO: error handling
+    const url = `/request?take=99999999&filter=approved`;
+    const resp = await this.get(
+      url,
+      z.object({
+        results: z.array(RAW_REQUEST_SCHEMA),
+      })
+    );
+    if (!resp.success) throw new ValidationError(url, resp.error, resp.rawData);
+    return resp.data.results;
   }
 
   /** Update the last seen requests with the most recent results,
@@ -68,40 +88,48 @@ export class OverseerrClient {
     return changed;
   }
 
-  async getRequest(id: number): Promise<OverseerrRequest> {
-    return this.get(`/request/${id}`);
-  }
-
   async getSeason(tmdbID: number, season: number) {
-    const schema = z.object({
-      episodes: z.array(
-        z.object({
-          episodeNumber: z.number(),
-          airDate: z.string(),
-        })
-      ),
-    });
-    const resp = await this.get(`/tv/${tmdbID}/season/${season}`);
-    return schema.parse(resp); // TODO: error handling
+    const url = `/tv/${tmdbID}/season/${season}`;
+    const resp = await this.get(
+      url,
+      z.object({
+        episodes: z.array(
+          z.object({
+            episodeNumber: z.number(),
+            airDate: z.string(),
+          })
+        ),
+      })
+    );
+    if (!resp.success) throw new ValidationError(url, resp.error, resp.rawData);
+    return resp.data.episodes;
   }
 
   async getMetadataMovie(tmdbID: number) {
-    const schema = z.object({
-      title: z.string(),
-      releaseDate: z.string(),
-      externalIds: z.object({ imdbId: z.string() }),
-    });
-    const resp = await this.get(`/movie/${tmdbID}`);
-    return schema.parse(resp); // TODO: error handling
+    const url = `/movie/${tmdbID}`;
+    const resp = await this.get(
+      url,
+      z.object({
+        title: z.string(),
+        releaseDate: z.string(),
+        externalIds: z.object({ imdbId: z.string() }),
+      })
+    );
+    if (!resp.success) throw new ValidationError(url, resp.error, resp.rawData);
+    return resp.data;
   }
 
   async getMetadataTV(tmdbID: number) {
-    const schema = z.object({
-      name: z.string(),
-      externalIds: z.object({ imdbId: z.string() }),
-    });
-    const resp = await this.get(`/tv/${tmdbID}`);
-    return schema.parse(resp); // TODO: error handling
+    const url = `/tv/${tmdbID}`;
+    const resp = await this.get(
+      url,
+      z.object({
+        name: z.string(),
+        externalIds: z.object({ imdbId: z.string() }),
+      })
+    );
+    if (!resp.success) throw new ValidationError(url, resp.error, resp.rawData);
+    return resp.data;
   }
 
   /** Fetch metadata for all approved Overseerr requests.
@@ -148,7 +176,7 @@ export class OverseerrClient {
         imdbID: metadata.externalIds.imdbId,
         seasons: seasons.map((s) => ({
           season: s.seasonNumber,
-          episodes: s.data.episodes.map((e) => ({
+          episodes: s.data.map((e) => ({
             episode: e.episodeNumber,
             airDate: e.airDate,
           })),
