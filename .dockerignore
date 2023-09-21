@@ -1,6 +1,4 @@
 .git/
-node_modules/
 tmp/
-connector/.git/
 connector/node_modules/
-connector/.tmp/
+connector/tmp/
