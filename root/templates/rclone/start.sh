@@ -7,7 +7,7 @@ set -euxo pipefail
 # everything else are recommended settings for AllDebrid: https://help.alldebrid.com/en/faq/rclone-webdav
 
 rclone \
-	--config /config/rclone.conf \
+	--config /config/rclone/rclone.conf \
 	--allow-other \
 	--buffer-size=0 \
 	--cutoff-mode=cautious \
