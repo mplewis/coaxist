@@ -12,4 +12,5 @@
 - [x] Move all vars to config
 - [x] Integrate into Coaxist
 - [ ] API client should crash on 4xx/5xx status codes
-- [ ] Read Plex watchlist
+- [x] Read Plex watchlist
+- [ ] Better config templates

@@ -148,16 +148,17 @@ export function listOverdue(
 export async function listOutstanding(a: {
   overseerrClient: OverseerrClient;
   ignoreCache: boolean;
-}): Promise<ToFetch[] | "NO_NEW_OVERSEERR_REQUESTS"> {
+}): Promise<ToFetch[] | "NO_NEW_REQUESTS"> {
   const { overseerrClient } = a;
   const ignoreCache = a.ignoreCache ?? false;
   const { OVERSEERR_REQUEST_CONCURRENCY } = getConfig();
 
-  const requests = await overseerrClient.getMetadataForApprovedRequests({
-    ignoreCache,
-  });
+  const requests =
+    await overseerrClient.getMetadataForRequestsAndWatchlistItems({
+      ignoreCache,
+    });
   if (!requests) {
-    return "NO_NEW_OVERSEERR_REQUESTS";
+    return "NO_NEW_REQUESTS";
   }
 
   log.debug(

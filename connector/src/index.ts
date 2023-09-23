@@ -11,8 +11,16 @@ import { resnatchOverdue } from "./logic/snatch";
 import { secureHash } from "./util/hash";
 import { parseDebridCreds } from "./data/debrid";
 
-function schedule(desc: string, interval: string, task: () => void) {
-  setInterval(() => task(), ms(interval));
+function schedule(desc: string, interval: string, task: () => Promise<void>) {
+  setInterval(async () => {
+    log.debug({ task: desc }, "running periodic task");
+    const start = new Date();
+    await task();
+    log.debug(
+      { task: desc, durationMs: new Date().getTime() - start.getTime() },
+      "periodic task complete"
+    );
+  }, ms(interval));
   const intervalDesc = ms(ms(interval), { long: true });
   log.info({ task: desc, interval: intervalDesc }, "registered periodic task");
 }
@@ -71,14 +79,18 @@ async function main() {
     await fetch(true);
     await refresh();
 
-    schedule("Overseerr polling", config.OVERSEERR_POLL_INTERVAL, () =>
-      fetch(false)
-    );
-    schedule("torrent search", config.TORRENT_SEARCH_INTERVAL, () =>
-      fetch(true)
+    schedule(
+      "check Overseerr for new requests",
+      config.OVERSEERR_POLL_INTERVAL,
+      () => fetch(false)
     );
     schedule(
-      "refresh of stale snatches",
+      "find torrents for all pending requests",
+      config.TORRENT_SEARCH_INTERVAL,
+      () => fetch(true)
+    );
+    schedule(
+      "refresh stale snatches",
       config.SNATCH_REFRESH_CHECK_INTERVAL,
       () => refresh()
     );

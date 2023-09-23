@@ -1,4 +1,5 @@
 import z from "zod";
+import { map, pipe, sortBy } from "remeda";
 import log from "../log";
 import { secureHash } from "../util/hash";
 
@@ -6,7 +7,6 @@ export type OverseerrRequest = OverseerrRequestTV | OverseerrRequestMovie;
 export type OverseerrRequestTV = {
   type: "tv";
   title: string;
-  id: number;
   imdbID: string;
   seasons: {
     season: number;
@@ -16,7 +16,6 @@ export type OverseerrRequestTV = {
 export type OverseerrRequestMovie = {
   type: "movie";
   title: string;
-  id: number;
   imdbID: string;
   releaseDate: string;
 };
@@ -35,7 +34,6 @@ class ValidationError extends Error {
 }
 
 const RAW_REQUEST_SCHEMA = z.object({
-  id: z.number(),
   media: z.object({
     mediaType: z.enum(["movie", "tv"]),
     tmdbId: z.number(),
@@ -44,8 +42,25 @@ const RAW_REQUEST_SCHEMA = z.object({
 });
 type RawRequest = z.infer<typeof RAW_REQUEST_SCHEMA>;
 
+const WATCHLIST_ITEM_SCHEMA = z.object({
+  title: z.string(),
+  mediaType: z.enum(["movie", "tv"]),
+  tmdbId: z.number(),
+});
+export type WatchlistItem = z.infer<typeof WATCHLIST_ITEM_SCHEMA>;
+
+const WATCHLIST_PAGE_SCHEMA = z.object({
+  page: z.number(),
+  totalPages: z.number(),
+  totalResults: z.number(),
+  results: z.array(WATCHLIST_ITEM_SCHEMA),
+});
+type WatchlistPage = z.infer<typeof WATCHLIST_PAGE_SCHEMA>;
+
 export class OverseerrClient {
   lastSeenRequestsHash: string | null = null;
+
+  lastSeenWatchlistItemsHash: string | null = null;
 
   constructor(private a: { host: string; apiKey: string }) {}
 
@@ -76,20 +91,61 @@ export class OverseerrClient {
     return resp.data.results;
   }
 
+  /** List all items on the Plex watchlist. */
+  async getWatchlistItems(): Promise<WatchlistItem[]> {
+    const getPage = async (page: number): Promise<WatchlistPage> => {
+      const url = `/discover/watchlist?page=${page}`;
+      const resp = await this.get(url, WATCHLIST_PAGE_SCHEMA);
+      if (!resp.success)
+        throw new ValidationError(url, resp.error, resp.rawData);
+      return resp.data;
+    };
+
+    const { totalPages, results } = await getPage(1);
+    const inFlight = [];
+    for (let i = 2; i <= totalPages; i++) {
+      inFlight.push(getPage(i));
+    }
+    for (const page of await Promise.all(inFlight)) {
+      results.push(...page.results);
+    }
+    return results;
+  }
+
   /** Update the last seen requests with the most recent results,
    * returning true if they've changed. */
   private newRequests(requests: RawRequest[]): boolean {
-    const flattened = requests.map((r) => ({
-      id: r.id,
-      seasons: r.seasons.map((s) => s.seasonNumber),
-    }));
-    const currentRequestsHash = secureHash(flattened);
+    const items = pipe(
+      requests,
+      sortBy((r) => `${r.media.mediaType}_${r.media.tmdbId}}`),
+      map((r) => ({
+        mediaType: r.media.mediaType,
+        tmdbId: r.media.tmdbId,
+        seasons: r.seasons.map((s) => s.seasonNumber).sort(),
+      }))
+    );
+    const currentRequestsHash = secureHash(items);
     const changed = currentRequestsHash !== this.lastSeenRequestsHash;
     this.lastSeenRequestsHash = currentRequestsHash;
     return changed;
   }
 
-  async getSeason(tmdbID: number, season: number) {
+  /** Update the last seen watchlist items with the most recent results,
+   * returning true if they've changed. */
+  private newWatchlistItems(watchlistItems: WatchlistItem[]): boolean {
+    const items = pipe(
+      watchlistItems,
+      sortBy((i) => `${i.mediaType}_${i.tmdbId}}`),
+      map((i) => ({ mediaType: i.mediaType, tmdbId: i.tmdbId }))
+    );
+    const currentWatchlistItemsHash = secureHash(items);
+    const changed =
+      currentWatchlistItemsHash !== this.lastSeenWatchlistItemsHash;
+    this.lastSeenWatchlistItemsHash = currentWatchlistItemsHash;
+    return changed;
+  }
+
+  async getMetadataSeason(tmdbID: number, season: number) {
     const url = `/tv/${tmdbID}/season/${season}`;
     const resp = await this.get(
       url,
@@ -127,28 +183,42 @@ export class OverseerrClient {
       z.object({
         name: z.string(),
         externalIds: z.object({ imdbId: z.string() }),
+        seasons: z.array(z.object({ seasonNumber: z.number() })),
       })
     );
     if (!resp.success) throw new ValidationError(url, resp.error, resp.rawData);
     return resp.data;
   }
 
-  /** Fetch metadata for all approved Overseerr requests.
+  /** Fetch metadata for all approved Overseerr requests and Plex watchlist items.
    * If there are no new requests since last time, return null. */
-  async getMetadataForApprovedRequests(options: {
+  async getMetadataForRequestsAndWatchlistItems(options: {
     ignoreCache: boolean;
   }): Promise<OverseerrRequest[] | null> {
     const requests = await this.getApprovedRequests();
-    if (options.ignoreCache) return this.getMetadata(requests);
-    if (!this.newRequests(requests)) {
-      log.debug("no new Overseerr requests since last check");
-      return null;
+    const watchlist = await this.getWatchlistItems();
+
+    const nr = this.newRequests(requests);
+    const nwi = this.newWatchlistItems(watchlist);
+    const newItems = nr || nwi;
+
+    if (newItems || options.ignoreCache) {
+      return [
+        ...(await this.rawToOverseerrRequests(requests)),
+        ...(await this.watchlistToOverseerrRequests(watchlist)),
+      ];
     }
-    return this.getMetadata(requests);
+
+    log.debug(
+      "no new Overseerr requests or Plex watchlist items since last check"
+    );
+    return null;
   }
 
   /** Get the full media metadata for a set of Overseerr requests. */
-  async getMetadata(requests: RawRequest[]): Promise<OverseerrRequest[]> {
+  private async rawToOverseerrRequests(
+    requests: RawRequest[]
+  ): Promise<OverseerrRequest[]> {
     const inFlight = requests.map(async (request) => {
       const { mediaType, tmdbId } = request.media;
       if (mediaType === "movie") {
@@ -156,7 +226,6 @@ export class OverseerrClient {
         const ret: OverseerrRequestMovie = {
           type: "movie",
           title: metadata.title,
-          id: request.id,
           imdbID: metadata.externalIds.imdbId,
           releaseDate: metadata.releaseDate,
         };
@@ -165,15 +234,58 @@ export class OverseerrClient {
 
       const metadata = await this.getMetadataTV(tmdbId);
       const seasons = await Promise.all(
-        request.seasons.map(async ({ seasonNumber }) => ({
-          seasonNumber,
-          data: await this.getSeason(tmdbId, seasonNumber),
-        }))
+        request.seasons
+          .filter((s) => s.seasonNumber > 0) // episodes in some Specials seasons lack air dates
+          .map(async ({ seasonNumber }) => ({
+            seasonNumber,
+            data: await this.getMetadataSeason(tmdbId, seasonNumber),
+          }))
       );
       const ret: OverseerrRequestTV = {
         type: "tv",
         title: metadata.name,
-        id: request.id,
+        imdbID: metadata.externalIds.imdbId,
+        seasons: seasons.map((s) => ({
+          season: s.seasonNumber,
+          episodes: s.data.map((e) => ({
+            episode: e.episodeNumber,
+            airDate: e.airDate,
+          })),
+        })),
+      };
+      return ret;
+    });
+    return Promise.all(inFlight);
+  }
+
+  private async watchlistToOverseerrRequests(
+    items: WatchlistItem[]
+  ): Promise<OverseerrRequest[]> {
+    const inFlight = items.map(async (item) => {
+      const { mediaType, tmdbId } = item;
+      if (mediaType === "movie") {
+        const metadata = await this.getMetadataMovie(tmdbId);
+        const ret: OverseerrRequestMovie = {
+          type: "movie",
+          title: metadata.title,
+          imdbID: metadata.externalIds.imdbId,
+          releaseDate: metadata.releaseDate,
+        };
+        return ret;
+      }
+
+      const metadata = await this.getMetadataTV(tmdbId);
+      const seasons = await Promise.all(
+        metadata.seasons
+          .filter((s) => s.seasonNumber > 0) // episodes in some Specials seasons lack air dates
+          .map(async ({ seasonNumber }) => ({
+            seasonNumber,
+            data: await this.getMetadataSeason(tmdbId, seasonNumber),
+          }))
+      );
+      const ret: OverseerrRequestTV = {
+        type: "tv",
+        title: metadata.name,
         imdbID: metadata.externalIds.imdbId,
         seasons: seasons.map((s) => ({
           season: s.seasonNumber,

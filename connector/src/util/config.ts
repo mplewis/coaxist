@@ -25,7 +25,7 @@ const CONFIG_SCHEMA = z.object({
   OVERSEERR_API_KEY: z.string(),
   /** The URL for the Overseerr installation hosting requests */
   OVERSEERR_HOST: z.string().url(),
-  /** How often we check for new Overseerr requests */
+  /** How often we check for new Overseerr requests and Plex watchlist items. */
   OVERSEERR_POLL_INTERVAL: z.string(),
   /** How many jobs for outstanding Overseerr requests we should work on at once */
   OVERSEERR_REQUEST_CONCURRENCY: z.number().int().positive(),
@@ -65,7 +65,7 @@ const CONFIG_DEFAULTS: Config = {
 
   OVERSEERR_API_KEY: "<your API key goes here>",
   OVERSEERR_HOST: "http://localhost:5055",
-  OVERSEERR_POLL_INTERVAL: "1m",
+  OVERSEERR_POLL_INTERVAL: "15s",
   OVERSEERR_REQUEST_CONCURRENCY: 5,
 
   // TODO: fail parse on placeholder values

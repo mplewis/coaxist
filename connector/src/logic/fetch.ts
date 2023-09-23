@@ -64,10 +64,11 @@ export async function fetchOutstanding(a: {
 
   log.debug({ ignoreCache }, "fetching Overseerr requests");
   const requested = await listOutstanding(a);
-  if (requested === "NO_NEW_OVERSEERR_REQUESTS") {
+  if (requested === "NO_NEW_REQUESTS") {
     log.debug("no new Overseerr requests, nothing to do");
     return;
   }
+
   // fill requests in different order to avoid ratelimiting poison pills
   const shuffled = shuffle(requested);
 
@@ -96,7 +97,7 @@ export async function fetchOutstanding(a: {
     { before: shuffled.length, after: toFetch.length },
     "filtered Overseerr requests by existing snatches"
   );
-  log.info({ toFetch }, "fetching media for Overseerr requests");
+  log.info({ toFetch }, "fetching requested media");
 
   const pool = pLimit(TORRENTIO_REQUEST_CONCURRENCY);
   const searches = toFetch.map((f) =>
