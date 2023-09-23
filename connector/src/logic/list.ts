@@ -9,21 +9,23 @@ import {
 } from "../clients/overseerr";
 import log from "../log";
 import { getConfig } from "../util/config";
+import type { TorrentBundleType } from "./classify";
 
 export type ToFetch = MovieToFetch | SeasonToFetch | EpisodeToFetch;
 type BaseToFetch = {
   imdbID: string;
   title: string;
+  type: TorrentBundleType;
 };
 export type MovieToFetch = BaseToFetch & {
   type: "movie";
 };
 export type SeasonToFetch = BaseToFetch & {
-  type: "tv";
+  type: "season";
   season: number;
 };
 export type EpisodeToFetch = BaseToFetch & {
-  type: "tv";
+  type: "episode";
   season: number;
   episode: number;
 };
@@ -79,7 +81,7 @@ export function listOverdueTV(
 
   for (const season of request.seasons) {
     const seasonToFetch: SeasonToFetch = {
-      type: "tv",
+      type: "season",
       title: request.title,
       imdbID: request.imdbID,
       season: season.season,
@@ -101,6 +103,7 @@ export function listOverdueTV(
     for (const episode of season.episodes) {
       const episodeToFetch: EpisodeToFetch = {
         ...seasonToFetch,
+        type: "episode",
         episode: episode.episode,
       };
       const elog = slog.child({ episode: episode.episode });

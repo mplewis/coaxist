@@ -57,10 +57,19 @@ function snatchToFetch(s: Snatch): ToFetch {
   const type = s.mediaType as "movie" | "tv";
   const base = { type, imdbID: s.imdbID, title: s.title };
   if (s.season && s.episode) {
-    return { ...base, season: s.season, episode: s.episode } as EpisodeToFetch;
+    return {
+      ...base,
+      type: "episode",
+      season: s.season,
+      episode: s.episode,
+    } as EpisodeToFetch;
   }
   if (s.season) {
-    return { ...base, season: s.season } as SeasonToFetch;
+    return {
+      ...base,
+      type: "season",
+      season: s.season,
+    } as SeasonToFetch;
   }
   return base as MovieToFetch;
 }

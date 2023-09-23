@@ -14,3 +14,4 @@
 - [ ] API client should crash on 4xx/5xx status codes
 - [x] Read Plex watchlist
 - [ ] Better config templates
+- [ ] Watch downloads dir and symlink with proper names for Plex into new dir

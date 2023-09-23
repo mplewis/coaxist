@@ -30,7 +30,7 @@ async function findBestCandidate(
 
   const bestResults = profiles
     .map((profile) => {
-      const best = pickBest(profile, classified);
+      const best = pickBest(profile, classified, f.type);
       return best ? { profile, best } : null;
     })
     .filter(isTruthy);
