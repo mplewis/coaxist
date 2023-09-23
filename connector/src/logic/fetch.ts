@@ -1,5 +1,5 @@
 import pLimit from "p-limit";
-import { isTruthy } from "remeda";
+import { isTruthy, shuffle } from "remeda";
 import log from "../log";
 
 import { OverseerrClient } from "../clients/overseerr";
@@ -68,6 +68,8 @@ export async function fetchOutstanding(a: {
     log.debug("no new Overseerr requests, nothing to do");
     return;
   }
+  // fill requests in different order to avoid ratelimiting poison pills
+  const shuffled = shuffle(requested);
 
   const profileHashes = profiles.map(secureHash);
   const debridCredsHash = secureHash(debridCreds);
@@ -83,7 +85,7 @@ export async function fetchOutstanding(a: {
       return secureHash(bits.join(":"));
     })
   );
-  const toFetch = requested.filter((r) => {
+  const toFetch = shuffled.filter((r) => {
     const bits: (string | number)[] = [r.imdbID];
     if ("season" in r) bits.push(r.season);
     if ("episode" in r) bits.push(r.episode);
@@ -91,7 +93,7 @@ export async function fetchOutstanding(a: {
     return !existingSnatchHashes.has(hash);
   });
   log.debug(
-    { before: requested.length, after: toFetch.length },
+    { before: shuffled.length, after: toFetch.length },
     "filtered Overseerr requests by existing snatches"
   );
   log.info({ toFetch }, "fetching media for Overseerr requests");
