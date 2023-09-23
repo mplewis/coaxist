@@ -71,6 +71,7 @@ export class OverseerrClient {
         results: z.array(RAW_REQUEST_SCHEMA),
       })
     );
+    // TODO: Better error here when you forget to configure the Overseerr API key
     if (!resp.success) throw new ValidationError(url, resp.error, resp.rawData);
     return resp.data.results;
   }

@@ -4,6 +4,7 @@ import { errorForResponse } from "../util/fetch";
 import { VERSION } from "../util/config";
 import log from "../log";
 import { DebridCreds, buildDebridPathPart } from "../data/debrid";
+import { ToFetch } from "../logic/list";
 
 const TORRENTIO_HOST = "https://torrentio.strem.fun";
 
@@ -12,12 +13,6 @@ const cache = cacheFor("torrentio");
 const headers = {
   "User-Agent": `Coaxist-Connector/${VERSION}; github.com/mplewis/coaxist`,
 };
-
-/** A piece of media to search Torrentio for. */
-export type Media = { imdbID: string } & (
-  | {}
-  | { season: number; episode: number }
-);
 
 /** A Torrentio URL that can be used to load an item into Debrid. */
 export type Snatchable = {
@@ -39,16 +34,17 @@ function get(url: string) {
 
 export async function searchTorrentio(
   creds: DebridCreds,
-  media: Media
+  media: ToFetch
 ): Promise<TorrentioSearchResult[] | null> {
   const debridPathPart = buildDebridPathPart(creds);
-  const type = "episode" in media ? "series" : "movie";
-  const slug =
-    "episode" in media
-      ? `${media.imdbID}:${media.season}:${media.episode}`
-      : `${media.imdbID}`;
+  const typeAndSlug = (() => {
+    if ("episode" in media)
+      return `series/${media.imdbID}:${media.season}:${media.episode}`;
+    if ("season" in media) return `series/${media.imdbID}:${media.season}:1`;
+    return `movie/${media.imdbID}`;
+  })();
 
-  const url = `${TORRENTIO_HOST}/${debridPathPart}/stream/${type}/${slug}.json`;
+  const url = `${TORRENTIO_HOST}/${debridPathPart}/stream/${typeAndSlug}.json`;
   const r = await get(url);
   if (!r.ok) {
     const error = await errorForResponse(r.res);

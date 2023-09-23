@@ -18,19 +18,9 @@ async function findBestCandidate(
   profiles: Profile[],
   f: ToFetch
 ): Promise<FullSnatchInfo[] | null> {
-  const meta =
-    "episode" in f
-      ? {
-          imdbID: f.imdbID,
-          season: f.season,
-          episode: f.episode,
-        }
-      : {
-          imdbID: f.imdbID,
-        };
-  const flog = log.child(meta);
+  const flog = log.child(f);
 
-  const results = await searchTorrentio(creds, meta);
+  const results = await searchTorrentio(creds, f);
   if (!results) {
     flog.error("torrent search failed");
     return null;
