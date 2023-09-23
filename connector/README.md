@@ -8,7 +8,7 @@
 - [x] Run on schedule
 - [ ] Profile preferred arg
 - [ ] Upgrade fetch when better quality is available
-- [ ] Use shorter hashes
+- [x] Use shorter hashes
 - [x] Move all vars to config
 - [x] Integrate into Coaxist
 - [ ] API client should crash on 4xx/5xx status codes
