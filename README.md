@@ -4,9 +4,9 @@
 - [x] Deploy to Docker Hub on release tag
 - [ ] Write usage readme
 - [ ] Auto-grab Overseerr API key from config file
-- [ ] Remove Next cache from Overseerr bit of image:
+- [x] Remove Next cache from Overseerr bit of image:
       `RUN rm -rf src server .next/cache`
-- [ ] Configure Overseerr to only run with prod deps:
+- [x] Configure Overseerr to only run with prod deps:
       `RUN yarn install --production --ignore-scripts --prefer-offline`
 - [ ] Auto-template config files from superconfig
 - [ ] Read Overseerr API key and copy into Connector

@@ -14,9 +14,13 @@ WORKDIR /build
 RUN git clone https://github.com/sct/overseerr
 WORKDIR /build/overseerr
 RUN git checkout tags/v1.33.2
+
 RUN yarn install --frozen-lockfile
 RUN npx update-browserslist-db@latest
+
 RUN yarn build
+RUN yarn install --production --ignore-scripts --prefer-offline
+RUN rm -rf src server .next/cache
 
 ########################################
 
