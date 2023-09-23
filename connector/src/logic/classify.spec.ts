@@ -64,12 +64,18 @@ describe("classify", () => {
     const examples = [
       {
         raw: "Star.Trek.Strange.New.Worlds.S02.COMPLETE.2160p.AMZN.WEB-DL.DDP5.1.H.265-NTb[TGx]",
-        expected: { quality: "2160p", season: 2, tags: ["h265", "web"] },
+        expected: {
+          quality: "2160p",
+          type: "season",
+          season: 2,
+          tags: ["h265", "web"],
+        },
       },
       {
         raw: "Star Trek Strange New Worlds S02E05 MULTI 1080p WEB x264-HiggsBoson",
         expected: {
           quality: "1080p",
+          type: "episode",
           season: 2,
           episode: 5,
           tags: ["h264", "multiaudio", "web"],
@@ -79,6 +85,7 @@ describe("classify", () => {
         raw: "Star.Trek.Strange.New.Worlds.S02E05.2160p.Dolby.Vision.Multi.Sub.DDP5.1.DV.x265.MP4-BEN.THE.MEN",
         expected: {
           quality: "2160p",
+          type: "episode",
           season: 2,
           episode: 5,
           tags: ["dolbyvision", "h265", "hdr", "multisub"],
@@ -88,6 +95,7 @@ describe("classify", () => {
         raw: "Star.Trek.Strange.New.Worlds.S02E05.1080p.WEB-DL.DUAL",
         expected: {
           quality: "1080p",
+          type: "episode",
           season: 2,
           episode: 5,
           tags: ["dualaudio", "web"],
@@ -95,12 +103,13 @@ describe("classify", () => {
       },
       {
         raw: "Barbie.2023.FRENCH.720p.WEBRip.x264-RZP",
-        expected: { quality: "720p", tags: ["h264", "web"] },
+        expected: { quality: "720p", type: "movie", tags: ["h264", "web"] },
       },
       {
         raw: "Barbie.2023.HC.1080p.WEB-DL.AAC2.0.H.264-APEX[TGx]",
         expected: {
           quality: "1080p",
+          type: "movie",
           tags: ["h264", "hardsub", "web"],
         },
       },
@@ -108,6 +117,7 @@ describe("classify", () => {
         raw: "Star.Trek.Strange.New.Worlds.S02E05.Charades.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTb.mkv",
         expected: {
           quality: "1080p",
+          type: "episode",
           season: 2,
           episode: 5,
           tags: ["h264", "web"],
@@ -117,6 +127,7 @@ describe("classify", () => {
         raw: "Star Trek Strange New World S02e05 [1080p Ita Eng Spa h265]",
         expected: {
           quality: "1080p",
+          type: "episode",
           season: 2,
           episode: 5,
           tags: ["h265"],
@@ -145,6 +156,7 @@ describe("parseTorrentInfo", () => {
         `,
         expected: {
           quality: "1080p",
+          type: "episode",
           season: 2,
           episode: 5,
           tags: ["h265", "hdr"],
@@ -157,8 +169,7 @@ describe("parseTorrentInfo", () => {
               👤 27 💾 1021.66 MB ⚙️ ThePirateBay
               🇬🇧 / 🇮🇹 / 🇪🇸
             `,
-            infoHash: "some hash",
-            fileIdx: 0,
+            url: "some url",
           },
         },
       },
@@ -171,6 +182,7 @@ describe("parseTorrentInfo", () => {
         `,
         expected: {
           quality: "2160p",
+          type: "episode",
           season: 2,
           episode: 5,
           tags: ["dolbyvision", "h265", "hdr", "hdr10plus", "web"],
@@ -184,8 +196,7 @@ describe("parseTorrentInfo", () => {
               👤 1 💾 6.48 GB ⚙️ Rutracker
               🇬🇧 / 🇷🇺
             `,
-            infoHash: "some hash",
-            fileIdx: 0,
+            url: "some url",
           },
         },
       },
@@ -196,6 +207,7 @@ describe("parseTorrentInfo", () => {
         `,
         expected: {
           quality: "2160p",
+          type: "episode",
           season: 2,
           episode: 5,
           tags: ["h265", "hdr", "web"],
@@ -207,8 +219,7 @@ describe("parseTorrentInfo", () => {
               Star.Trek.Strange.New.Worlds.S02E05.HDR.2160p.WEB.h265-ETHEL[TGx
               👤 89 💾 5.76 GB ⚙️ ThePirateBay
             `,
-            infoHash: "some hash",
-            fileIdx: 0,
+            url: "some url",
           },
         },
       },
@@ -220,6 +231,7 @@ describe("parseTorrentInfo", () => {
         `,
         expected: {
           quality: "2160p",
+          type: "season",
           season: 2,
           tags: ["h265", "web"],
           tracker: "TorrentGalaxy",
@@ -231,8 +243,7 @@ describe("parseTorrentInfo", () => {
               Star.Trek.Strange.New.Worlds.S02E05.Charades.2160p.AMZN.WEB-DL.DDP5.1.H.265-NTb.mkv
               👤 68 💾 6.45 GB ⚙️ TorrentGalaxy
             `,
-            infoHash: "some hash",
-            fileIdx: 0,
+            url: "some url",
           },
         },
       },
@@ -240,8 +251,7 @@ describe("parseTorrentInfo", () => {
     for (const { raw, expected } of examples) {
       const actual = classifyTorrentioResult({
         title: raw,
-        infoHash: "some hash",
-        fileIdx: 0,
+        url: "some url",
       });
       expect(actual, raw).toEqual(expected);
     }
@@ -249,17 +259,21 @@ describe("parseTorrentInfo", () => {
 });
 
 describe("pickBest", () => {
+  const type = "episode";
+
   function cand(seeders: number, quality: Quality, tags: Tag[]): TorrentInfo {
     return {
       seeders,
       quality,
       tags,
+      type,
+      season: 1,
+      episode: 1,
       bytes: 0,
       tracker: "tracker",
       originalResult: {
         title: "some file",
-        infoHash: "some hash",
-        fileIdx: 0,
+        url: "some url",
       },
     };
   }
@@ -281,7 +295,7 @@ describe("pickBest", () => {
       cand(97, "1080p", []),
       cand(333, "720p", []),
     ];
-    expect(pickBest(profile, cands)).toEqual(cands[4]);
+    expect(pickBest(profile, cands, type)).toEqual(cands[4]);
   });
 
   it("downranks candidates that match discouraged criteria", () => {
@@ -293,7 +307,7 @@ describe("pickBest", () => {
       cand(100, "2160p", ["hdr"]),
       cand(5, "480p", []), // pick!
     ];
-    expect(pickBest(profile, cands)).toEqual(cands[1]);
+    expect(pickBest(profile, cands, type)).toEqual(cands[1]);
   });
 
   it("ignores candidates missing the required criteria", () => {
@@ -306,7 +320,7 @@ describe("pickBest", () => {
       cand(100, "1080p", []),
       cand(100, "480p", []),
     ];
-    expect(pickBest(profile, cands)).toEqual(null);
+    expect(pickBest(profile, cands, type)).toEqual(null);
   });
 
   it("returns no candidate if none are acceptable", () => {
@@ -321,6 +335,6 @@ describe("pickBest", () => {
       cand(100, "1080p", ["hdr"]),
       cand(100, "720p", []),
     ];
-    expect(pickBest(profile, cands)).toEqual(null);
+    expect(pickBest(profile, cands, type)).toEqual(null);
   });
 });

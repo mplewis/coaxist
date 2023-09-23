@@ -15,6 +15,7 @@ import { setForTestsOnly, unsetForTestsOnly } from "../util/config";
 describe("with mock config", () => {
   beforeAll(() => {
     setForTestsOnly("config", {
+      ALLDEBRID_API_KEY: "some-api-key",
       SEARCH_BEFORE_RELEASE_DATE: "7d",
       OVERSEERR_REQUEST_CONCURRENCY: 5,
     });
@@ -102,7 +103,7 @@ describe("with mock config", () => {
               "imdbID": "tt123",
               "season": 1,
               "title": undefined,
-              "type": "tv",
+              "type": "season",
             },
           ]
         `);
@@ -125,7 +126,7 @@ describe("with mock config", () => {
         it("requests fetch", () => {
           expect(subject()).toEqual([
             {
-              type: "tv",
+              type: "episode",
               imdbID: "tt123",
               season: 1,
               episode: 1,
@@ -140,13 +141,13 @@ describe("with mock config", () => {
         it("requests fetch", () => {
           expect(subject()).toEqual([
             {
-              type: "tv",
+              type: "episode",
               imdbID: "tt123",
               season: 1,
               episode: 1,
             },
             {
-              type: "tv",
+              type: "episode",
               imdbID: "tt123",
               season: 1,
               episode: 2,
@@ -193,8 +194,8 @@ describe("with mock config", () => {
 
         it("returns overdue episodes", () => {
           expect(listOverdue(request, now)).toEqual([
-            { type: "tv", imdbID: "tt123", season: 1, episode: 1 },
-            { type: "tv", imdbID: "tt123", season: 1, episode: 2 },
+            { type: "episode", imdbID: "tt123", season: 1, episode: 1 },
+            { type: "episode", imdbID: "tt123", season: 1, episode: 2 },
           ]);
         });
       });
@@ -204,7 +205,7 @@ describe("with mock config", () => {
 
         it("returns overdue season", () => {
           expect(listOverdue(request, now)).toEqual([
-            { type: "tv", imdbID: "tt123", season: 1 },
+            { type: "season", imdbID: "tt123", season: 1 },
           ]);
         });
       });
