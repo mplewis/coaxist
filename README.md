@@ -1,5 +1,54 @@
 <img src="docs/banner.jpg" alt="Coaxist" width="100%">
 
+Coaxist is a self-hosted system that makes it easy to start watching your
+favorite movies and TV shows on demand. Add content to your Plex watchlist and
+it will appear in your library in minutes.
+
+# Tech Stack
+
+<img src="docs/system_diagram.svg" alt="System Diagram" width="100%">
+
+Coaxist is a **single Docker container** containing:
+
+- [**Plex**](https://plex.tv): Excellent server for self-hosting media. Plex has
+  high-quality native apps for TV boxes, mobile devices, and desktop.
+- [**Overseerr**](https://overseerr.dev): Request management software for Plex
+  which doubles as an excellent server for media metadata.
+- [**Rclone**](https://rclone.org/): Mounts WebDAV directories locally so that
+  Plex can stream media files without copying them to local storage.
+- [**Connector**](connector/README.md): Watches for media requests from
+  Overseerr, searches for media sources using Torrentio, and sends selected
+  torrents to a Debrid service for download.
+
+This app uses the following public cloud services:
+
+- [**Torrentio**](https://torrentio.strem.fun/configure): Searches for media
+  sources on torrent sites and converts magnet links to Debrid request links.
+- **Debrid**: A paid service which downloads torrents and serves their contents.
+
+## Supported Debrid services
+
+- [AllDebrid](https://alldebrid.com)
+- [Debrid-Link](https://debrid-link.fr)
+- [Offcloud](https://offcloud.com)
+- [Premiumize](https://www.premiumize.me)
+- [Put.io](https://put.io)
+- [Real-Debrid](https://real-debrid.com)
+
+## What is a Debrid service?
+
+A Debrid service is a paid commercial service that works in a way similar to a
+hosted seedbox. This service takes a torrent file, magnet link, or link to a
+file hosting service such as Mediafire. It downloads the content to its own
+shared hosting space and provides a link for the subscriber to access those
+files directly via HTTP download or WebDAV mount.
+
+"Instant downloads" are a useful feature of many Debrid services. Since the
+service downloads files for many users at once, it has a large pool of content
+on the servers at all times. If you request a link that the Debrid service has
+already downloaded, and it still has a copy of those files, it will make that
+copy available to you, "instantly downloading" it into your files.
+
 # TODO
 
 - [x] Run tests in GitHub Actions
