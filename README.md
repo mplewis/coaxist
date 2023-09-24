@@ -40,8 +40,8 @@ This app uses the following public cloud services:
 A Debrid service is a paid commercial service that works in a way similar to a
 hosted seedbox. This service takes a torrent file, magnet link, or link to a
 file hosting service such as Mediafire. It downloads the content to its own
-shared hosting space and provides a link for the subscriber to access those
-files directly via HTTP download or WebDAV mount.
+servers, then makes the content available to the subscriber. Users can stream
+files individually over HTTP or mount everything locally via WebDAV.
 
 "Instant downloads" are a useful feature of many Debrid services. Since the
 service downloads files for many users at once, it has a large pool of content
