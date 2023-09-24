@@ -1,5 +1,5 @@
 import z from "zod";
-import { map, pipe, sortBy } from "remeda";
+import { isTruthy, map, pipe, sortBy } from "remeda";
 import log from "../log";
 import { secureHash } from "../util/hash";
 
@@ -153,13 +153,18 @@ export class OverseerrClient {
         episodes: z.array(
           z.object({
             episodeNumber: z.number(),
-            airDate: z.string(),
+            airDate: z.string().or(z.null()),
           })
         ),
       })
     );
     if (!resp.success) throw new ValidationError(url, resp.error, resp.rawData);
-    return resp.data.episodes;
+    // Some episodes lack air dates - we ignore them
+    const maybeMissingAirDate = resp.data.episodes;
+    const withAirDates = maybeMissingAirDate
+      .map((e) => (e.airDate ? { ...e, airDate: e.airDate } : null))
+      .filter(isTruthy);
+    return withAirDates;
   }
 
   async getMetadataMovie(tmdbID: number) {
