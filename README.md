@@ -1,3 +1,5 @@
+<img src="docs/banner.jpg" alt="Coaxist" width="100%">
+
 # TODO
 
 - [x] Run tests in GitHub Actions
