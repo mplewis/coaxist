@@ -6,7 +6,11 @@
 - [x] Build API client for Torrentio
 - [x] Set up proper logging
 - [x] Run on schedule
-- [ ] Profile preferred arg
+- [ ] Profile improvements:
+  - [ ] Preferred tags
+  - [ ] Minimum seeders
+  - [ ] Sort by: size desc, seeders desc
+- [ ] Understand which results are cached (`[AD+]`, `[RD+]`)
 - [ ] Upgrade fetch when better quality is available
 - [x] Use shorter hashes
 - [x] Move all vars to config

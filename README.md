@@ -20,7 +20,7 @@ Coaxist is a **single Docker container** containing:
   Overseerr, searches for media sources using Torrentio, and sends selected
   torrents to a Debrid service for download.
 
-This app uses the following public cloud services:
+Coaxist uses the following public cloud services:
 
 - [**Torrentio**](https://torrentio.strem.fun/configure): Searches for media
   sources on torrent sites and converts magnet links to Debrid request links.
@@ -53,14 +53,15 @@ copy available to you, "instantly downloading" it into your files.
 
 - [x] Run tests in GitHub Actions
 - [x] Deploy to Docker Hub on release tag
-- [ ] Write usage readme
-- [ ] Auto-grab Overseerr API key from config file
 - [x] Remove Next cache from Overseerr bit of image:
       `RUN rm -rf src server .next/cache`
 - [x] Configure Overseerr to only run with prod deps:
       `RUN yarn install --production --ignore-scripts --prefer-offline`
 - [ ] Auto-template config files from superconfig
-- [ ] Read Overseerr API key and copy into Connector
+  - [ ] Support Debrid services via simpler config (no WebDAV URL)
+  - [ ] Read Overseerr API key and copy into Connector
+- [ ] Finish usage readme
+- [ ] Separate out Quick Start Guide
 
 # Quick Start Guide
 
