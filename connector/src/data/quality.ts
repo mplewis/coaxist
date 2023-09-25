@@ -16,20 +16,9 @@ export const QUALITY_RANKING = QUALITY_MATCHERS.map((m) => m.name) as [
 /** Represents the quality of the media in a torrent. */
 export type Quality = (typeof QUALITY_MATCHERS)[number]["name"];
 
-/** Q1 was higher quality than Q2. */
-export const Q1_HIGHER = -1;
-/** Q2 was higher quality than Q1. */
-export const Q2_HIGHER = 1;
-/** Q1 and Q2 were the same quality. */
-export const EQUAL = 0;
-/** A compare function for sorting Qualities, highest quality first. */
-export function sortQuality(
-  q1: Quality,
-  q2: Quality
-): typeof Q1_HIGHER | typeof Q2_HIGHER | typeof EQUAL {
-  const q1i = QUALITY_RANKING.indexOf(q1);
-  const q2i = QUALITY_RANKING.indexOf(q2);
-  if (q1i < q2i) return Q1_HIGHER;
-  if (q1i > q2i) return Q2_HIGHER;
-  return EQUAL;
+/** A compare function for qualities, highest quality first. */
+export function compareQuality(a: Quality, b: Quality): number {
+  const qrA = QUALITY_RANKING.indexOf(a);
+  const qrB = QUALITY_RANKING.indexOf(b);
+  return qrA - qrB;
 }

@@ -38,7 +38,9 @@ export const TAG_MATCHERS = [
   { name: "dualaudio", match: ["dual"] },
   { name: "multiaudio", match: ["multi"] },
 ] as const satisfies readonly TokenMatcher[];
+type TagMatcherTags = (typeof TAG_MATCHERS)[number]["name"];
+
 /** Represents a known fact about the media in a torrent. */
-export type Tag = (typeof TAG_MATCHERS)[number]["name"];
+export type Tag = TagMatcherTags | "cached"; // TODO
 /** All known tags. */
 export const TAGS = TAG_MATCHERS.map((m) => m.name) as [Tag, ...Tag[]];

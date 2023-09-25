@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { afterEach, beforeEach } from "vitest";
 
 export class Given<T extends Record<string, any>> {

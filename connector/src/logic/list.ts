@@ -9,13 +9,13 @@ import {
 } from "../clients/overseerr";
 import log from "../log";
 import { getConfig } from "../util/config";
-import type { TorrentBundleType } from "./classify";
+import { ContainedMediaType } from "./rank";
 
 export type ToFetch = MovieToFetch | SeasonToFetch | EpisodeToFetch;
 type BaseToFetch = {
   imdbID: string;
   title: string;
-  type: TorrentBundleType;
+  type: ContainedMediaType;
 };
 export type MovieToFetch = BaseToFetch & {
   type: "movie";
