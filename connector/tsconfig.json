@@ -6,6 +6,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ESNext",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "outDir": "./dist"
   }
 }
