@@ -2,17 +2,28 @@ import z from "zod";
 import { QUALITY_RANKING, Quality } from "../data/quality";
 import { TAGS, Tag } from "../data/tag";
 
+const SUPPORTED_SORTS = ["mostSeeders", "largestFileSize"] as const;
+export type SupportedSort = (typeof SUPPORTED_SORTS)[number];
+
+const MINMAX_SCHEMA = z
+  .object({
+    quality: z.enum(QUALITY_RANKING).optional(),
+    seeders: z.number().positive().optional(),
+  })
+  .optional();
 export const PROFILE_SCHEMA = z.object({
   name: z.string(),
-  minimum: z.object({ quality: z.enum(QUALITY_RANKING) }).optional(),
-  maximum: z.object({ quality: z.enum(QUALITY_RANKING) }).optional(),
+  sort: z.enum(SUPPORTED_SORTS).optional().default("mostSeeders"),
+  minimum: MINMAX_SCHEMA,
+  maximum: MINMAX_SCHEMA,
   required: z.array(z.enum(TAGS)).optional(),
+  preferred: z.array(z.enum(TAGS)).optional(),
   discouraged: z.array(z.enum(TAGS)).optional(),
   forbidden: z.array(z.enum(TAGS)).optional(),
 });
 export type Profile = z.infer<typeof PROFILE_SCHEMA>;
 
-export const DEFAULT_PROFILES: Profile[] = [
+export const DEFAULT_PROFILES: z.input<typeof PROFILE_SCHEMA>[] = [
   {
     name: "(example) Most Compatible",
     maximum: { quality: "1080p" },
@@ -31,10 +42,10 @@ export const DEFAULT_PROFILES: Profile[] = [
 ];
 
 export function satisfiesQuality(
-  q: { minimum?: { quality: Quality }; maximum?: { quality: Quality } },
+  q: { minimum?: { quality?: Quality }; maximum?: { quality?: Quality } },
   item: { quality: Quality }
 ): boolean {
-  if (q.minimum) {
+  if (q.minimum?.quality) {
     if (
       QUALITY_RANKING.indexOf(item.quality) >
       QUALITY_RANKING.indexOf(q.minimum.quality)
@@ -42,7 +53,7 @@ export function satisfiesQuality(
       return false;
     }
   }
-  if (q.maximum) {
+  if (q.maximum?.quality) {
     if (
       QUALITY_RANKING.indexOf(item.quality) <
       QUALITY_RANKING.indexOf(q.maximum.quality)
