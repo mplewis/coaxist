@@ -14,7 +14,7 @@ const MINMAX_SCHEMA = z
   .optional();
 export const PROFILE_SCHEMA = z.object({
   name: z.string(),
-  sort: z.enum(SUPPORTED_SORTS).optional().default(DEFAULT_SORT),
+  sort: z.enum(SUPPORTED_SORTS).default(DEFAULT_SORT),
   minimum: MINMAX_SCHEMA,
   maximum: MINMAX_SCHEMA,
   required: z.array(z.enum(TAGS)).optional(),

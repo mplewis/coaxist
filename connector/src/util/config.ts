@@ -6,11 +6,7 @@ import { join } from "path";
 import { exit } from "process";
 import log from "../log";
 import packageJSON from "../../package.json";
-import {
-  DEFAULT_PROFILES,
-  PROFILE_SCHEMA,
-  ProfileInput,
-} from "../data/profile";
+import { DEFAULT_PROFILES, PROFILE_SCHEMA, Profile } from "../data/profile";
 import { DebridCreds, parseDebridCreds } from "../data/debrid";
 
 export const { version: VERSION } = packageJSON;
@@ -151,11 +147,17 @@ function getFile<T>(a: {
   filename: string;
   desc: string;
   validator: Validator<T>;
-  template: T;
+  template: any;
 }): T {
   const { filename, desc, validator } = a;
   if (cache[a.filename]) return cache[filename] as T;
 
+  if (validator(a.template).success) {
+    log.fatal(
+      { filename, desc },
+      `Invalid template for creating a fresh ${desc}. Please fix the template.`
+    );
+  }
   const { path, sentinel } = initFile(a);
   const raw = readFileSync(path, "utf-8");
   if (raw.includes(sentinel)) {
@@ -198,7 +200,7 @@ export function getConfig(): Config & { debridCreds: DebridCreds } {
   return { ...config, debridCreds };
 }
 
-export function getProfiles(): ProfileInput[] {
+export function getProfiles(): Profile[] {
   return getFile(PROFILE_SPEC);
 }
 
