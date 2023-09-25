@@ -7,7 +7,7 @@ import {
   tokenize,
 } from "./parse";
 import { TorrentioSearchResult } from "../clients/torrentio";
-import { ContainedMediaType } from "./profile";
+import { ContainedMediaType } from "./rank";
 
 const SEASON_MATCHER = /\bs(\d+)\b/i;
 const EPISODE_MATCHER = /\bs(\d+)e(\d+)\b/i;

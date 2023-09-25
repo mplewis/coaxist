@@ -6,8 +6,8 @@ import { Snatchable, snatchViaURL } from "../clients/torrentio";
 import log from "../log";
 import { secureHash } from "../util/hash";
 import { EpisodeToFetch, MovieToFetch, SeasonToFetch, ToFetch } from "./list";
-import { Profile } from "./profile";
 import { getConfig } from "../util/config";
+import { Profile } from "../data/profile";
 
 export type FullSnatchInfo = {
   profile: Profile;

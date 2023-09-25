@@ -4,7 +4,7 @@ import log from "../log";
 
 import { OverseerrClient } from "../clients/overseerr";
 import { ToFetch, listOutstanding } from "./list";
-import { Profile, pickBest } from "./profile";
+import { pickBest } from "./rank";
 import { classifyTorrentioResult } from "./classify";
 import { secureHash } from "../util/hash";
 import { searchTorrentio } from "../clients/torrentio";
@@ -12,6 +12,7 @@ import { DbClient } from "../clients/db";
 import { FullSnatchInfo, snatchAndSave } from "./snatch";
 import { getConfig } from "../util/config";
 import { DebridCreds } from "../data/debrid";
+import { Profile } from "../data/profile";
 
 async function findBestCandidate(
   creds: DebridCreds,

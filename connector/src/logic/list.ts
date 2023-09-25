@@ -9,7 +9,7 @@ import {
 } from "../clients/overseerr";
 import log from "../log";
 import { getConfig } from "../util/config";
-import { ContainedMediaType } from "./profile";
+import { ContainedMediaType } from "./rank";
 
 export type ToFetch = MovieToFetch | SeasonToFetch | EpisodeToFetch;
 type BaseToFetch = {

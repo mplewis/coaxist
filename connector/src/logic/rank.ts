@@ -1,14 +1,10 @@
-import z from "zod";
 import { QUALITY_RANKING, Quality, compareQuality } from "../data/quality";
-import { TAGS, Tag } from "../data/tag";
+import { Tag } from "../data/tag";
 import { SortSpec, sort } from "./sort/engine";
+import { Profile } from "../data/profile";
 
 /** What grouping of media is contained within this torrent? */
 export type ContainedMediaType = "movie" | "season" | "episode";
-
-const SUPPORTED_SORTS = ["mostSeeders", "largestFileSize"] as const;
-export type SupportedSort = (typeof SUPPORTED_SORTS)[number];
-const DEFAULT_SORT = "largestFileSize";
 
 export type Candidate = {
   mediaType: ContainedMediaType;
@@ -17,43 +13,6 @@ export type Candidate = {
   seeders: number;
   bytes: number;
 };
-
-const MINMAX_SCHEMA = z
-  .object({
-    quality: z.enum(QUALITY_RANKING).optional(),
-    seeders: z.number().positive().optional(),
-  })
-  .optional();
-export const PROFILE_SCHEMA = z.object({
-  name: z.string(),
-  sort: z.enum(SUPPORTED_SORTS).optional().default(DEFAULT_SORT),
-  minimum: MINMAX_SCHEMA,
-  maximum: MINMAX_SCHEMA,
-  required: z.array(z.enum(TAGS)).optional(),
-  preferred: z.array(z.enum(TAGS)).optional(),
-  discouraged: z.array(z.enum(TAGS)).optional(),
-  forbidden: z.array(z.enum(TAGS)).optional(),
-});
-export type Profile = z.infer<typeof PROFILE_SCHEMA>;
-export type ProfileInput = z.input<typeof PROFILE_SCHEMA>;
-
-export const DEFAULT_PROFILES: ProfileInput[] = [
-  {
-    name: "(example) Most Compatible",
-    maximum: { quality: "1080p" },
-    discouraged: ["hdr"],
-    forbidden: ["dolbyvision", "h265"],
-  },
-  {
-    name: "(example) Remux Only",
-    required: ["remux"],
-  },
-  {
-    name: "(example) High Definition",
-    minimum: { quality: "720p" },
-    forbidden: ["cam"],
-  },
-];
 
 export function satisfiesQuality(profile: Profile, item: Candidate): boolean {
   if (profile.minimum?.quality) {

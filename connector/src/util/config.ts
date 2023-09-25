@@ -6,7 +6,11 @@ import { join } from "path";
 import { exit } from "process";
 import log from "../log";
 import packageJSON from "../../package.json";
-import { DEFAULT_PROFILES, PROFILE_SCHEMA, Profile } from "../logic/profile";
+import {
+  DEFAULT_PROFILES,
+  PROFILE_SCHEMA,
+  ProfileInput,
+} from "../data/profile";
 import { DebridCreds, parseDebridCreds } from "../data/debrid";
 
 export const { version: VERSION } = packageJSON;
@@ -194,7 +198,7 @@ export function getConfig(): Config & { debridCreds: DebridCreds } {
   return { ...config, debridCreds };
 }
 
-export function getProfiles(): Profile[] {
+export function getProfiles(): ProfileInput[] {
   return getFile(PROFILE_SPEC);
 }
 
