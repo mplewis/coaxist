@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { Spec, sort } from "./engine";
+import { SortSpec, sort } from "./engine";
 
 describe("sort", () => {
   it("sorts as expected", () => {
     const rarityOrder = ["legendary", "rare", "normal"];
     type Rarity = (typeof rarityOrder)[number];
     type Pokemon = { name: string; tier: Rarity; power: number };
-    const spec: Spec<Pokemon> = {
+    const spec: SortSpec<Pokemon> = {
       eligible: (p) => rarityOrder.includes(p.tier),
       tier: (p) => rarityOrder.indexOf(p.tier),
       compare: (a, b) => b.power - a.power,

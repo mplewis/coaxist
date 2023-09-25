@@ -4,8 +4,8 @@ import log from "../log";
 
 import { OverseerrClient } from "../clients/overseerr";
 import { ToFetch, listOutstanding } from "./list";
-import { Profile } from "./profile";
-import { classifyTorrentioResult, pickBest } from "./classify";
+import { Profile, pickBest } from "./profile";
+import { classifyTorrentioResult } from "./classify";
 import { secureHash } from "../util/hash";
 import { searchTorrentio } from "../clients/torrentio";
 import { DbClient } from "../clients/db";
@@ -30,7 +30,7 @@ async function findBestCandidate(
 
   const bestResults = profiles
     .map((profile) => {
-      const best = pickBest(profile, classified, f.type);
+      const best = pickBest(f.type, profile, classified);
       return best ? { profile, best } : null;
     })
     .filter(isTruthy);

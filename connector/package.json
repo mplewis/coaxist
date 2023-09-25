@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "node --watch --loader=ts-node/esm ./src/index.ts | pnpm pino-pretty",
+    "lint": "eslint src",
     "start": "node --loader=ts-node/esm ./src/index.ts | pnpm pino-pretty",
     "start-in-coaxist": "ts-node ./src/index.ts | pnpm pino-pretty --colorize",
     "test": "vitest"

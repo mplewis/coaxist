@@ -1,10 +1,15 @@
-export interface Spec<T> {
+/** A specification for sorting items. */
+export interface SortSpec<T> {
+  /** True if this item is eligible, false to remove it from results */
   eligible: (a: T) => boolean;
+  /** The numbered tier into which this result should be sorted - lower number is higher priority */
   tier: (a: T) => number;
+  /** A compare function to sort items within tiers - +1 = a > b */
   compare: (a: T, b: T) => number;
 }
 
-export function sort<T>(spec: Spec<T>, items: T[]): T[] {
+/** Sort items in tiers using the given specification. */
+export function sort<T>(spec: SortSpec<T>, items: T[]): T[] {
   const eligible = items.filter(spec.eligible);
   const tiers = eligible.reduce((acc, item) => {
     const tier = spec.tier(item);
@@ -17,8 +22,4 @@ export function sort<T>(spec: Spec<T>, items: T[]): T[] {
     tiers.get(tier)!.sort(spec.compare)
   );
   return sortedItems;
-}
-
-export function best<T>(spec: Spec<T>, items: T[]): T | undefined {
-  return sort(spec, items)[0];
 }
