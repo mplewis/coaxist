@@ -6,6 +6,12 @@ describe("sort", () => {
     const rarityOrder = ["legendary", "rare", "normal"];
     type Rarity = (typeof rarityOrder)[number];
     type Pokemon = { name: string; tier: Rarity; power: number };
+    const spec: Spec<Pokemon> = {
+      eligible: (p) => rarityOrder.includes(p.tier),
+      tier: (p) => rarityOrder.indexOf(p.tier),
+      compare: (a, b) => b.power - a.power,
+    };
+
     const items: Pokemon[] = [
       { name: "Pidgey", tier: "normal", power: 10 },
       { name: "Pikachu", tier: "normal", power: 30 },
@@ -16,11 +22,7 @@ describe("sort", () => {
       { name: "Mew", tier: "legendary", power: 100 },
       { name: "Unown", tier: "rare", power: 20 },
     ];
-    const spec: Spec<Pokemon> = {
-      eligible: (p) => rarityOrder.includes(p.tier),
-      tier: (p) => rarityOrder.indexOf(p.tier),
-      compare: (a, b) => b.power - a.power,
-    };
+
     expect(sort(spec, items)).toEqual([
       { tier: "legendary", power: 100, name: "Mew" },
       { tier: "legendary", power: 80, name: "Rayquaza" },
