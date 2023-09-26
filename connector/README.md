@@ -10,8 +10,8 @@
   - [x] Preferred tags
   - [x] Minimum seeders
   - [x] Sort by: size desc, seeders desc
-- [ ] Understand which results are cached (`[AD+]`, `[RD+]`)
-  - [ ] Populate the `cached` tag for cached results
+- [x] Understand which results are cached (`[AD+]`, `[RD+]`)
+  - [x] Populate the `cached` tag for cached results
 - [ ] Upgrade fetch when better quality is available
 - [x] Use shorter hashes
 - [x] Move all vars to config
@@ -20,3 +20,4 @@
 - [x] Read Plex watchlist
 - [ ] Better config templates
 - [ ] Watch downloads dir and symlink with proper names for Plex into new dir
+- [ ] Migrate DB to unify dependency hash

@@ -22,6 +22,7 @@ export type Snatchable = {
 const torrentioSearchResultsSchema = z.object({ streams: z.array(z.any()) });
 
 const torrentioSearchResultSchema = z.object({
+  name: z.string(),
   title: z.string(),
   url: z.string(),
 });

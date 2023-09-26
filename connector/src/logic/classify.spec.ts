@@ -145,9 +145,10 @@ describe("classify", () => {
 
 describe("parseTorrentInfo", () => {
   it("parses torrent info as expected", () => {
-    const examples: { raw: string; expected: TorrentInfo }[] = [
+    const examples: { name: string; title: string; expected: TorrentInfo }[] = [
       {
-        raw: stripIndent`
+        name: "[AD+] Torrentio\n1080p",
+        title: stripIndent`
           Star Trek Strange New World S02e05 [1080p Ita Eng Spa h265 10bit SubS] byMe7alh
           👤 27 💾 1021.66 MB ⚙️ ThePirateBay
           🇬🇧 / 🇮🇹 / 🇪🇸
@@ -157,11 +158,13 @@ describe("parseTorrentInfo", () => {
           mediaType: "episode",
           season: 2,
           episode: 5,
-          tags: ["h265", "hdr"],
+          tags: ["cached", "h265", "hdr"],
           tracker: "ThePirateBay",
           seeders: 27,
           bytes: 1071288156,
+          cached: true,
           originalResult: {
+            name: "[AD+] Torrentio\n1080p",
             title: stripIndent`
               Star Trek Strange New World S02e05 [1080p Ita Eng Spa h265 10bit SubS] byMe7alh
               👤 27 💾 1021.66 MB ⚙️ ThePirateBay
@@ -172,7 +175,8 @@ describe("parseTorrentInfo", () => {
         },
       },
       {
-        raw: stripIndent`
+        name: "[AD+] Torrentio\n4k",
+        title: stripIndent`
           Звездный путь: Странные новые миры / Star Trek: Strange New Worlds / Сезон: 2 / Серии: 1-9 из 10 [2023 HEVC HDR10+ Dolby Vision WEB-DL 2160p 4k] 3x MVO (LostFilm HDrezka Studio TVShows) + Original + Sub (Rus Eng)
           Star.Trek.Strange.New.Worlds.S02E05.Charades.2160p.PMTP.WEB-DL.DDP5.1.DV.HDR.H.265.RGzsRutracker.mkv
           👤 1 💾 6.48 GB ⚙️ Rutracker
@@ -183,11 +187,13 @@ describe("parseTorrentInfo", () => {
           mediaType: "episode",
           season: 2,
           episode: 5,
-          tags: ["dolbyvision", "h265", "hdr", "hdr10plus", "web"],
+          tags: ["cached", "dolbyvision", "h265", "hdr", "hdr10plus", "web"],
           tracker: "Rutracker",
           seeders: 1,
           bytes: 6957847019,
+          cached: true,
           originalResult: {
+            name: "[AD+] Torrentio\n4k",
             title: stripIndent`
               Звездный путь: Странные новые миры / Star Trek: Strange New Worlds / Сезон: 2 / Серии: 1-9 из 10 [2023 HEVC HDR10+ Dolby Vision WEB-DL 2160p 4k] 3x MVO (LostFilm HDrezka Studio TVShows) + Original + Sub (Rus Eng)
               Star.Trek.Strange.New.Worlds.S02E05.Charades.2160p.PMTP.WEB-DL.DDP5.1.DV.HDR.H.265.RGzsRutracker.mkv
@@ -199,7 +205,8 @@ describe("parseTorrentInfo", () => {
         },
       },
       {
-        raw: stripIndent`
+        name: "[AD download] Torrentio\n4k",
+        title: stripIndent`
           Star.Trek.Strange.New.Worlds.S02E05.HDR.2160p.WEB.h265-ETHEL[TGx
           👤 89 💾 5.76 GB ⚙️ ThePirateBay
         `,
@@ -212,7 +219,9 @@ describe("parseTorrentInfo", () => {
           tracker: "ThePirateBay",
           seeders: 89,
           bytes: 6184752906,
+          cached: false,
           originalResult: {
+            name: "[AD download] Torrentio\n4k",
             title: stripIndent`
               Star.Trek.Strange.New.Worlds.S02E05.HDR.2160p.WEB.h265-ETHEL[TGx
               👤 89 💾 5.76 GB ⚙️ ThePirateBay
@@ -222,7 +231,8 @@ describe("parseTorrentInfo", () => {
         },
       },
       {
-        raw: stripIndent`
+        name: "[AD download] Torrentio\n4k",
+        title: stripIndent`
           Star.Trek.Strange.New.Worlds.S02.COMPLETE.2160p.AMZN.WEB-DL.DDP5.1.H.265-NTb[TGx]
           Star.Trek.Strange.New.Worlds.S02E05.Charades.2160p.AMZN.WEB-DL.DDP5.1.H.265-NTb.mkv
           👤 68 💾 6.45 GB ⚙️ TorrentGalaxy
@@ -235,7 +245,9 @@ describe("parseTorrentInfo", () => {
           tracker: "TorrentGalaxy",
           seeders: 68,
           bytes: 6925634764,
+          cached: false,
           originalResult: {
+            name: "[AD download] Torrentio\n4k",
             title: stripIndent`
               Star.Trek.Strange.New.Worlds.S02.COMPLETE.2160p.AMZN.WEB-DL.DDP5.1.H.265-NTb[TGx]
               Star.Trek.Strange.New.Worlds.S02E05.Charades.2160p.AMZN.WEB-DL.DDP5.1.H.265-NTb.mkv
@@ -246,12 +258,9 @@ describe("parseTorrentInfo", () => {
         },
       },
     ];
-    for (const { raw, expected } of examples) {
-      const actual = classifyTorrentioResult({
-        title: raw,
-        url: "some url",
-      });
-      expect(actual, raw).toEqual(expected);
+    for (const { name, title, expected } of examples) {
+      const actual = classifyTorrentioResult({ name, title, url: "some url" });
+      expect(actual, title).toEqual(expected);
     }
   });
 });

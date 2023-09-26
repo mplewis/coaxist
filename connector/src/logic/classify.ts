@@ -3,7 +3,7 @@ import { TAG_MATCHERS, Tag } from "../data/tag";
 import {
   TorrentioResultMetadata,
   parseFromTokens,
-  parseTorrentioTitle,
+  parseTorrentioRawText,
   tokenize,
 } from "./parse";
 import { TorrentioSearchResult } from "../clients/torrentio";
@@ -69,9 +69,9 @@ function numberingFrom(
 export function classifyTorrentioResult(
   tsr: TorrentioSearchResult
 ): TorrentInfo | null {
-  const parsed = parseTorrentioTitle(tsr.title);
+  const parsed = parseTorrentioRawText(tsr.name, tsr.title);
   if (!parsed) return null;
-  const { torrentLine, filenameLine, seeders, bytes, tracker } = parsed;
+  const { torrentLine, filenameLine, seeders, bytes, tracker, cached } = parsed;
 
   const cl: Classification | null = (() => {
     if (!torrentLine) return classify(filenameLine);
@@ -79,14 +79,19 @@ export function classifyTorrentioResult(
     // The filename is often more descriptive than the torrent name, so prefer it
     const clF = classify(filenameLine);
     const clT = classify(torrentLine);
+
     const quality = (clF && clF.quality) || (clT && clT.quality);
     if (!quality) return null;
+
     const tagsT = (clT && clT.tags) || [];
     const tagsF = (clF && clF.tags) || [];
-    const tags = [...new Set([...tagsT, ...tagsF])].sort();
+    const tags = [...tagsT, ...tagsF];
     return { ...numberingFrom(clF, clT), quality, tags };
   })();
   if (!cl) return null;
 
-  return { ...cl, tracker, seeders, bytes, originalResult: tsr };
+  const ct: Tag[] = cached ? ["cached"] : [];
+  cl.tags = [...new Set([...cl.tags, ...ct])].sort();
+
+  return { ...cl, tracker, seeders, bytes, cached, originalResult: tsr };
 }
