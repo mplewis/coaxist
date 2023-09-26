@@ -4,6 +4,7 @@ import { TokenMatcher } from "./classify.types";
 import log from "../log";
 
 const TOKEN_SPLITTER = /[\s.]+/;
+const CACHED_MATCHER = /\[(RD|PM|AD|DL|OC|Putio)\+\]/;
 const GROUP_SUFFIX_MATCHER = /([^-]+)-(.+)$/; // x265-SomeGroup -> x265
 const SEEDERS_MATCHER = /👤\s*(\d+)/;
 const SIZE_MATCHER = /💾\s*([\d.]+\s*[A-Za-z]*B)/;
@@ -26,6 +27,8 @@ export type TorrentioResultMetadata = {
   seeders: number;
   /** The total size of this torrent */
   bytes: number;
+  /** Whether this torrent is cached on the Debrid service */
+  cached: boolean;
 };
 
 /** Drop the last token if it's a video extension. */
@@ -96,7 +99,10 @@ export function parseFromTokens(
 }
 
 /** Parse info from the raw title of a Torrentio result. */
-export function parseTorrentioTitle(title: string): TorrentioFields | null {
+export function parseTorrentioRawText(
+  name: string,
+  title: string
+): TorrentioFields | null {
   const lines = title.split("\n");
 
   // Always present. Looks like: 👤 89 💾 5.76 GB ⚙️ ThePirateBay
@@ -128,5 +134,7 @@ export function parseTorrentioTitle(title: string): TorrentioFields | null {
   const trackerMatch = metaLine.match(TRACKER_MATCHER);
   const tracker = trackerMatch ? trackerMatch[1] : "<unknown>";
 
-  return { seeders, bytes, tracker, torrentLine, filenameLine };
+  const cached = CACHED_MATCHER.test(name);
+
+  return { seeders, bytes, tracker, cached, torrentLine, filenameLine };
 }
