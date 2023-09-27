@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "configure-in-coaxist": "ts-node ./uberconf/index.ts | pnpm pino-pretty --colorize",
     "dev": "node --watch --loader=ts-node/esm ./src/index.ts | pnpm pino-pretty",
     "lint": "eslint src",
     "start": "node --loader=ts-node/esm ./src/index.ts | pnpm pino-pretty",

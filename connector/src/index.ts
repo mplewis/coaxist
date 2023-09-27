@@ -3,7 +3,6 @@ import execa from "execa";
 import ms from "ms";
 import pLimit from "p-limit";
 import { OverseerrClient } from "./clients/overseerr";
-import { Config, getConfig, getProfiles, initAll } from "./util/config";
 import { fetchOutstanding } from "./logic/fetch";
 import log from "./log";
 import { DbClient } from "./clients/db";
@@ -98,4 +97,4 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) main();
