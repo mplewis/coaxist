@@ -29,11 +29,11 @@ Coaxist uses the following public cloud services:
 ## Supported Debrid services
 
 - [AllDebrid](https://alldebrid.com)
-- [Debrid-Link](https://debrid-link.fr)
-- [Offcloud](https://offcloud.com)
-- [Premiumize](https://www.premiumize.me)
-- [Put.io](https://put.io)
 - [Real-Debrid](https://real-debrid.com)
+- ~~[Debrid-Link](https://debrid-link.fr)~~ WIP
+- ~~[Offcloud](https://offcloud.com)~~ WIP
+- ~~[Premiumize](https://www.premiumize.me)~~ WIP
+- ~~[Put.io](https://put.io)~~ WIP
 
 ## What is a Debrid service?
 
