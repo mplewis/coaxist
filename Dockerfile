@@ -55,10 +55,11 @@ RUN apt-get install -y \
 RUN curl https://rclone.org/install.sh | bash
 RUN npm install -g pnpm
 
-COPY --from=builder-overseerr /build/overseerr /app/overseerr
 COPY --from=builder-connector /build/connector /app/connector
 WORKDIR /app/connector
 RUN pnpm prisma generate
+
+ENV S6_KEEP_ENV=1
 
 COPY root/ /
 
