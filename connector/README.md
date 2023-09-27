@@ -21,3 +21,5 @@
 - [ ] Better config templates
 - [ ] Watch downloads dir and symlink with proper names for Plex into new dir
 - [ ] Migrate DB to unify dependency hash
+- [ ] Fix template
+- [ ] Unit test for templates

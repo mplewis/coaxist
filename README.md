@@ -62,6 +62,7 @@ copy available to you, "instantly downloading" it into your files.
   - [ ] Read Overseerr API key and copy into Connector
 - [ ] Finish usage readme
 - [ ] Separate out Quick Start Guide
+- [ ] Passthru env vars
 
 # Quick Start Guide
 
