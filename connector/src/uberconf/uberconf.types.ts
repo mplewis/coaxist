@@ -66,4 +66,4 @@ export const UBERCONF_SCHEMA = z.object({
   connector: CONNECTOR_SCHEMA,
   mediaProfiles: z.array(PROFILE_SCHEMA),
 });
-export type Uberconf = z.infer<typeof UBERCONF_SCHEMA>;
+export type UberConf = z.infer<typeof UBERCONF_SCHEMA>;
