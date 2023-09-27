@@ -7,7 +7,7 @@ import { exit } from "process";
 import log from "../log";
 import packageJSON from "../../package.json";
 import { DEFAULT_PROFILES, PROFILE_SCHEMA, Profile } from "../data/profile";
-import { DebridCreds, parseDebridCreds } from "../data/debrid";
+import { DebridCreds } from "../data/debrid";
 
 export const { version: VERSION } = packageJSON;
 
@@ -30,20 +30,23 @@ const CONFIG_SCHEMA = z.object({
   /** How many jobs for outstanding Overseerr requests we should work on at once */
   OVERSEERR_REQUEST_CONCURRENCY: z.number().int().positive(),
 
-  /** Generate an AllDebrid API key at https://alldebrid.com/apikeys/ */
-  ALLDEBRID_API_KEY: z.string().optional(),
-  /** TODO */
-  DEBRIDLINK_API_KEY: z.string().optional(),
-  /** TODO */
-  OFFCLOUD_API_KEY: z.string().optional(),
-  /** TODO */
-  PREMIUMIZE_API_KEY: z.string().optional(),
-  /** TODO */
-  PUTIO_CLIENT_ID: z.string().optional(),
-  /** TODO */
-  PUTIO_TOKEN: z.string().optional(),
-  /** Get your Real-Debrid API key at https://real-debrid.com/apitoken */
-  REALDEBRID_API_KEY: z.string().optional(),
+  DEBRID_CREDS: z.union([
+    z.object({
+      provider: z.enum([
+        "alldebrid",
+        "debridlink",
+        "offcloud",
+        "premiumize",
+        "realdebrid",
+      ]),
+      apiKey: z.string(),
+    }),
+    z.object({
+      provider: z.literal("putio"),
+      username: z.string(),
+      password: z.string(),
+    }),
+  ]),
 
   /** Ask the Debrid service to refresh a file this many days before it expires */
   REFRESH_WITHIN_EXPIRY: z.string(),
@@ -59,32 +62,6 @@ const CONFIG_SCHEMA = z.object({
   /** How many outstanding Torrentio requests we should work on at once */
   TORRENTIO_REQUEST_CONCURRENCY: z.number().int().positive(),
 });
-
-const CONFIG_DEFAULTS: Config = {
-  DATABASE_URL: `file:${join(STORAGE_DIR, "db.sqlite")}`,
-
-  OVERSEERR_API_KEY: "<your API key goes here>",
-  OVERSEERR_HOST: "http://localhost:5055",
-  OVERSEERR_POLL_INTERVAL: "15s",
-  OVERSEERR_REQUEST_CONCURRENCY: 5,
-
-  // TODO: fail parse on placeholder values
-  ALLDEBRID_API_KEY: "<your AllDebrid API key goes here>",
-  DEBRIDLINK_API_KEY: "<your Debrid-Link API key goes here>",
-  OFFCLOUD_API_KEY: "<your Offcloud API key goes here>",
-  PREMIUMIZE_API_KEY: "<your Premiumize API key goes here>",
-  PUTIO_CLIENT_ID: "<your Put.io client ID goes here>",
-  PUTIO_TOKEN: "<your Put.io token goes here>",
-  REALDEBRID_API_KEY: "<your Real-Debrid API key goes here>",
-
-  REFRESH_WITHIN_EXPIRY: "2d",
-  SNATCH_EXPIRY: "14d",
-  SNATCH_REFRESH_CHECK_INTERVAL: "1h",
-
-  TORRENT_SEARCH_INTERVAL: "1h",
-  SEARCH_BEFORE_RELEASE_DATE: "7d",
-  TORRENTIO_REQUEST_CONCURRENCY: 5,
-};
 
 /** Core app config which includes API keys. */
 export type Config = z.infer<typeof CONFIG_SCHEMA>;
@@ -152,22 +129,8 @@ function getFile<T>(a: {
   const { filename, desc, validator } = a;
   if (cache[a.filename]) return cache[filename] as T;
 
-  if (validator(a.template).success) {
-    log.fatal(
-      { filename, desc },
-      `Invalid template for creating a fresh ${desc}. Please fix the template.`
-    );
-  }
-  const { path, sentinel } = initFile(a);
+  const path = join(STORAGE_DIR, `${filename}.yaml`);
   const raw = readFileSync(path, "utf-8");
-  if (raw.includes(sentinel)) {
-    log.fatal(
-      { path },
-      `Example file found. Please edit the ${desc} and fill in your values, then delete the example comment.`
-    );
-    exit(1);
-  }
-
   const parsed = yaml.load(raw);
   const validated = validator(parsed);
   if (!validated.success) {

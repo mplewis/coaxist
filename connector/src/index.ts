@@ -9,7 +9,6 @@ import log from "./log";
 import { DbClient } from "./clients/db";
 import { resnatchOverdue } from "./logic/snatch";
 import { secureHash } from "./util/hash";
-import { parseDebridCreds } from "./data/debrid";
 
 function schedule(desc: string, interval: string, task: () => Promise<void>) {
   setInterval(async () => {
@@ -49,7 +48,7 @@ async function main() {
   const config = getConfig();
   const profiles = getProfiles();
 
-  const debridCreds = parseDebridCreds(config);
+  const debridCreds = config.DEBRID_CREDS;
   const debridCredsHash = secureHash(debridCreds);
 
   const overseerrClient = new OverseerrClient({
