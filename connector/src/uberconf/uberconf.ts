@@ -3,7 +3,6 @@ import yaml from "js-yaml";
 import { readFileSync, writeFileSync } from "fs";
 import ini from "ini";
 import { DebridConfig, UBERCONF_SCHEMA, UberConf } from "./uberconf.types";
-import type { AppConf } from "../data/appconf";
 
 const RCLONE_DUMMY_PASSWORD =
   "m3PAV6DJIEGo4fuVlinAGtWZZXH0z_yabANkILj-ENwknWUnYkBDNK7TjbQ"; // rclone obscure dummy-password-please-ignore
@@ -45,32 +44,21 @@ export function buildRcloneConf(dc: DebridConfig): string {
   return ini.encode(data, { whitespace: true });
 }
 
-export function buildAppConf(rootConfigDir: string): string {
-  const storageDir = join(rootConfigDir, "connector");
-  const data = {
-    storageDir,
-    overseerrConfigFile: join(storageDir, "overseerr", "settings.json"),
-    databaseURL: `sqlite://${join(storageDir, "db.sqlite")}`,
-  };
-  return yaml.dump(data);
-}
-
-export function parseConfig(rootConfigDir: string): UberConf {
-  // TODO: If config file doesn't exist, create it from template
-  // TODO: If config file contains placeholders, crash
-  const path = join(rootConfigDir, "config.yaml");
+export function parseUberConf(path: string): UberConf {
   const raw = readFileSync(path, "utf-8");
   const data = yaml.load(raw);
   return UBERCONF_SCHEMA.parse(data);
+}
+
+export function loadOrInitUberConf(path: string): UberConf {
+  // TODO: If config file doesn't exist, create it from template
+  return parseUberConf(path);
+  // TODO: If config file contains placeholders, crash
 }
 
 export function writeExternalConfigFiles(rootConfigDir: string, c: UberConf) {
   writeFileSync(
     join(rootConfigDir, "rclone", "rclone.conf"),
     buildRcloneConf(c.debrid)
-  );
-  writeFileSync(
-    join(rootConfigDir, "connector", "config.yaml"),
-    buildAppConf(rootConfigDir)
   );
 }

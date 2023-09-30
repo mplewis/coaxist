@@ -2,6 +2,7 @@
 set -euo pipefail
 
 export STORAGE_DIR=/config/connector
+export OVERSEERR_CONFIG_PATH=/config/overseerr/settings.json
 
 (
 	cd /app/connector

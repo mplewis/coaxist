@@ -1,9 +1,9 @@
-import { parseConfig, writeExternalConfigFiles } from "./uberconf";
+import { parseUberConf, writeExternalConfigFiles } from "./uberconf";
 
 async function main() {
   const rootConfigDir = process.env.COAXIST_CONFIG_DIR;
   if (!rootConfigDir) throw new Error("COAXIST_CONFIG_DIR not set");
-  const config = await parseConfig(rootConfigDir);
+  const config = await parseUberConf(rootConfigDir);
   writeExternalConfigFiles(rootConfigDir, config);
 }
 
