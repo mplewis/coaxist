@@ -2,6 +2,7 @@ import { QUALITY_RANKING, Quality, compareQuality } from "../data/quality";
 import { Tag } from "../data/tag";
 import { SortSpec, sort } from "./sort/engine";
 import { Profile } from "../data/profile";
+import log from "../log";
 
 /** What grouping of media is contained within this torrent? */
 export type ContainedMediaType = "movie" | "season" | "episode";
@@ -20,7 +21,10 @@ export function satisfiesQuality(profile: Profile, item: Candidate): boolean {
       QUALITY_RANKING.indexOf(item.quality) >
       QUALITY_RANKING.indexOf(profile.minimum.quality)
     ) {
-      return false;
+      log.debug(
+        { item, profile },
+        "item is too low quality, marking as ineligible"
+      );
     }
   }
   if (profile.maximum?.quality) {
@@ -28,6 +32,10 @@ export function satisfiesQuality(profile: Profile, item: Candidate): boolean {
       QUALITY_RANKING.indexOf(item.quality) <
       QUALITY_RANKING.indexOf(profile.maximum.quality)
     ) {
+      log.debug(
+        { item, profile },
+        "item is too high quality, marking as ineligible"
+      );
       return false;
     }
   }
@@ -35,22 +43,44 @@ export function satisfiesQuality(profile: Profile, item: Candidate): boolean {
 }
 
 export function satisfiesSeeders(profile: Profile, item: Candidate): boolean {
-  if (profile.minimum?.seeders && item.seeders < profile.minimum.seeders)
+  if (profile.minimum?.seeders && item.seeders < profile.minimum.seeders) {
+    log.debug(
+      { item, profile },
+      "item has too few seeders, marking as ineligible"
+    );
     return false;
-  if (profile.maximum?.seeders && item.seeders > profile.maximum.seeders)
+  }
+  if (profile.maximum?.seeders && item.seeders > profile.maximum.seeders) {
+    log.debug(
+      { item, profile },
+      "item has too many seeders, marking as ineligible"
+    );
     return false;
+  }
   return true;
 }
 
 export function satisfiesTags(q: Profile, item: Candidate): boolean {
   if (q.required) {
     for (const tag of q.required ?? []) {
-      if (!item.tags.includes(tag)) return false;
+      if (!item.tags.includes(tag)) {
+        log.debug(
+          { item, profile: q, tag },
+          "item missing required tag, marking as ineligible"
+        );
+        return false;
+      }
     }
   }
   if (q.forbidden) {
     for (const tag of q.forbidden ?? []) {
-      if (item.tags.includes(tag)) return false;
+      if (item.tags.includes(tag)) {
+        log.debug(
+          { item, profile: q, tag },
+          "item has forbidden tag, marking as ineligible"
+        );
+        return false;
+      }
     }
   }
   return true;
@@ -69,8 +99,20 @@ function selectEligible(
   profile: Profile,
   c: Candidate
 ) {
-  if (c.mediaType !== desired) return false;
-  if (!satisfies(profile, c)) return false;
+  if (c.mediaType !== desired) {
+    log.debug(
+      { desired, item: c },
+      "item is not the desired media type, marking as ineligible"
+    );
+    return false;
+  }
+  if (!satisfies(profile, c)) {
+    log.debug(
+      { item: c, profile },
+      "item does not satisfy profile, marking as ineligible"
+    );
+    return false;
+  }
   return true;
 }
 
@@ -131,5 +173,12 @@ export function pickBest<T extends Candidate>(
   candidates: T[]
 ): T | null {
   const sorted = sortCandidates(type, profile, candidates);
-  return sorted[0] ?? null;
+  if (!sorted.length) {
+    log.debug(
+      { type, profile, count: candidates.length },
+      "no eligible candidates"
+    );
+    return null;
+  }
+  return sorted[0];
 }

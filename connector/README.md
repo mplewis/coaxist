@@ -24,3 +24,5 @@
 - [x] Fix template
 - [x] Unit test for templates
 - [ ] Dry run mode
+- [ ] Rename QUALITY to RESOLUTION
+- [ ] Write file and function docstrings and enforce with ESLint
