@@ -2,6 +2,7 @@ import { dirname, join } from "path";
 import yaml from "js-yaml";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import ini from "ini";
+import execa from "execa";
 import { DebridConfig, UBERCONF_SCHEMA, UberConf } from "./uberconf.types";
 import log from "../log";
 
@@ -46,15 +47,22 @@ function write(path: string, data: string) {
   writeFileSync(path, data);
 }
 
+function obscure(password: string) {
+  // call `rclone obscure $password`
+  const result = execa.sync("rclone", ["obscure", password]);
+  return result.stdout;
+}
+
 export function buildRcloneConf(dc: DebridConfig): string {
   const rc = rcloneConf(dc);
+  const pass = obscure(rc.WEBDAV_PASS);
   const data = {
     provider: {
       type: "webdav",
       vendor: "other",
       url: rc.WEBDAV_URL,
       user: rc.WEBDAV_USER,
-      pass: rc.WEBDAV_PASS,
+      pass,
     },
   };
   return ini.encode(data, { whitespace: true });
