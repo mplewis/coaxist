@@ -1,6 +1,6 @@
 ### THIS_IS_AN_EXAMPLE_FILE ###
 # This is a sample config file for Coaxist.
-# Set your values in the file below, then delete the THIS_IS_AN_EXAMPLE_FILE line.
+# Set your values in the file below, then delete these comments at the top.
 
 # Set your Debrid credentials here.
 debrid:

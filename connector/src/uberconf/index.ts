@@ -1,9 +1,11 @@
-import { parseUberConf, writeExternalConfigFiles } from "./uberconf";
+import { join } from "path";
+import { loadOrInitUberConf, writeExternalConfigFiles } from "./uberconf";
 
 async function main() {
-  const rootConfigDir = process.env.COAXIST_CONFIG_DIR;
-  if (!rootConfigDir) throw new Error("COAXIST_CONFIG_DIR not set");
-  const config = await parseUberConf(rootConfigDir);
+  const rootConfigDir = process.env.COAXIST_ROOT_CONFIG_DIR;
+  if (!rootConfigDir) throw new Error("COAXIST_ROOT_CONFIG_DIR not set");
+  const path = join(rootConfigDir, "config.yaml");
+  const config = await loadOrInitUberConf(path);
   writeExternalConfigFiles(rootConfigDir, config);
 }
 

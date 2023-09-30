@@ -1,9 +1,11 @@
-import { join } from "path";
+import { dirname, join } from "path";
 import yaml from "js-yaml";
-import { readFileSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import ini from "ini";
 import { DebridConfig, UBERCONF_SCHEMA, UberConf } from "./uberconf.types";
+import log from "../log";
 
+const EXAMPLE_FILE_SENTINEL = "### THIS_IS_AN_EXAMPLE_FILE ###";
 const RCLONE_DUMMY_PASSWORD =
   "m3PAV6DJIEGo4fuVlinAGtWZZXH0z_yabANkILj-ENwknWUnYkBDNK7TjbQ"; // rclone obscure dummy-password-please-ignore
 
@@ -30,6 +32,20 @@ function rcloneConf(dc: DebridConfig): {
   throw new Error(`unhandled debrid type: ${exhaustiveCheck}`);
 }
 
+function exists(path: string) {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function write(path: string, data: string) {
+  const dir = dirname(path);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path, data);
+}
+
 export function buildRcloneConf(dc: DebridConfig): string {
   const rc = rcloneConf(dc);
   const data = {
@@ -44,21 +60,36 @@ export function buildRcloneConf(dc: DebridConfig): string {
   return ini.encode(data, { whitespace: true });
 }
 
-export function parseUberConf(path: string): UberConf {
-  const raw = readFileSync(path, "utf-8");
-  const data = yaml.load(raw);
-  return UBERCONF_SCHEMA.parse(data);
-}
-
 export function loadOrInitUberConf(path: string): UberConf {
-  // TODO: If config file doesn't exist, create it from template
-  return parseUberConf(path);
-  // TODO: If config file contains placeholders, crash
+  if (!exists(path)) {
+    const dfault = readFileSync(join(__dirname, "default.yaml"), "utf-8");
+    write(path, dfault);
+    log.info(
+      { path },
+      `Created config file with example values. Please edit the new config file, ` +
+        `fill in your desired values, remove ${EXAMPLE_FILE_SENTINEL}, and run this program again.`
+    );
+    process.exit(1);
+  }
+
+  const raw = readFileSync(path, "utf-8");
+  if (raw.includes(EXAMPLE_FILE_SENTINEL)) {
+    log.fatal(
+      { path },
+      `The config file contains ${EXAMPLE_FILE_SENTINEL}. Please edit the config file, ` +
+        `fill in your desired values, remove ${EXAMPLE_FILE_SENTINEL}, and run this program again.`
+    );
+    process.exit(1);
+  }
+
+  const data = yaml.load(raw);
+  const parsed = UBERCONF_SCHEMA.parse(data);
+  log.info({ path }, "Loaded UberConf config file");
+  return parsed;
 }
 
 export function writeExternalConfigFiles(rootConfigDir: string, c: UberConf) {
-  writeFileSync(
-    join(rootConfigDir, "rclone", "rclone.conf"),
-    buildRcloneConf(c.debrid)
-  );
+  const path = join(rootConfigDir, "rclone", "rclone.conf");
+  write(path, buildRcloneConf(c.debrid));
+  log.info({ path }, "Wrote Rclone config file");
 }
