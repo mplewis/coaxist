@@ -25,6 +25,7 @@ export function satisfiesQuality(profile: Profile, item: Candidate): boolean {
         { item, profile },
         "item is too low quality, marking as ineligible"
       );
+      return false;
     }
   }
   if (profile.maximum?.quality) {
