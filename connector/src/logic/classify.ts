@@ -30,10 +30,13 @@ export type Numbering =
   | { mediaType: "movie" };
 
 /** Classify a torrent based on its raw name. */
-export function classify(s: string): Classification | null {
+export function classify(s: string): Classification {
   const tokens = tokenize(s);
-  const quality = parseFromTokens(tokens, QUALITY_MATCHERS)[0] as Quality;
-  if (!quality) return null;
+  let quality = parseFromTokens(tokens, QUALITY_MATCHERS)[0] as Quality;
+  if (!quality) {
+    log.warn({ raw: s }, "Failed to parse quality. Assuming 1080p.");
+    quality = "1080p";
+  }
   const tags = parseFromTokens(tokens, TAG_MATCHERS) as Tag[];
 
   if (s.match(EPISODE_MATCHER)) {
@@ -66,19 +69,6 @@ function numberingFrom(
   return { mediaType: "movie" };
 }
 
-function qualityFrom(
-  filename: Classification | null,
-  torrent: Classification | null
-): Quality {
-  if (filename) return filename.quality;
-  if (torrent) return torrent.quality;
-  log.warn(
-    { filename, torrent },
-    "Failed to parse quality from Torrentio result. Assuming 1080p."
-  );
-  return "1080p";
-}
-
 /** Parse info from the raw Torrentio title data and build a complete TorrentInfo. */
 export function classifyTorrentioResult(
   tsr: TorrentioSearchResult
@@ -96,7 +86,7 @@ export function classifyTorrentioResult(
     // The filename is often more descriptive than the torrent name, so prefer it
     const clF = classify(filenameLine);
     const clT = classify(torrentLine);
-    const quality = qualityFrom(clF, clT);
+    const quality = clF?.quality || clT?.quality;
     const tagsT = (clT && clT.tags) || [];
     const tagsF = (clF && clF.tags) || [];
     const tags = [...tagsT, ...tagsF];

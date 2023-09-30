@@ -131,10 +131,6 @@ describe("classify", () => {
           tags: ["h265"],
         },
       },
-      {
-        raw: "this is not a valid name",
-        expected: null,
-      },
     ];
 
     for (const { raw, expected } of examples) {
@@ -264,7 +260,8 @@ describe("parseTorrentInfo", () => {
         expected: {
           bytes: 1029491916,
           cached: true,
-          mediaType: "movie",
+          mediaType: "season",
+          season: 8,
           originalResult: {
             name: "[RD+] Torrentio\nWEBRip",
             title:
@@ -273,7 +270,7 @@ describe("parseTorrentInfo", () => {
           },
           quality: "1080p",
           seeders: 3,
-          tags: ["cached"],
+          tags: ["cached", "h264", "web"],
           tracker: "1337x",
         },
       },
