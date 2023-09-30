@@ -10,8 +10,8 @@ import { DbClient } from "./clients/db";
 import { resnatchOverdue } from "./logic/snatch";
 import { secureHash } from "./util/hash";
 import { OverseerrClient } from "./clients/overseerr";
-import { parseUberConf } from "./uberconf/uberconf";
 import { toDebridCreds } from "./data/debrid";
+import { loadOrInitUberConf } from "./uberconf/uberconf";
 
 const ENV_CONF_SCHEMA = z.intersection(
   z.object({
@@ -71,7 +71,7 @@ async function main() {
   log.info("starting Coaxist Connector");
 
   const envConf = ENV_CONF_SCHEMA.parse(process.env);
-  const uberConf = parseUberConf(envConf.UBERCONF_PATH);
+  const uberConf = loadOrInitUberConf(envConf.UBERCONF_PATH);
   const overseerrAPIKey = (() => {
     if ("OVERSEERR_API_KEY" in envConf) return envConf.OVERSEERR_API_KEY;
     return getOverseerrAPIKey(envConf.OVERSEERR_CONFIG_PATH);
@@ -94,7 +94,7 @@ async function main() {
     apiKey: overseerrAPIKey,
   });
 
-  const databaseUrl = `sqlite://${envConf.STORAGE_DIR}/db.sqlite`;
+  const databaseUrl = `file:${envConf.STORAGE_DIR}/db.sqlite`;
   const { client, db } = await connectDB(databaseUrl);
 
   const fetchQueue = pLimit(1);

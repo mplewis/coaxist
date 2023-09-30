@@ -23,3 +23,4 @@
 - [ ] Migrate DB to unify dependency hash
 - [ ] Fix template
 - [ ] Unit test for templates
+- [ ] Dry run mode
