@@ -48,9 +48,7 @@ function write(path: string, data: string) {
 }
 
 function obscure(password: string) {
-  // call `rclone obscure $password`
-  const result = execa.sync("rclone", ["obscure", password]);
-  return result.stdout;
+  return execa.sync("rclone", ["obscure", password]).stdout;
 }
 
 export function buildRcloneConf(dc: DebridConfig, obscureFn = obscure): string {
