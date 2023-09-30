@@ -41,7 +41,7 @@ export function startSearchingAt(
 /**
  * Determine whether a movie request should be fetched right now.
  * @param request The movie request
- * @param snatches The existing snatches for this movie, if any
+ * @param searchBeforeReleaseDateMs The number of milliseconds before the release date at which we should start searching
  * @param now The current time
  * @returns A movie to fetch, or null if we should not fetch this movie right now
  */
@@ -65,9 +65,9 @@ export function listOverdueMovie(
 }
 
 /**
- * Determine which parts of a TV season should be fetched right now.
+ * Determine which parts of a TV season/episode should be fetched right now.
  * @param request The TV request
- * @param snatches The existing snatches for this TV request, if any
+ * @param searchBeforeReleaseDateMs The number of milliseconds before the release date at which we should start searching
  * @param now The current time
  * @returns A list of seasons and episodes that should be fetched right now
  */
