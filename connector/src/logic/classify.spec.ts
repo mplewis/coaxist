@@ -257,6 +257,26 @@ describe("parseTorrentInfo", () => {
           },
         },
       },
+      {
+        name: "[RD+] Torrentio\nWEBRip",
+        title:
+          "Homestead Rescue S08 Complete WEBRip x264-skorpion\nHomestead.Rescue.S08E01.Sweet.Homestead.Alabama.WEBRip.x264-skorpion.mp4\n👤 3 💾 981.8 MB ⚙️ 1337x",
+        expected: {
+          bytes: 1029491916,
+          cached: true,
+          mediaType: "movie",
+          originalResult: {
+            name: "[RD+] Torrentio\nWEBRip",
+            title:
+              "Homestead Rescue S08 Complete WEBRip x264-skorpion\nHomestead.Rescue.S08E01.Sweet.Homestead.Alabama.WEBRip.x264-skorpion.mp4\n👤 3 💾 981.8 MB ⚙️ 1337x",
+            url: "some url",
+          },
+          quality: "1080p",
+          seeders: 3,
+          tags: ["cached"],
+          tracker: "1337x",
+        },
+      },
     ];
     for (const { name, title, expected } of examples) {
       const actual = classifyTorrentioResult({ name, title, url: "some url" });

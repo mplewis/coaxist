@@ -8,6 +8,7 @@ import {
 } from "./parse";
 import { TorrentioSearchResult } from "../clients/torrentio";
 import { ContainedMediaType } from "./rank";
+import log from "../log";
 
 const SEASON_MATCHER = /\bs(\d+)\b/i;
 const EPISODE_MATCHER = /\bs(\d+)e(\d+)\b/i;
@@ -65,12 +66,28 @@ function numberingFrom(
   return { mediaType: "movie" };
 }
 
+function qualityFrom(
+  filename: Classification | null,
+  torrent: Classification | null
+): Quality {
+  if (filename) return filename.quality;
+  if (torrent) return torrent.quality;
+  log.warn(
+    { filename, torrent },
+    "Failed to parse quality from Torrentio result. Assuming 1080p."
+  );
+  return "1080p";
+}
+
 /** Parse info from the raw Torrentio title data and build a complete TorrentInfo. */
 export function classifyTorrentioResult(
   tsr: TorrentioSearchResult
 ): TorrentInfo | null {
   const parsed = parseTorrentioRawText(tsr.name, tsr.title);
-  if (!parsed) return null;
+  if (!parsed) {
+    log.warn({ tsr }, "Failed to parse Torrentio result");
+    return null;
+  }
   const { torrentLine, filenameLine, seeders, bytes, tracker, cached } = parsed;
 
   const cl: Classification | null = (() => {
@@ -79,10 +96,7 @@ export function classifyTorrentioResult(
     // The filename is often more descriptive than the torrent name, so prefer it
     const clF = classify(filenameLine);
     const clT = classify(torrentLine);
-
-    const quality = (clF && clF.quality) || (clT && clT.quality);
-    if (!quality) return null;
-
+    const quality = qualityFrom(clF, clT);
     const tagsT = (clT && clT.tags) || [];
     const tagsF = (clF && clF.tags) || [];
     const tags = [...tagsT, ...tagsF];
