@@ -53,9 +53,9 @@ function obscure(password: string) {
   return result.stdout;
 }
 
-export function buildRcloneConf(dc: DebridConfig): string {
+export function buildRcloneConf(dc: DebridConfig, obscureFn = obscure): string {
   const rc = rcloneConf(dc);
-  const pass = obscure(rc.WEBDAV_PASS);
+  const pass = obscureFn(rc.WEBDAV_PASS);
   const data = {
     provider: {
       type: "webdav",

@@ -10,13 +10,14 @@ describe("buildRcloneConf", () => {
     const config: DebridConfig = {
       realDebrid: { username: "foo", password: "bar", apiKey: "baz" },
     };
-    expect(buildRcloneConf(config)).toMatchInlineSnapshot(`
+    const obscureFn = (password: string) => `OBSCURED_${password}_OBSCURED`;
+    expect(buildRcloneConf(config, obscureFn)).toMatchInlineSnapshot(`
       "[provider]
       type = webdav
       vendor = other
       url = https://dav.real-debrid.com/
       user = foo
-      pass = bar
+      pass = OBSCURED_bar_OBSCURED
       "
     `);
   });
