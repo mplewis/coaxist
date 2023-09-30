@@ -1,4 +1,3 @@
-import ms from "ms";
 import { pick } from "remeda";
 import pLimit from "p-limit";
 import {
@@ -8,7 +7,6 @@ import {
   OverseerrRequestTV,
 } from "../clients/overseerr";
 import log from "../log";
-import { getConfig } from "../util/config";
 import { ContainedMediaType } from "./rank";
 
 export type ToFetch = MovieToFetch | SeasonToFetch | EpisodeToFetch;
@@ -32,30 +30,31 @@ export type EpisodeToFetch = BaseToFetch & {
 
 /** Determine the date at which we should start searching for a piece of media. */
 export function startSearchingAt(
+  searchBeforeReleaseDateMs: number,
   item: { airDate: string } | { releaseDate: string }
 ): Date {
-  const { SEARCH_BEFORE_RELEASE_DATE } = getConfig();
   const raw = "airDate" in item ? item.airDate : item.releaseDate;
   const releaseDate = new Date(raw);
-  return new Date(releaseDate.getTime() - ms(SEARCH_BEFORE_RELEASE_DATE));
+  return new Date(releaseDate.getTime() - searchBeforeReleaseDateMs);
 }
 
 /**
  * Determine whether a movie request should be fetched right now.
  * @param request The movie request
- * @param snatches The existing snatches for this movie, if any
+ * @param searchBeforeReleaseDateMs The number of milliseconds before the release date at which we should start searching
  * @param now The current time
  * @returns A movie to fetch, or null if we should not fetch this movie right now
  */
 export function listOverdueMovie(
   request: OverseerrRequestMovie,
+  searchBeforeReleaseDateMs: number,
   now: Date
 ): MovieToFetch | null {
   const mlog = log.child({
     ...pick(request, ["title", "imdbID"]),
     releaseDate: request.releaseDate,
   });
-  if (now > startSearchingAt(request)) {
+  if (now > startSearchingAt(searchBeforeReleaseDateMs, request)) {
     const relTimeDesc =
       now > new Date(request.releaseDate) ? "released" : "about to be released";
     mlog.debug(`requesting movie which is ${relTimeDesc}`);
@@ -66,14 +65,15 @@ export function listOverdueMovie(
 }
 
 /**
- * Determine which parts of a TV season should be fetched right now.
+ * Determine which parts of a TV season/episode should be fetched right now.
  * @param request The TV request
- * @param snatches The existing snatches for this TV request, if any
+ * @param searchBeforeReleaseDateMs The number of milliseconds before the release date at which we should start searching
  * @param now The current time
  * @returns A list of seasons and episodes that should be fetched right now
  */
 export function listOverdueTV(
   request: OverseerrRequestTV,
+  searchBeforeReleaseDateMs: number,
   now: Date
 ): (SeasonToFetch | EpisodeToFetch)[] {
   const toFetch: (SeasonToFetch | EpisodeToFetch)[] = [];
@@ -110,7 +110,7 @@ export function listOverdueTV(
 
       // Start searching for episodes a few days before the release date.
       const ealog = elog.child({ airDate: episode.airDate });
-      if (now > startSearchingAt(episode)) {
+      if (now > startSearchingAt(searchBeforeReleaseDateMs, episode)) {
         const relTimeDesc =
           now > new Date(episode.airDate) ? "released" : "about to be released";
         ealog.debug(`requesting episode which is ${relTimeDesc}`);
@@ -133,13 +133,14 @@ export function listOverdueTV(
  */
 export function listOverdue(
   request: OverseerrRequest,
+  searchBeforeReleaseDateMs: number,
   now = new Date()
 ): ToFetch[] {
   if (request.type === "movie") {
-    const toFetch = listOverdueMovie(request, now);
+    const toFetch = listOverdueMovie(request, searchBeforeReleaseDateMs, now);
     return toFetch ? [toFetch] : [];
   }
-  return listOverdueTV(request, now);
+  return listOverdueTV(request, searchBeforeReleaseDateMs, now);
 }
 
 /**
@@ -151,10 +152,11 @@ export function listOverdue(
 export async function listOutstanding(a: {
   overseerrClient: OverseerrClient;
   ignoreCache: boolean;
+  overseerrRequestConcurrency: number;
+  searchBeforeReleaseDateMs: number;
 }): Promise<ToFetch[] | "NO_NEW_REQUESTS"> {
   const { overseerrClient } = a;
   const ignoreCache = a.ignoreCache ?? false;
-  const { OVERSEERR_REQUEST_CONCURRENCY } = getConfig();
 
   const requests =
     await overseerrClient.getMetadataForRequestsAndWatchlistItems({
@@ -168,8 +170,10 @@ export async function listOutstanding(a: {
     { requests: requests.map((r) => pick(r, ["imdbID", "title", "type"])) },
     "building list of media to fetch"
   );
-  const pool = pLimit(OVERSEERR_REQUEST_CONCURRENCY);
-  const jobs = requests.map((r) => pool(async () => listOverdue(r)));
+  const pool = pLimit(a.overseerrRequestConcurrency);
+  const jobs = requests.map((r) =>
+    pool(async () => listOverdue(r, a.searchBeforeReleaseDateMs))
+  );
   const results = (await Promise.all(jobs)).flat();
 
   log.debug(

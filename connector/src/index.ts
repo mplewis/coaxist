@@ -2,16 +2,39 @@ import { PrismaClient } from "@prisma/client";
 import execa from "execa";
 import ms from "ms";
 import pLimit from "p-limit";
-import { OverseerrClient } from "./clients/overseerr";
-import { Config, getConfig, getProfiles, initAll } from "./util/config";
+import { readFileSync } from "fs";
+import z from "zod";
 import { fetchOutstanding } from "./logic/fetch";
 import log from "./log";
 import { DbClient } from "./clients/db";
 import { resnatchOverdue } from "./logic/snatch";
 import { secureHash } from "./util/hash";
-import { parseDebridCreds } from "./data/debrid";
+import { OverseerrClient } from "./clients/overseerr";
+import { toDebridCreds } from "./data/debrid";
+import { loadOrInitUberConf } from "./uberconf/uberconf";
 
-function schedule(desc: string, interval: string, task: () => Promise<void>) {
+const ENV_CONF_SCHEMA = z.intersection(
+  z.object({
+    /** Location of the config.yaml which holds the UberConf data */
+    UBERCONF_PATH: z.string(),
+    /** Directory where Connector will store all of its state */
+    STORAGE_DIR: z.string(),
+    /** Location of the Overseerr server */
+    OVERSEERR_HOST: z.string().default("http://localhost:5055"),
+  }),
+  z.union([
+    z.object({ OVERSEERR_CONFIG_PATH: z.string() }),
+    z.object({ OVERSEERR_API_KEY: z.string() }),
+  ])
+);
+
+function getOverseerrAPIKey(path: string): string {
+  const raw = readFileSync(path, "utf-8");
+  const data = JSON.parse(raw);
+  return data.main.apiKey;
+}
+
+function schedule(desc: string, intervalMs: number, task: () => Promise<void>) {
   setInterval(async () => {
     log.debug({ task: desc }, "running periodic task");
     const start = new Date();
@@ -20,44 +43,59 @@ function schedule(desc: string, interval: string, task: () => Promise<void>) {
       { task: desc, durationMs: new Date().getTime() - start.getTime() },
       "periodic task complete"
     );
-  }, ms(interval));
-  const intervalDesc = ms(ms(interval), { long: true });
+  }, intervalMs);
+  const intervalDesc = ms(intervalMs, { long: true });
   log.info({ task: desc, interval: intervalDesc }, "registered periodic task");
 }
 
-async function connectDB(config: Config) {
+async function connectDB(dbURL: string) {
+  log.info({ url: dbURL }, "connecting to database");
   const { all: migrateOutput } = await execa(
     "pnpm",
     ["prisma", "migrate", "deploy"],
     {
       all: true,
-      env: { DATABASE_URL: config.DATABASE_URL },
+      env: { DATABASE_URL: dbURL },
     }
   );
   log.info({ output: migrateOutput }, "database migration complete");
 
-  const client = new PrismaClient({ datasourceUrl: config.DATABASE_URL });
+  const client = new PrismaClient({ datasourceUrl: dbURL });
   await client.$connect();
   const db = new DbClient(client);
+  log.info("connected to database");
   return { client, db };
 }
 
 async function main() {
   log.info("starting Coaxist Connector");
 
-  initAll();
-  const config = getConfig();
-  const profiles = getProfiles();
+  const envConf = ENV_CONF_SCHEMA.parse(process.env);
+  const uberConf = loadOrInitUberConf(envConf.UBERCONF_PATH);
+  const overseerrAPIKey = (() => {
+    if ("OVERSEERR_API_KEY" in envConf) return envConf.OVERSEERR_API_KEY;
+    return getOverseerrAPIKey(envConf.OVERSEERR_CONFIG_PATH);
+  })();
+  const profiles = uberConf.mediaProfiles;
 
-  const debridCreds = parseDebridCreds(config);
+  const torrentioRequestConcurrency =
+    uberConf.connector.torrentio.requestConcurrency;
+  const overseerrRequestConcurrency =
+    uberConf.connector.overseerr.requestConcurrency;
+  const searchBeforeReleaseDateMs = uberConf.connector.search.beforeReleaseDate;
+  const snatchExpiryMs = uberConf.connector.snatch.debridExpiry;
+  const refreshWithinExpiryMs = uberConf.connector.snatch.refreshWithinExpiry;
+
+  const debridCreds = toDebridCreds(uberConf.debrid);
   const debridCredsHash = secureHash(debridCreds);
 
   const overseerrClient = new OverseerrClient({
-    host: config.OVERSEERR_HOST,
-    apiKey: config.OVERSEERR_API_KEY,
+    host: envConf.OVERSEERR_HOST,
+    apiKey: overseerrAPIKey,
   });
 
-  const { client, db } = await connectDB(config);
+  const databaseUrl = `file:${envConf.STORAGE_DIR}/db.sqlite`;
+  const { client, db } = await connectDB(databaseUrl);
 
   const fetchQueue = pLimit(1);
   function fetch(ignoreCache: boolean) {
@@ -66,14 +104,25 @@ async function main() {
         db,
         overseerrClient,
         debridCreds,
-        profiles,
         ignoreCache,
+        profiles,
+        torrentioRequestConcurrency,
+        overseerrRequestConcurrency,
+        searchBeforeReleaseDateMs,
       })
     );
   }
   function refresh() {
-    return resnatchOverdue({ db, debridCredsHash, profiles });
+    return resnatchOverdue({
+      db,
+      debridCredsHash,
+      profiles,
+      snatchExpiryMs,
+      refreshWithinExpiryMs,
+    });
   }
+
+  log.info("startup complete");
 
   try {
     await fetch(true);
@@ -81,17 +130,17 @@ async function main() {
 
     schedule(
       "check Overseerr for new requests",
-      config.OVERSEERR_POLL_INTERVAL,
+      uberConf.connector.overseerr.pollInterval,
       () => fetch(false)
     );
     schedule(
       "find torrents for all pending requests",
-      config.TORRENT_SEARCH_INTERVAL,
+      uberConf.connector.search.outstandingSearchInterval,
       () => fetch(true)
     );
     schedule(
       "refresh stale snatches",
-      config.SNATCH_REFRESH_CHECK_INTERVAL,
+      uberConf.connector.snatch.refreshCheckInterval,
       () => refresh()
     );
   } finally {
@@ -99,4 +148,4 @@ async function main() {
   }
 }
 
-main();
+if (require.main === module) main();

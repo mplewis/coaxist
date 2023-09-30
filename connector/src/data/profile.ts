@@ -25,21 +25,3 @@ export const PROFILE_SCHEMA = z.object({
 /** A user-defined media profile used to select a candidate for download from a list of search results. */
 export type Profile = z.infer<typeof PROFILE_SCHEMA>;
 export type ProfileInput = z.input<typeof PROFILE_SCHEMA>;
-
-export const DEFAULT_PROFILES: ProfileInput[] = [
-  {
-    name: "(example) Most Compatible",
-    maximum: { quality: "1080p" },
-    discouraged: ["hdr"],
-    forbidden: ["dolbyvision", "h265"],
-  },
-  {
-    name: "(example) Remux Only",
-    required: ["remux"],
-  },
-  {
-    name: "(example) High Definition",
-    minimum: { quality: "720p" },
-    forbidden: ["cam"],
-  },
-];

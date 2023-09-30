@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { cacheFor } from "../util/cache";
 import { errorForResponse } from "../util/fetch";
-import { VERSION } from "../util/config";
 import log from "../log";
 import { DebridCreds, buildDebridPathPart } from "../data/debrid";
 import { ToFetch } from "../logic/list";
+import { VERSION } from "../util/version";
 
 const TORRENTIO_HOST = "https://torrentio.strem.fun";
 

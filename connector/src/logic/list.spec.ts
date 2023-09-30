@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import ms from "ms";
 import { Given } from "../test/given";
 import {
   OverseerrRequestMovie,
@@ -10,29 +11,18 @@ import {
   listOverdueTV,
   startSearchingAt,
 } from "./list";
-import { setForTestsOnly, unsetForTestsOnly } from "../util/config";
 
 describe("with mock config", () => {
-  beforeAll(() => {
-    setForTestsOnly("config", {
-      ALLDEBRID_API_KEY: "some-api-key",
-      SEARCH_BEFORE_RELEASE_DATE: "7d",
-      OVERSEERR_REQUEST_CONCURRENCY: 5,
-    });
-  });
-
-  afterAll(() => {
-    unsetForTestsOnly("config");
-  });
+  const searchBeforeReleaseDateMs = ms("7d");
 
   describe("startSearchingAt", () => {
     it("returns the expected date", () => {
-      expect(startSearchingAt({ airDate: "2020-01-15" })).toEqual(
-        new Date("2020-01-08")
-      );
-      expect(startSearchingAt({ airDate: "2020-02-03" })).toEqual(
-        new Date("2020-01-27")
-      );
+      expect(
+        startSearchingAt(searchBeforeReleaseDateMs, { airDate: "2020-01-15" })
+      ).toEqual(new Date("2020-01-08"));
+      expect(
+        startSearchingAt(searchBeforeReleaseDateMs, { airDate: "2020-02-03" })
+      ).toEqual(new Date("2020-01-27"));
     });
   });
 
@@ -44,7 +34,8 @@ describe("with mock config", () => {
       } as OverseerrRequestMovie,
       now: {} as Date,
     });
-    const subject = () => listOverdueMovie(v.request, v.now);
+    const subject = () =>
+      listOverdueMovie(v.request, searchBeforeReleaseDateMs, v.now);
 
     describe("when now is after the release date", () => {
       given("now", () => new Date("2020-03-16"));
@@ -82,7 +73,8 @@ describe("with mock config", () => {
       } as OverseerrRequestTV,
       now: {} as Date,
     });
-    const subject = () => listOverdueTV(v.request, v.now);
+    const subject = () =>
+      listOverdueTV(v.request, searchBeforeReleaseDateMs, v.now);
 
     describe("season", () => {
       describe("season has not yet aired", () => {
@@ -168,7 +160,7 @@ describe("with mock config", () => {
 
       it("returns overdue movies", () => {
         const now = new Date("2020-01-02");
-        expect(listOverdue(request, now)).toEqual([
+        expect(listOverdue(request, searchBeforeReleaseDateMs, now)).toEqual([
           { type: "movie", imdbID: "tt123" },
         ]);
       });
@@ -193,7 +185,7 @@ describe("with mock config", () => {
         const now = new Date("2020-02-14");
 
         it("returns overdue episodes", () => {
-          expect(listOverdue(request, now)).toEqual([
+          expect(listOverdue(request, searchBeforeReleaseDateMs, now)).toEqual([
             { type: "episode", imdbID: "tt123", season: 1, episode: 1 },
             { type: "episode", imdbID: "tt123", season: 1, episode: 2 },
           ]);
@@ -204,7 +196,7 @@ describe("with mock config", () => {
         const now = new Date("2020-02-16");
 
         it("returns overdue season", () => {
-          expect(listOverdue(request, now)).toEqual([
+          expect(listOverdue(request, searchBeforeReleaseDateMs, now)).toEqual([
             { type: "season", imdbID: "tt123", season: 1 },
           ]);
         });

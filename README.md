@@ -29,11 +29,11 @@ Coaxist uses the following public cloud services:
 ## Supported Debrid services
 
 - [AllDebrid](https://alldebrid.com)
-- [Debrid-Link](https://debrid-link.fr)
-- [Offcloud](https://offcloud.com)
-- [Premiumize](https://www.premiumize.me)
-- [Put.io](https://put.io)
 - [Real-Debrid](https://real-debrid.com)
+- ~~[Debrid-Link](https://debrid-link.fr)~~ WIP
+- ~~[Offcloud](https://offcloud.com)~~ WIP
+- ~~[Premiumize](https://www.premiumize.me)~~ WIP
+- ~~[Put.io](https://put.io)~~ WIP
 
 ## What is a Debrid service?
 
@@ -57,12 +57,13 @@ copy available to you, "instantly downloading" it into your files.
       `RUN rm -rf src server .next/cache`
 - [x] Configure Overseerr to only run with prod deps:
       `RUN yarn install --production --ignore-scripts --prefer-offline`
-- [ ] Auto-template config files from superconfig
-  - [ ] Support Debrid services via simpler config (no WebDAV URL)
-  - [ ] Read Overseerr API key and copy into Connector
+- [x] Auto-template config files from superconfig
+  - [x] Support Debrid services via simpler config (no WebDAV URL)
+  - [x] Read Overseerr API key and copy into Connector
 - [ ] Finish usage readme
 - [ ] Separate out Quick Start Guide
 - [x] Passthru env vars
+- [ ] Media profile docs
 
 # Quick Start Guide
 

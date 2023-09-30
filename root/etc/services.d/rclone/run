@@ -6,17 +6,7 @@ mkdir -p /config/rclone
 if [ ! -f /config/rclone/start.sh ]; then
 	cp /templates/rclone/start.sh /config/rclone/start.sh
 	echo "#######################################################################"
-	echo "Copied rclone script template to /config/rclone/start.sh."
-	echo "Please edit this file and configure rclone to mount your provider's media directory."
-	echo "#######################################################################"
-fi
-
-if [ ! -f /config/rclone/rclone.conf ]; then
-	cp /templates/rclone/rclone.conf /config/rclone/rclone.conf
-	echo "#######################################################################"
-	echo "Copied rclone config template to /config/rclone/rclone.conf."
-	echo "Please edit this file and configure your provider credentials."
-	echo "You can also run \`rclone config\` to set your credentials interactively."
+	echo "Copied rclone start script to /config/rclone/start.sh."
 	echo "#######################################################################"
 fi
 
