@@ -1,12 +1,10 @@
 import { Snatch } from "@prisma/client";
 import { isTruthy, pick } from "remeda";
-import ms from "ms";
 import { DbClient } from "../clients/db";
 import { Snatchable, snatchViaURL } from "../clients/torrentio";
 import log from "../log";
 import { secureHash } from "../util/hash";
 import { EpisodeToFetch, MovieToFetch, SeasonToFetch, ToFetch } from "./list";
-import { getConfig } from "../util/config";
 import { Profile } from "../data/profile";
 
 export type FullSnatchInfo = {
@@ -79,14 +77,21 @@ export async function resnatchOverdue(a: {
   db: DbClient;
   profiles: Profile[];
   debridCredsHash: string;
+  snatchExpiryMs: number;
+  refreshWithinExpiryMs: number;
 }) {
-  const { db, profiles, debridCredsHash } = a;
-  const { SNATCH_EXPIRY, REFRESH_WITHIN_EXPIRY } = getConfig();
+  const {
+    db,
+    profiles,
+    debridCredsHash,
+    snatchExpiryMs,
+    refreshWithinExpiryMs,
+  } = a;
   log.info("refreshing overdue snatches");
 
   const profileHashes = profiles.map(secureHash);
   const fetchedBefore = new Date(
-    Date.now() - ms(SNATCH_EXPIRY) + ms(REFRESH_WITHIN_EXPIRY)
+    Date.now() - snatchExpiryMs + refreshWithinExpiryMs
   );
   const overdue = await db.overdueSnatches({
     profileHashes,

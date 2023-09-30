@@ -10,7 +10,6 @@ import { secureHash } from "../util/hash";
 import { searchTorrentio } from "../clients/torrentio";
 import { DbClient } from "../clients/db";
 import { FullSnatchInfo, snatchAndSave } from "./snatch";
-import { getConfig } from "../util/config";
 import { DebridCreds } from "../data/debrid";
 import { Profile } from "../data/profile";
 
@@ -58,10 +57,18 @@ export async function fetchOutstanding(a: {
   overseerrClient: OverseerrClient;
   debridCreds: DebridCreds;
   profiles: Profile[];
+  torrentioRequestConcurrency: number;
+  overseerrRequestConcurrency: number;
+  searchBeforeReleaseDateMs: number;
   ignoreCache: boolean;
 }) {
-  const { db, debridCreds, profiles, ignoreCache } = a;
-  const { TORRENTIO_REQUEST_CONCURRENCY } = await getConfig();
+  const {
+    db,
+    debridCreds,
+    profiles,
+    torrentioRequestConcurrency,
+    ignoreCache,
+  } = a;
 
   log.debug({ ignoreCache }, "fetching Overseerr requests");
   const requested = await listOutstanding(a);
@@ -100,7 +107,7 @@ export async function fetchOutstanding(a: {
   );
   log.info({ toFetch }, "fetching requested media");
 
-  const pool = pLimit(TORRENTIO_REQUEST_CONCURRENCY);
+  const pool = pLimit(torrentioRequestConcurrency);
   const searches = toFetch.map((f) =>
     pool(async () => findBestCandidate(debridCreds, profiles, f))
   );

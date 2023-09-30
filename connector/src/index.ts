@@ -19,7 +19,7 @@ const ENV_CONF_SCHEMA = z.intersection(
     UBERCONF_PATH: z.string(),
     /** Directory where Connector will store all of its state */
     STORAGE_DIR: z.string(),
-    /**  */
+    /** Location of the Overseerr server */
     OVERSEERR_HOST: z.string().default("http://localhost:5055"),
   }),
   z.union([
@@ -78,6 +78,14 @@ async function main() {
   })();
   const profiles = uberConf.mediaProfiles;
 
+  const torrentioRequestConcurrency =
+    uberConf.connector.torrentio.requestConcurrency;
+  const overseerrRequestConcurrency =
+    uberConf.connector.overseerr.requestConcurrency;
+  const searchBeforeReleaseDateMs = uberConf.connector.search.beforeReleaseDate;
+  const snatchExpiryMs = uberConf.connector.snatch.debridExpiry;
+  const refreshWithinExpiryMs = uberConf.connector.snatch.refreshWithinExpiry;
+
   const debridCreds = toDebridCreds(uberConf.debrid);
   const debridCredsHash = secureHash(debridCreds);
 
@@ -98,11 +106,20 @@ async function main() {
         debridCreds,
         ignoreCache,
         profiles,
+        torrentioRequestConcurrency,
+        overseerrRequestConcurrency,
+        searchBeforeReleaseDateMs,
       })
     );
   }
   function refresh() {
-    return resnatchOverdue({ db, debridCredsHash, profiles });
+    return resnatchOverdue({
+      db,
+      debridCredsHash,
+      profiles,
+      snatchExpiryMs,
+      refreshWithinExpiryMs,
+    });
   }
 
   log.info("startup complete");

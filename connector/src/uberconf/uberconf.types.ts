@@ -31,34 +31,24 @@ export const DEBRID_SCHEMA = z.union([
 ]);
 export type DebridConfig = z.infer<typeof DEBRID_SCHEMA>;
 
-export const CONNECTOR_SCHEMA = z
-  .object({
-    search: z
-      .object({
-        outstandingSearchInterval: positiveDuration.default("1h"),
-        beforeReleaseDate: positiveDuration.default("7d"),
-      })
-      .default({}),
-    snatch: z
-      .object({
-        refreshWithinExpiry: positiveDuration.default("2d"),
-        debridExpiry: positiveDuration.default("14d"),
-        refreshCheckInterval: positiveDuration.default("1h"),
-      })
-      .default({}),
-    overseerr: z
-      .object({
-        pollInterval: positiveDuration.default("15s"),
-        requestConcurrency: z.number().int().positive().default(5),
-      })
-      .default({}),
-    torrentio: z
-      .object({
-        requestConcurrency: z.number().int().positive().default(5),
-      })
-      .default({}),
-  })
-  .default({});
+export const CONNECTOR_SCHEMA = z.object({
+  search: z.object({
+    outstandingSearchInterval: positiveDuration,
+    beforeReleaseDate: positiveDuration,
+  }),
+  snatch: z.object({
+    refreshWithinExpiry: positiveDuration,
+    debridExpiry: positiveDuration,
+    refreshCheckInterval: positiveDuration,
+  }),
+  overseerr: z.object({
+    pollInterval: positiveDuration,
+    requestConcurrency: z.number().int().positive(),
+  }),
+  torrentio: z.object({
+    requestConcurrency: z.number().int().positive(),
+  }),
+});
 export type ConnectorConfig = z.infer<typeof CONNECTOR_SCHEMA>;
 
 export const UBERCONF_SCHEMA = z.object({

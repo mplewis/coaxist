@@ -1,0 +1,55 @@
+### THIS_IS_AN_EXAMPLE_FILE ###
+# This is a sample config file for Coaxist.
+# Set your values in the file below, then delete the THIS_IS_AN_EXAMPLE_FILE line.
+
+# Set your Debrid credentials here.
+debrid:
+  # If you're not using AllDebrid, replace this with a supported provider.
+  allDebrid:
+    apiKey: SOME_VALID_API_KEY
+
+# Configure the behavior of Connector here.
+connector:
+  # `search` controls behavior relating to searching for media.
+  search:
+    # How often should we check for media for our outstanding requests?
+    outstandingSearchInterval: 1h
+    # Start searching for media when we're within X days of its expected release date.
+    beforeReleaseDate: 7d
+  # Snatches are media that we've requested from a torrent via our Debrid service.
+  snatch:
+    # How long does our Debrid service keep our snatched media before it expires from our drive?
+    debridExpiry: 14d
+    # Refresh our snatched media within X days of its expiry.
+    refreshWithinExpiry: 2d
+    # How often should we check for snatched media that needs to be refreshed?
+    refreshCheckInterval: 1h
+  # Overseerr tracks media requests and serves content metadata.
+  overseerr:
+    # How often should we check for new requests?
+    pollInterval: 15s
+    # How many requests should we send to Overseerr at once?
+    requestConcurrency: 5
+  # Torrentio is the service we use to search for torrents for a given piece of media.
+  torrentio:
+    # How many requests should we send to Torrentio at once?
+    requestConcurrency: 5
+
+# Media profiles define which results we choose for download when searching for media.
+# TODO: Link to docs for this feature
+mediaProfiles:
+  - name: Best Available
+    preferred:
+      - cached
+    forbidden:
+      - cam
+
+  - name: Most Compatible
+    maximum:
+      quality: 1080p
+    preferred:
+      - cached
+    forbidden:
+      - h265
+      - hdr
+      - cam
