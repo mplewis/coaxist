@@ -13,6 +13,7 @@
 - [x] Understand which results are cached (`[AD+]`, `[RD+]`)
   - [x] Populate the `cached` tag for cached results
 - [ ] Upgrade fetch when better quality is available
+  - [ ] If full season is not available, snatch episodes
 - [x] Use shorter hashes
 - [x] Move all vars to config
 - [x] Integrate into Coaxist

@@ -4,6 +4,24 @@ Coaxist is a self-hosted system that makes it easy to start watching your
 favorite movies and TV shows on demand. Add content to your Plex watchlist and
 it will appear in your library in minutes.
 
+# Get Started
+
+```sh
+docker run \
+	--cap-add SYS_ADMIN \
+	--device /dev/fuse:/dev/fuse \
+	--security-opt apparmor:unconfined \
+	--mount type=bind,source="/home/myuser/coaxist/config,target=/config \
+	--mount type=bind,source="/home/myuser/coaxist/transcode,target=/transcode \
+	-p 32400:32400 \
+	-p 5055:5055 \
+	--name "coaxist" \
+	-it "$APP_TAG" \
+	"$@"
+```
+
+More info in the [Quick Start](docs/quick-start.md) guide.
+
 # Tech Stack
 
 <img src="docs/system_diagram.svg" alt="System Diagram" width="100%">

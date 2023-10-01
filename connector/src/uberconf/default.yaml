@@ -36,7 +36,7 @@ connector:
     requestConcurrency: 5
 
 # Media profiles define which results we choose for download when searching for media.
-# TODO: Link to docs for this feature
+# For more info, read the docs: https://github.com/mplewis/coaxist/tree/main/docs/profiles.md
 mediaProfiles:
   - name: Best Available
     preferred:
