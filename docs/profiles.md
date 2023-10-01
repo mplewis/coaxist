@@ -37,18 +37,18 @@ The type definition of a media profile is found in
 [`profile.ts`](https://github.com/mplewis/coaxist/blob/main/connector/src/data/profile.ts).
 The fields you can specify are:
 
-| Name              | Type                                         | Required | Description                                                |
-| ----------------- | -------------------------------------------- | -------- | ---------------------------------------------------------- |
-| `name`            | string                                       | yes      | The name of this media profile. Shown in log messages.     |
-| `sort`            | `largestFileSize` (default) or `mostSeeders` | no       | How to sort results of similar quality.                    |
-| `minimum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Ignore items lower than this quality (resolution).         |
-| `minimum.seeders` | number                                       | no       | Ignore items with fewer than this many seeders.            |
-| `maximum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Ignore items higher than this quality (resolution).        |
-| `maximum.seeders` | number                                       | no       | Ignore items with more than this many seeders.             |
-| `required`        | array of **tags**                            | no       | Ignore items that do not have all of these tags.           |
-| `preferred`       | array of **tags**                            | no       | Prefer items with any of these tags (more are better).     |
-| `discouraged`     | array of **tags**                            | no       | Prefer items without any of these tags (fewer are better). |
-| `forbidden`       | array of **tags**                            | no       | Ignore items with any of these tags.                       |
+| Name              | Type                                         | Required | Description                                                                                                                                           |
+| ----------------- | -------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`            | string                                       | yes      | The name of this media profile. Shown in log messages.                                                                                                |
+| `sort`            | `largestFileSize` (default) or `mostSeeders` | no       | How to sort results of similar quality.<br>`largestFileSize`: Sort by file size, descending.<br>`mostSeeders`: Sort by number of seeders, descending. |
+| `minimum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Ignore items lower than this quality (resolution).                                                                                                    |
+| `minimum.seeders` | number                                       | no       | Ignore items with fewer than this many seeders.                                                                                                       |
+| `maximum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Ignore items higher than this quality (resolution).                                                                                                   |
+| `maximum.seeders` | number                                       | no       | Ignore items with more than this many seeders.                                                                                                        |
+| `required`        | array of **tags**                            | no       | Ignore items that do not have all of these tags.                                                                                                      |
+| `preferred`       | array of **tags**                            | no       | Prefer items with any of these tags (more are better).                                                                                                |
+| `discouraged`     | array of **tags**                            | no       | Prefer items without any of these tags (fewer are better).                                                                                            |
+| `forbidden`       | array of **tags**                            | no       | Ignore items with any of these tags.                                                                                                                  |
 
 # Tags
 
@@ -91,7 +91,8 @@ devices don't support Dolby Vision, you can specify:
 
 # Behavior
 
-Connector uses the following logic to select a torrent for a media profile:
+Connector uses the following logic to select a torrent for a media profile from
+a list of search results:
 
 - Drop items that don't meet _all_ `required` criteria.
 - Drop items that meet _any_ `forbidden` criteria.
@@ -105,5 +106,3 @@ Connector uses the following logic to select a torrent for a media profile:
 - Drop items that are not in the highest quality tier.
   - i.e. if we have 1080p and 720p items, we will only consider the 1080p items.
 - Pick the highest-scoring item based on the `sort` criteria.
-  - `largestFileSize`: Pick the item with the largest file size.
-  - `mostSeeders`: Pick the item with the most seeders.
