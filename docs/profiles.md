@@ -37,18 +37,18 @@ The type definition of a media profile is found in
 [`profile.ts`](https://github.com/mplewis/coaxist/blob/main/connector/src/data/profile.ts).
 The fields you can specify are:
 
-| Name              | Type                                         | Required | Description                                               |
-| ----------------- | -------------------------------------------- | -------- | --------------------------------------------------------- |
-| `name`            | string                                       | yes      | The name of this media profile. Shown in log messages.    |
-| `sort`            | `largestFileSize` (default) or `mostSeeders` | no       | How to sort results of similar quality.                   |
-| `minimum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Do not accept media lower than this quality.              |
-| `minimum.seeders` | number                                       | no       | Do not accept media with fewer seeders than this.         |
-| `maximum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Do not accept media higher than this quality.             |
-| `maximum.seeders` | number                                       | no       | Do not accept media with more seeders than this.          |
-| `required`        | array of **tags**                            | no       | Only accept media with all of these tags.                 |
-| `preferred`       | array of **tags**                            | no       | Prefer media with any of these tags (more is better).     |
-| `discouraged`     | array of **tags**                            | no       | Prefer media without any of these tags (fewer is better). |
-| `forbidden`       | array of **tags**                            | no       | Do not accept media with any of these tags.               |
+| Name              | Type                                         | Required | Description                                                |
+| ----------------- | -------------------------------------------- | -------- | ---------------------------------------------------------- |
+| `name`            | string                                       | yes      | The name of this media profile. Shown in log messages.     |
+| `sort`            | `largestFileSize` (default) or `mostSeeders` | no       | How to sort results of similar quality.                    |
+| `minimum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Ignore items lower than this quality (resolution).         |
+| `minimum.seeders` | number                                       | no       | Ignore items with fewer than this many seeders.            |
+| `maximum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Ignore items higher than this quality (resolution).        |
+| `maximum.seeders` | number                                       | no       | Ignore items with more than this many seeders.             |
+| `required`        | array of **tags**                            | no       | Ignore items that do not have all of these tags.           |
+| `preferred`       | array of **tags**                            | no       | Prefer items with any of these tags (more are better).     |
+| `discouraged`     | array of **tags**                            | no       | Prefer items without any of these tags (fewer are better). |
+| `forbidden`       | array of **tags**                            | no       | Ignore items with any of these tags.                       |
 
 # Tags
 
@@ -64,10 +64,10 @@ devices don't support Dolby Vision, you can specify:
 
 ```yaml
 - name: My Profile
-	preferred:
-		- hdr
-	forbidden:
-		- dolbyvision
+  preferred:
+    - hdr
+  forbidden:
+    - dolbyvision
 ```
 
 | Tag         | Description                                                                                                                                                   |

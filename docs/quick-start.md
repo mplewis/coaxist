@@ -18,7 +18,7 @@ this data is to mount it into your host system. Pick a directory, e.g.
 
 ```
 docker run \
-	--device /dev/fuse:/dev/fuse \
+  --device /dev/fuse:/dev/fuse \
 	--cap-add SYS_ADMIN \
 	--mount type=bind,source="/home/myuser/coaxist/config,target=/config \
 	--mount type=bind,source="/home/myuser/coaxist/transcode,target=/transcode \
@@ -50,10 +50,10 @@ it locally for Plex to serve.
 
 ```yaml
 debrid:
-	realDebrid:
-		username: YOUR_ACCOUNT_USERNAME
-		password: YOUR_ACCOUNT_PASSWORD
-		apiKey: SOME_VALID_API_KEY
+  realDebrid:
+    username: YOUR_ACCOUNT_USERNAME
+    password: YOUR_ACCOUNT_PASSWORD
+    apiKey: SOME_VALID_API_KEY
 ```
 
 Supported providers:
