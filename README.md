@@ -8,16 +8,15 @@ it will appear in your library in minutes.
 
 ```sh
 docker run \
+  --device /dev/fuse:/dev/fuse \
 	--cap-add SYS_ADMIN \
-	--device /dev/fuse:/dev/fuse \
-	--security-opt apparmor:unconfined \
-	--mount type=bind,source="/home/myuser/coaxist/config,target=/config \
-	--mount type=bind,source="/home/myuser/coaxist/transcode,target=/transcode \
-	-p 32400:32400 \
+	--mount type=bind,source="/home/myuser/coaxist/config,target=/config" \
+	--mount type=bind,source="/home/myuser/coaxist/transcode,target=/transcode" \
 	-p 5055:5055 \
+	-p 32400:32400 \
 	--name "coaxist" \
-	-it "$APP_TAG" \
-	"$@"
+	--restart always \
+	--detach mplewis/coaxist:latest
 ```
 
 For detailed instructions, see the [Quick Start](docs/quick-start.md) guide.
