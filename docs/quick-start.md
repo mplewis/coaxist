@@ -69,6 +69,8 @@ Supported providers:
   - `password` from _WebDAV Password_ on the
     [My Account](https://real-debrid.com/account) page
 
+_Coming soon: support for Debrid-Link, Offcloud, Premiumize, and Put.io_
+
 ## Connector
 
 Connector is the program whch watches for new requests, finds matching torrents,
@@ -83,10 +85,50 @@ off.
 ## Media Profiles
 
 The `mediaProfiles` section specifies the media profiles that the connector uses
-to pick the best media for your devices. See [Media Profiles](profiles.md) for
-detailed information.
+to pick the best media for your devices.
 
-# Sign in
+See [Media Profiles](profiles.md) for detailed information on how you can
+configure your own media profile.
+
+# Sign In
+
+## Sign into Plex
 
 Sign into the new Plex instance at
-[localhost:32400/web](http://localhost:32400/web).
+[localhost:32400/web](http://localhost:32400/web). You will need to sign in with
+a Plex account to connect Overseerr and allow Connector to watch for requests.
+
+As you go through the initial setup wizard, configure a **TV Shows** and a
+**Movies** library, both for folder `/media` – this is where Debrid downloads
+are mounted into the container by Rclone.
+
+Since your files are stored over a network and not on a local disk, Plex will
+waste a lot of bandwidth trying to run media analysis on all of your downloaded
+files. To avoid this, go to **Settings → <your server> → Settings → Library**
+and disable the following options (if present), then click **Save Changes** at
+the bottom:
+
+- Marker source: only online (no local detection)
+- Generate video preview thumbnails: never
+- Generate intro video markers: never
+- Generate credits video markers: never
+- Generate chapter thumbnails: never
+- Analyze audio tracks for loudness: never
+- Analyze audio tracks for sonic features: never
+
+## Sign into Overseerr
+
+Sign into the new Overseerr instance at [localhost:5055](http://localhost:5055)
+using the same Plex account, then select your Plex server and libraries as you
+go through the initial setup wizard.
+
+# Request Content
+
+Once Plex and Overseerr are both configured, you can start requesting content in
+one of two ways:
+
+- Search for items in Plex and add them to your Watchlist
+- Open Overseerr, submit requests for items, and approve the requests
+
+Connector automatically watches for new requests, finds matching media, and
+downloads them using Debrid.

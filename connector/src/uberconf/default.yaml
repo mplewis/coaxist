@@ -36,20 +36,18 @@ connector:
     requestConcurrency: 5
 
 # Media profiles define which results we choose for download when searching for media.
+# You need to configure at least one media profile.
 # For more info, read the docs: https://github.com/mplewis/coaxist/tree/main/docs/profiles.md
 mediaProfiles:
   - name: Best Available
     preferred:
       - cached
-    forbidden:
-      - cam
 
-  - name: Most Compatible
-    maximum:
-      quality: 1080p
-    preferred:
-      - cached
-    forbidden:
-      - h265
-      - hdr
-      - cam
+  # - name: Most Compatible
+  #   maximum:
+  #     quality: 1080p
+  #   preferred:
+  #     - cached
+  #   forbidden:
+  #     - h265
+  #     - hdr

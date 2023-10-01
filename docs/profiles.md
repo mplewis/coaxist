@@ -16,7 +16,9 @@ Specify your media profiles in `config.yaml` as an array under the key
 
 ```yaml
 mediaProfiles:
-  - name: Best Available
+  - name: 4K HDR
+    minimum:
+      quality: 2160p
     preferred:
       - cached
     forbidden:
@@ -41,14 +43,20 @@ The fields you can specify are:
 | ----------------- | -------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `name`            | string                                       | yes      | The name of this media profile. Shown in log messages.                                                                                                |
 | `sort`            | `largestFileSize` (default) or `mostSeeders` | no       | How to sort results of similar quality.<br>`largestFileSize`: Sort by file size, descending.<br>`mostSeeders`: Sort by number of seeders, descending. |
-| `minimum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Ignore items lower than this quality (resolution).                                                                                                    |
+| `minimum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Ignore items lower than this quality.                                                                                                                 |
 | `minimum.seeders` | number                                       | no       | Ignore items with fewer than this many seeders.                                                                                                       |
-| `maximum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Ignore items higher than this quality (resolution).                                                                                                   |
+| `maximum.quality` | `480p`, `576p`, `720p`, `1080p`, `2160p`     | no       | Ignore items higher than this quality.                                                                                                                |
 | `maximum.seeders` | number                                       | no       | Ignore items with more than this many seeders.                                                                                                        |
 | `required`        | array of **tags**                            | no       | Ignore items that do not have all of these tags.                                                                                                      |
 | `preferred`       | array of **tags**                            | no       | Prefer items with any of these tags (more are better).                                                                                                |
 | `discouraged`     | array of **tags**                            | no       | Prefer items without any of these tags (fewer are better).                                                                                            |
 | `forbidden`       | array of **tags**                            | no       | Ignore items with any of these tags.                                                                                                                  |
+
+# Quality
+
+In Coaxist, "quality" is the term used for "media resolution."
+
+If we can't determine the quality for a search result, we assume 1080p.
 
 # Tags
 
@@ -102,7 +110,7 @@ a list of search results:
   - An item with 2 preferred tags and 1 discouraged tag is in tier -1
     (discouraged tags take precedence).
 - Drop items that are not in the highest preference tier.
-- Sort items into tiers based on their quality (media resolution).
+- Sort items into tiers based on their quality.
 - Drop items that are not in the highest quality tier.
   - i.e. if we have 1080p and 720p items, we will only consider the 1080p items.
 - Pick the highest-scoring item based on the `sort` criteria.
