@@ -29,8 +29,8 @@ docker run \
 	--detach mplewis/coaxist:latest
 ```
 
-The `config` directory holds state – configs, databases, credentials, etc., and
-is fully transferrable between containers. The `transcode` directory holds
+The `config` directory holds state – configs, databases, credentials – and is
+fully transferrable between containers. The `transcode` directory holds
 temporary transcoded media files and can be safely mounted into a temp
 directory.
 
