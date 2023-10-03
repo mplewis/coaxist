@@ -1,5 +1,7 @@
 # Quick Start
 
+![Rainbow server room](quick-start-banner.jpg)
+
 Get up and running with Coaxist right now.
 
 # Prerequisites
