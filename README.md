@@ -52,6 +52,19 @@ I can provide limited support via GitHub Issues.
 [Open an issue](https://github.com/mplewis/coaxist/issues/new/choose) and I'll
 do my best to help.
 
+## How long does it take for media that I request to appear in Plex?
+
+Connector scans for new requests every 15 seconds by default. When it finds a
+new request, it immediately starts searching for content.
+
+The Debrid service can vary – if the content is cached, it might appear in your
+user directory in seconds, but uncached content must be downloaded from the
+torrent swarm.
+
+I recommend setting your Plex server to scan its library as frequently as
+possible to ensure it finds your new Debrid content quickly. See the
+[Quick Start](docs/quick-start.md#enable-periodic-scan) guide.
+
 ## What is a Debrid service?
 
 A Debrid service is a paid commercial subscription service that works in a way
@@ -62,7 +75,7 @@ its own servers, then makes the content available to the subscriber.
 Many providers support "instant" downloads, where content you request is
 immediately copied into your storage if another subscriber has requested it in
 the past. In Coaxist, we tag these results as `cached`, and you can prefer these
-results in your [Media Profile](./profiles.md#tags).
+results in your [Media Profile](docs/profiles.md#tags).
 
 ## Where does the media come from?
 
@@ -85,6 +98,7 @@ connecting to the Debrid service.
 
 ## Is this legal and safe to use?
 
-This software is provided as-is. I make no guarantees about legality or safety.
-You are responsible for understanding if use of this software is legal to use in
-your jurisdiction and compatible with your personal risk profile.
+This software is provided as-is. I make no guarantees or warranties about
+legality or safety. You are responsible for understanding if use of this
+software is legal to use in your jurisdiction and compatible with your personal
+risk profile.

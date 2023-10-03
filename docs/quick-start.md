@@ -99,9 +99,20 @@ Sign into the new Plex instance at
 [localhost:32400/web](http://localhost:32400/web). You will need to sign in with
 a Plex account to connect Overseerr and allow Connector to watch for requests.
 
+### Configure libraries
+
 As you go through the initial setup wizard, configure a **TV Shows** and a
 **Movies** library, both for folder `/media` – this is where Debrid downloads
 are mounted into the container by Rclone.
+
+### Enable periodic scan
+
+In **Settings → <your server> → Settings → Library**, set **Scan my library
+periodically** and set the scan interval to the minimum of **Every 15 minutes**,
+then click **Save Changes** at the bottom. This will help ensure your media
+shows up in Plex in a timely manner.
+
+### Disable media analysis
 
 Since your files are stored over a network and not on a local disk, Plex will
 waste a lot of bandwidth trying to run media analysis on all of your downloaded
