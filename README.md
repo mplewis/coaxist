@@ -1,8 +1,8 @@
 <img src="docs/banner.jpg" alt="Coaxist" width="100%">
 
-Coaxist is a self-hosted system that makes it easy to start watching your
-favorite movies and TV shows on demand. Add content to your Plex watchlist and
-it will appear in your library in minutes.
+Coaxist is a self-hosted Docker container that makes it easy to watch your
+favorite movies and TV shows on demand. Connect to your Debrid provider, add
+content to your watchlist, and it appears in your Plex library in minutes.
 
 # Get Started
 
@@ -48,7 +48,15 @@ Coaxist uses the following public cloud services:
 
 ## I'm having trouble running Coaxist. Can you help me?
 
-I can provide limited support via GitHub Issues.
+Please try the following first and see if you notice anything:
+
+- Review the [Quick Start](docs/quick-start.md) guide from top to bottom.
+- Look for relevant messages in the container logs.
+- Run the Coaxist container with the `LOG_LEVEL=debug` environment variable set
+  (Docker flag: `-e LOG_LEVEL=debug`) and look for relevant messages at the
+  debug level.
+
+If you're still having trouble, I can provide limited support via GitHub Issues.
 [Open an issue](https://github.com/mplewis/coaxist/issues/new/choose) and I'll
 do my best to help.
 
