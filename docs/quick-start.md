@@ -19,14 +19,15 @@ this data is to mount it into your host system. Pick a directory, e.g.
 ```
 docker run \
   --device /dev/fuse:/dev/fuse \
-	--cap-add SYS_ADMIN \
-	--mount type=bind,source="/home/myuser/coaxist/config,target=/config" \
-	--mount type=bind,source="/home/myuser/coaxist/transcode,target=/transcode" \
-	-p 5055:5055 \
-	-p 32400:32400 \
-	--name "coaxist" \
-	--restart always \
-	--detach mplewis/coaxist:latest
+  --cap-add SYS_ADMIN \
+  --mount type=bind,source="/home/myuser/coaxist/config,target=/config" \
+  --mount type=bind,source="/home/myuser/coaxist/transcode,target=/transcode" \
+  -p 5055:5055 \
+  -p 32400:32400 \
+  --name "coaxist" \
+  --restart always \
+  --detach \
+  mplewis/coaxist:latest
 ```
 
 The `config` directory holds state – configs, databases, credentials – and is
