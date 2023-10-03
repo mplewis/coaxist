@@ -46,9 +46,11 @@ Coaxist uses the following public cloud services:
 
 # FAQ
 
-## This software isn't working. What do I do?
+## I'm having trouble running Coaxist. Can you help me?
 
-I can provide limited support
+I can provide limited support via GitHub Issues.
+[Open an issue](https://github.com/mplewis/coaxist/issues/new/choose) and I'll
+do my best to help.
 
 ## What is a Debrid service?
 
