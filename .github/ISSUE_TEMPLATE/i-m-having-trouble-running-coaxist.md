@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 **What part of the Quick Start guide are you stuck on?**
-Please review the [Quick Start](docs/quick-start.md) guide before opening an issue.
+Please review the [Quick Start](https://github.com/mplewis/coaxist/blob/main/docs/quick-start.md) guide before opening an issue.
 
 **What problem are you encountering?**
 A clear and concise description of the issue.
