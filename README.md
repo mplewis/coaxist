@@ -4,6 +4,8 @@ Coaxist is a self-hosted Docker container that makes it easy to watch your
 favorite movies and TV shows on demand. Connect to your Debrid provider, add
 content to your watchlist, and it appears in your Plex library in minutes.
 
+[![Docker Hub: mplewis/coaxist](https://img.shields.io/badge/Docker%20Hub-mplewis%2Fcoaxist-blue?logo=docker)](https://hub.docker.com/r/mplewis/coaxist/tags)
+
 # Get Started
 
 ```sh
