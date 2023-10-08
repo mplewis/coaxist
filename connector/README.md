@@ -27,3 +27,14 @@
 - [ ] Dry run mode
 - [ ] Rename QUALITY to RESOLUTION
 - [ ] Write file and function docstrings and enforce with ESLint
+- [ ] Use Prowlarr
+- [ ] Holistic handling of episode coverage in TV torrents - walk-forward algorithm
+- [ ] Rework DB to use schema for episode coverage
+- [ ] Drop snatches
+- [ ] Tag improvements
+  - [ ] Mark torrents with ads
+  - [ ] FHD = 1080p
+  - [ ] Dubbed
+- [ ] Prioritize specific trackers
+- [ ] Support interrogation of torrent files by URL
+- [ ] Support interrogation of magnet links
