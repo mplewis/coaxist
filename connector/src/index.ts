@@ -4,6 +4,7 @@ import ms from "ms";
 import pLimit from "p-limit";
 import { readFileSync } from "fs";
 import z from "zod";
+import parseTorrent from "parse-torrent";
 import { fetchOutstanding } from "./logic/fetch";
 import log from "./log";
 import { DbClient } from "./clients/db";
@@ -13,6 +14,7 @@ import { OverseerrClient } from "./clients/overseerr";
 import { toDebridCreds } from "./data/debrid";
 import { loadOrInitUberConf } from "./uberconf/uberconf";
 import { ProwlarrClient } from "./clients/prowlarr";
+import { parseTorrentFilenames } from "./util/torrent";
 
 const ENV_CONF_SCHEMA = z.intersection(
   z.object({
@@ -157,8 +159,23 @@ async function main() {
   // const resp = await client.search("movies", "tt1517268"); // Barbie
   const resp = await client.search("tv", { query: "Mr. Robot" });
   console.log(resp);
-  if (resp.success) console.log(resp.data);
-  else console.log(resp.errors);
+  if (!resp.success) {
+    console.log(resp.errors);
+    return;
+  }
+
+  // console.log(resp.data);
+  const items = resp.data;
+  const firstMagnet = items.find((i) => "infoHash" in i);
+  const firstTorrent = items.find((i) => "downloadUrl" in i);
+  if (firstMagnet) {
+    const fns = await parseTorrentFilenames(firstMagnet);
+    console.log({ firstMagnet, fns });
+  }
+  if (firstTorrent) {
+    const fns = await parseTorrentFilenames(firstTorrent);
+    console.log({ firstTorrent, fns });
+  }
 }
 
 if (require.main === module) main();

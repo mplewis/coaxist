@@ -1,14 +1,41 @@
 import parseTorrent from "parse-torrent";
+import { readFile, writeFile } from "fs/promises";
+import { withFile } from "tmp-promise";
+import { readFileSync } from "fs";
 import { get } from "../clients/http";
 
-export async function parseTorrentFilenames(url: string) {
+interface ParsedFile {
+  path: string;
+  name: string;
+  length: number;
+  offset: number;
+}
+
+async function fetchTorrent(infoHash: string) {
+  const url = `https://itorrents.org/torrent/${infoHash}.torrent`;
   const resp = await get(url);
   if (!resp.success) return resp;
+  return { success: true as const, data: resp.data };
+}
 
+export async function parseTorrentFilenames(
+  t: { downloadUrl: string } | { infoHash: string }
+) {
+  // TODO: Cache
+  const resp =
+    "downloadUrl" in t
+      ? await get(t.downloadUrl)
+      : await fetchTorrent(t.infoHash);
+  if (!resp.success) return resp;
   const raw = await resp.data.arrayBuffer();
-  let torrent: parseTorrent.Instance;
+  const buf = Buffer.from(raw);
+
+  let torrent: { files?: ParsedFile[] };
   try {
-    torrent = await parseTorrent(raw);
+    const tor = parseTorrent(buf);
+    if (!tor)
+      return { success: false as const, errors: ["could not parse torrent"] };
+    torrent = tor as { files?: ParsedFile[] };
   } catch (e) {
     return { success: false as const, errors: [e as Error] };
   }
