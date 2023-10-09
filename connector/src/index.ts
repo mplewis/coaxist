@@ -12,6 +12,7 @@ import { secureHash } from "./util/hash";
 import { OverseerrClient } from "./clients/overseerr";
 import { toDebridCreds } from "./data/debrid";
 import { loadOrInitUberConf } from "./uberconf/uberconf";
+import { ProwlarrClient } from "./clients/prowlarr";
 
 const ENV_CONF_SCHEMA = z.intersection(
   z.object({
@@ -67,7 +68,7 @@ async function connectDB(dbURL: string) {
   return { client, db };
 }
 
-async function main() {
+async function main2() {
   log.info("starting Coaxist Connector");
 
   const envConf = ENV_CONF_SCHEMA.parse(process.env);
@@ -146,6 +147,16 @@ async function main() {
   } finally {
     await client.$disconnect();
   }
+}
+
+async function main() {
+  const client = new ProwlarrClient(
+    "http://localhost:9696",
+    process.env.PROWLARR_API_KEY!
+  );
+  const resp = await client.search("movies", "tt1517268");
+  console.log(resp);
+  if (resp.success) console.log(resp.data);
 }
 
 if (require.main === module) main();
