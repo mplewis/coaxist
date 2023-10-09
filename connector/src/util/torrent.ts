@@ -1,7 +1,4 @@
 import parseTorrent from "parse-torrent";
-import { readFile, writeFile } from "fs/promises";
-import { withFile } from "tmp-promise";
-import { readFileSync } from "fs";
 import { get } from "../clients/http";
 
 interface ParsedFile {
