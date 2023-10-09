@@ -79,9 +79,23 @@ async function fj<T>(
 
   const data = await result.data.json();
   const parsed = schema.safeParse(data);
-  if (!parsed.success) return parsed;
+  if (!parsed.success)
+    return { success: false as const, errors: parsed.error.errors };
 
   return { success: true as const, data: parsed.data };
+}
+
+/**
+ * Make a GET request against an endpoint.
+ * @param url the URL to fetch
+ * @param opts options for the `fetch` request
+ * @returns the response, or the errors
+ */
+export async function get(
+  url: RequestableURL,
+  opts: RequestInit = {}
+): Promise<Result<Response, RequestError>> {
+  return f(url, { ...opts, method: "GET" });
 }
 
 /**

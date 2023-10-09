@@ -18,23 +18,20 @@ const categorySchema: z.ZodType<Category> = baseCategorySchema.extend({
   subCategories: z.array(z.lazy(() => categorySchema)),
 });
 
-const searchResultSchema = z.object({
+const baseSearchResultSchema = z.object({
   age: z.number(),
   ageHours: z.number(),
   ageMinutes: z.number(),
   approved: z.boolean(),
   categories: z.array(categorySchema),
-  downloadUrl: z.string(),
   fileName: z.string(),
   guid: z.string(),
   imdbId: z.number(),
   indexer: z.string(),
   indexerFlags: z.array(z.string()),
   indexerId: z.number(),
-  infoHash: z.string().optional(),
   infoUrl: z.string(),
   leechers: z.number(),
-  magnetUrl: z.string().optional(),
   posterUrl: z.string().optional(),
   protocol: z.string(),
   publishDate: z.string(),
@@ -44,18 +41,33 @@ const searchResultSchema = z.object({
   title: z.string(),
 });
 
+const pointerSchema = z.union([
+  z.object({ downloadUrl: z.string() }),
+  z.object({ infoHash: z.string(), magnetUrl: z.string() }),
+]);
+
+const searchResultSchema = z.intersection(
+  baseSearchResultSchema,
+  pointerSchema
+);
+
 export class ProwlarrClient {
   constructor(
     private host: string,
     private apiKey: string
   ) {}
 
-  async search(category: ProwlarrCategory, imdbID: string) {
+  async search(
+    category: ProwlarrCategory,
+    criteria: { query: string } | { imdbID: string }
+  ) {
+    const query =
+      "imdbID" in criteria ? `{imdbId:${criteria.imdbID}}` : criteria.query;
     const url = {
       url: `${this.host}/api/v1/search`,
       query: {
+        query,
         type: "search",
-        query: `{imdbId:${imdbID}}`,
         categories: PROWLARR_CATEGORIES[category],
       },
     };

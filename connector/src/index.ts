@@ -154,9 +154,11 @@ async function main() {
     "http://localhost:9696",
     process.env.PROWLARR_API_KEY!
   );
-  const resp = await client.search("movies", "tt1517268");
+  // const resp = await client.search("movies", "tt1517268"); // Barbie
+  const resp = await client.search("tv", { query: "Mr. Robot" });
   console.log(resp);
   if (resp.success) console.log(resp.data);
+  else console.log(resp.errors);
 }
 
 if (require.main === module) main();
