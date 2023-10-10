@@ -1,7 +1,10 @@
 import { Level } from "level";
 import { ZodSchema, z } from "zod";
 import { Logger } from "pino";
+import ms from "ms";
 import log from "../log";
+
+const GC_INTERVAL = ms("1h");
 
 const datedSchema = z.object({ d: z.date({ coerce: true }), v: z.any() });
 type Dated = z.infer<typeof datedSchema>;
@@ -21,21 +24,39 @@ export class Cache<T> {
     private readonly schema: ZodSchema<T>
   ) {
     this.log = log.child({ namespace, expiryMs });
+    this.gc();
+    setInterval(() => this.gc(), GC_INTERVAL);
   }
 
+  /** Use `this.sl` as the database, NOT `this.db`. */
   private get sl() {
     return this.db.sublevel(this.namespace);
   }
 
+  /** Return true if the given item is expired. */
   private isExpired(dated: Dated) {
     const now = new Date();
     const age = now.getTime() - dated.d.getTime();
     return age >= this.expiryMs;
   }
 
+  /** Set a value in the namespace. */
   private async put(key: string, val: T): Promise<void> {
     const dated = { d: new Date(), v: val };
     return this.sl.put(key, JSON.stringify(dated));
+  }
+
+  /** Clean up all expired keys. */
+  private async gc(): Promise<void> {
+    this.log.debug("running garbage collection");
+    const start = new Date();
+    for await (const key of this.sl.keys()) {
+      const raw = await this.sl.get(key);
+      const dated = datedSchema.parse(raw);
+      if (this.isExpired(dated)) await this.sl.del(key);
+    }
+    const duration = new Date().getTime() - start.getTime();
+    this.log.debug({ durationMs: duration }, "garbage collection complete");
   }
 
   /**
