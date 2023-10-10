@@ -37,10 +37,14 @@ export class DiskCache<T> {
     return this.sl.put(key, JSON.stringify(dated));
   }
 
-  async get(
+  async get<E>(
     key: string,
-    fn: () => Promise<T>
-  ): Promise<{ success: true; data: T } | { success: false; error: Error }> {
+    fn: () => Promise<
+      { success: true; data: T } | { success: false; errors: E[] }
+    >
+  ): Promise<
+    { success: true; data: T } | { success: false; errors: (E | Error)[] }
+  > {
     const klog = this.log.child({ key });
 
     let raw: string;
@@ -50,10 +54,10 @@ export class DiskCache<T> {
       if (isNotFound(e)) {
         klog.debug("initializing");
         const newVal = await fn();
-        await this.put(key, newVal);
-        return { success: true, data: newVal };
+        if (newVal.success) await this.put(key, newVal.data);
+        return newVal;
       }
-      return { success: false, error: e as Error };
+      return { success: false, errors: [e as Error] };
     }
 
     const rawData = JSON.parse(raw);
@@ -61,11 +65,13 @@ export class DiskCache<T> {
     if (this.isExpired(dated)) {
       klog.debug("refreshing");
       const newVal = await fn();
-      await this.put(key, newVal);
-      return { success: true, data: newVal };
+      if (newVal.success) await this.put(key, newVal.data);
+      return newVal;
     }
 
     const data = this.schema.parse(dated.v);
     return { success: true, data };
   }
 }
+
+// TODO: GC
