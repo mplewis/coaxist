@@ -2,6 +2,8 @@ import { SafeParseReturnType } from "zod";
 import { Result, Retryable, retry } from "../util/retry";
 import log from "../log";
 
+const nodeFetch = fetch;
+
 type RequestableURL =
   | string
   | URL
@@ -18,7 +20,7 @@ function queryToStr(query: Record<string, any>) {
     .join("&");
 }
 
-function f(
+export function fetchResp(
   url: RequestableURL,
   opts: RequestInit
 ): Promise<Result<Response, RequestError>> {
@@ -29,7 +31,7 @@ function f(
         : `${url.url}?${queryToStr(url.query)}`;
 
     log.debug({ u, opts }, "fetching");
-    const resp = await fetch(u, opts);
+    const resp = await nodeFetch(u, opts);
     const { status, statusText } = resp;
 
     if (status >= 200 && status < 300) {
@@ -63,10 +65,11 @@ function f(
     const text = await resp.text();
     return { state: "error", error: { status, statusText, text } };
   };
+
   return retry(`${opts.method ?? "fetch"} ${url}`, fn);
 }
 
-async function fj<T>(
+async function fetchJSON<T>(
   url: RequestableURL,
   schema: Validator<T>,
   opts: RequestInit
@@ -76,7 +79,7 @@ async function fj<T>(
     headers: { Accept: "application/json", ...(opts.headers ?? {}) },
   };
 
-  const result = await f(url, o);
+  const result = await fetchResp(url, o);
   if (!result.success) return result;
 
   const data = await result.data.json();
@@ -97,7 +100,7 @@ export async function get(
   url: RequestableURL,
   opts: RequestInit = {}
 ): Promise<Result<Response, RequestError>> {
-  return f(url, { ...opts, method: "GET" });
+  return fetchResp(url, { ...opts, method: "GET" });
 }
 
 /**
@@ -112,7 +115,7 @@ export async function getJSON<T>(
   schema: Validator<T>,
   opts: RequestInit = {}
 ) {
-  return fj(url, schema, { ...opts, method: "GET" });
+  return fetchJSON(url, schema, { ...opts, method: "GET" });
 }
 
 /**
@@ -129,5 +132,5 @@ export async function postJSON<T>(
   schema: Validator<T>,
   opts: RequestInit = {}
 ) {
-  return fj(url, schema, { ...opts, method: "POST", body });
+  return fetchJSON(url, schema, { ...opts, method: "POST", body });
 }

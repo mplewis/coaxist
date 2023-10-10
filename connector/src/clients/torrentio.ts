@@ -4,7 +4,7 @@ import { DebridCreds, buildDebridPathPart } from "../data/debrid";
 import { ToFetch } from "../logic/list";
 import { VERSION } from "../util/version";
 import { DiskCache } from "../store/diskCache";
-import { RequestError, getJSON } from "./http";
+import { RequestError, fetchResp, getJSON } from "./http";
 
 const TORRENTIO_HOST = "https://torrentio.strem.fun";
 
@@ -71,5 +71,5 @@ export async function searchTorrentio(
 
 export function snatchViaURL(s: Snatchable) {
   log.debug({ url: s.snatchURL }, "snatching via Torrentio");
-  return fetch(s.snatchURL, { method: "HEAD", headers });
+  return fetchResp(s.snatchURL, { method: "HEAD", headers });
 }
