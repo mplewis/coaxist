@@ -28,7 +28,8 @@
 - [ ] Rename QUALITY to RESOLUTION
 - [ ] Write file and function docstrings and enforce with ESLint
 - [ ] Use Prowlarr
-- [ ] Holistic handling of episode coverage in TV torrents - walk-forward algorithm
+- [ ] Holistic handling of episode coverage in TV torrents - walk-forward
+      algorithm
 - [ ] Rework DB to use schema for episode coverage
 - [ ] Drop snatches
 - [ ] Tag improvements
@@ -38,3 +39,7 @@
 - [ ] Prioritize specific trackers
 - [ ] Support interrogation of torrent files by URL
 - [ ] Support interrogation of magnet links
+- [ ] Keep version in sync with package.json
+- [ ] Migrate all callers to use new fetch
+- [ ] Log tags in "snatched media" and "all snatches complete" msg
+- [ ] Summarize "all snatches complete" as count – redundant
