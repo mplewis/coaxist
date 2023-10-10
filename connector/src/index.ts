@@ -4,8 +4,6 @@ import ms from "ms";
 import pLimit from "p-limit";
 import { readFileSync } from "fs";
 import z from "zod";
-import { join } from "path";
-import { Level } from "level";
 import { fetchOutstanding } from "./logic/fetch";
 import log from "./log";
 import { DbClient } from "./clients/db";

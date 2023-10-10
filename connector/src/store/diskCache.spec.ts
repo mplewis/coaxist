@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import { withDir } from "tmp-promise";
 import { Level } from "level";
 import z from "zod";
-import { DiskLRU } from "./disk_lru";
+import { DiskLRU } from "./diskCache";
 
 function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 describe("DiskLRU", () => {
