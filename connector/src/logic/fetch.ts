@@ -7,20 +7,22 @@ import { ToFetch, listOutstanding } from "./list";
 import { pickBest } from "./rank";
 import { classifyTorrentioResult } from "./classify";
 import { secureHash } from "../util/hash";
-import { searchTorrentio } from "../clients/torrentio";
+import { TorrentioSearchResult, searchTorrentio } from "../clients/torrentio";
 import { DbClient } from "../clients/db";
 import { FullSnatchInfo, snatchAndSave } from "./snatch";
 import { DebridCreds } from "../data/debrid";
 import { Profile } from "../data/profile";
+import { DiskCache } from "../store/diskCache";
 
 async function findBestCandidate(
   creds: DebridCreds,
+  torrentioCache: DiskCache<TorrentioSearchResult[]>,
   profiles: Profile[],
   f: ToFetch
 ): Promise<FullSnatchInfo[] | null> {
   const flog = log.child(f);
 
-  const results = await searchTorrentio(creds, f);
+  const results = await searchTorrentio(creds, torrentioCache, f);
   if (!results) {
     flog.error("torrent search failed");
     return null;
@@ -57,6 +59,7 @@ export async function fetchOutstanding(a: {
   overseerrClient: OverseerrClient;
   debridCreds: DebridCreds;
   profiles: Profile[];
+  torrentioCache: DiskCache<TorrentioSearchResult[]>;
   torrentioRequestConcurrency: number;
   overseerrRequestConcurrency: number;
   searchBeforeReleaseDateMs: number;
@@ -66,6 +69,7 @@ export async function fetchOutstanding(a: {
     db,
     debridCreds,
     profiles,
+    torrentioCache,
     torrentioRequestConcurrency,
     ignoreCache,
   } = a;
@@ -109,7 +113,9 @@ export async function fetchOutstanding(a: {
 
   const pool = pLimit(torrentioRequestConcurrency);
   const searches = toFetch.map((f) =>
-    pool(async () => findBestCandidate(debridCreds, profiles, f))
+    pool(async () =>
+      findBestCandidate(debridCreds, torrentioCache, profiles, f)
+    )
   );
   const searchResults = (await Promise.all(searches)).filter(isTruthy).flat();
   log.info(

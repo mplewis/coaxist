@@ -4,6 +4,8 @@ import ms from "ms";
 import pLimit from "p-limit";
 import { readFileSync } from "fs";
 import z from "zod";
+import { Level } from "level";
+import { join } from "path";
 import { fetchOutstanding } from "./logic/fetch";
 import log from "./log";
 import { DbClient } from "./clients/db";
@@ -12,6 +14,11 @@ import { secureHash } from "./util/hash";
 import { OverseerrClient } from "./clients/overseerr";
 import { toDebridCreds } from "./data/debrid";
 import { loadOrInitUberConf } from "./uberconf/uberconf";
+import { DiskCache } from "./store/diskCache";
+import {
+  TorrentioSearchResult,
+  torrentioSearchResultSchema,
+} from "./clients/torrentio";
 
 const ENV_CONF_SCHEMA = z.intersection(
   z.object({
@@ -97,9 +104,14 @@ async function main() {
   const databaseUrl = `file:${envConf.STORAGE_DIR}/db.sqlite`;
   const { client, db } = await connectDB(databaseUrl);
 
-  // TODO: Use this cache in children
-  // const cacheDir = join(envConf.STORAGE_DIR, "cache");
-  // const cacheDB = new Level(cacheDir);
+  const cacheDir = join(envConf.STORAGE_DIR, "cache");
+  const cacheDB = new Level(cacheDir);
+  const torrentioCache = new DiskCache<TorrentioSearchResult[]>(
+    cacheDB,
+    "torrentio",
+    uberConf.connector.torrentio.cacheExpiry,
+    z.array(torrentioSearchResultSchema)
+  );
 
   const fetchQueue = pLimit(1);
   function fetch(ignoreCache: boolean) {
@@ -110,6 +122,7 @@ async function main() {
         debridCreds,
         ignoreCache,
         profiles,
+        torrentioCache,
         torrentioRequestConcurrency,
         overseerrRequestConcurrency,
         searchBeforeReleaseDateMs,
