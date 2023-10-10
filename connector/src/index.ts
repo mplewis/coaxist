@@ -4,6 +4,8 @@ import ms from "ms";
 import pLimit from "p-limit";
 import { readFileSync } from "fs";
 import z from "zod";
+import { join } from "path";
+import { Level } from "level";
 import { fetchOutstanding } from "./logic/fetch";
 import log from "./log";
 import { DbClient } from "./clients/db";
@@ -96,6 +98,10 @@ async function main() {
 
   const databaseUrl = `file:${envConf.STORAGE_DIR}/db.sqlite`;
   const { client, db } = await connectDB(databaseUrl);
+
+  // TODO: Use this cache in children
+  // const cacheDir = join(envConf.STORAGE_DIR, "cache");
+  // const cacheDB = new Level(cacheDir);
 
   const fetchQueue = pLimit(1);
   function fetch(ignoreCache: boolean) {
