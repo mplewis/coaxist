@@ -41,12 +41,15 @@ export class DiskCache<T> {
     key: string,
     fn: () => Promise<T>
   ): Promise<{ success: true; data: T } | { success: false; error: Error }> {
+    const klog = this.log.child({ key });
+
     let dated: Dated;
     try {
       const raw = await this.sl.get(key);
       dated = datedSchema.parse(JSON.parse(raw));
     } catch (e) {
       if (isNotFound(e)) {
+        klog.debug("initializing");
         const newVal = await fn();
         await this.put(key, newVal);
         return { success: true, data: newVal };
@@ -55,7 +58,7 @@ export class DiskCache<T> {
     }
 
     if (this.isExpired(dated)) {
-      this.log.debug("expired", { key });
+      klog.debug("refreshing");
       const newVal = await fn();
       await this.put(key, newVal);
       return { success: true, data: newVal };
