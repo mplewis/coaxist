@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { withDir } from "tmp-promise";
 import { Level } from "level";
 import z from "zod";
-import { DiskCache } from "./diskCache";
+import { Cache } from "./cache";
 
 function sleep(ms: number) {
   return new Promise((resolve) => {
@@ -10,17 +10,18 @@ function sleep(ms: number) {
   });
 }
 
-describe("DiskCache", () => {
+describe("Cache", () => {
   it("caches values as expected", async () => {
     await withDir(
       async ({ path }) => {
         const level = new Level(path);
         const schema = z.object({ name: z.string() });
-        const short = new DiskCache(level, "short", 10, schema);
-        const long = new DiskCache(level, "long", 500, schema);
+        const short = new Cache(level, "short", 10, schema);
+        const long = new Cache(level, "long", 500, schema);
 
         const l1 = await long.get("gundam", async () => ({
-          name: "The 08th MS Team",
+          success: true,
+          data: { name: "The 08th MS Team" },
         }));
         expect(l1).toEqual({
           success: true,
@@ -28,7 +29,8 @@ describe("DiskCache", () => {
         });
 
         const s1 = await short.get("gundam", async () => ({
-          name: "Witch from Mercury",
+          success: true,
+          data: { name: "Witch from Mercury" },
         }));
         expect(s1).toEqual({
           success: true,
@@ -36,7 +38,8 @@ describe("DiskCache", () => {
         });
 
         const s2 = await short.get("gundam", async () => ({
-          name: "Gundam SEED",
+          success: true,
+          data: { name: "Gundam SEED" },
         }));
         expect(s2).toEqual({
           success: true,
@@ -45,12 +48,14 @@ describe("DiskCache", () => {
 
         await sleep(10);
         const s3 = await short.get("gundam", async () => ({
-          name: "Gundam SEED",
+          success: true,
+          data: { name: "Gundam SEED" },
         }));
         expect(s3).toEqual({ success: true, data: { name: "Gundam SEED" } });
 
         const l2 = await long.get("gundam", async () => ({
-          name: "Stardust Memory",
+          success: true,
+          data: { name: "Stardust Memory" },
         }));
         expect(l2).toEqual({
           success: true,
@@ -70,12 +75,15 @@ describe("DiskCache", () => {
           quirks: z.array(z.string()),
         });
         const level = new Level(path);
-        const db = new DiskCache(level, "complex", 1000, schema);
+        const db = new Cache(level, "complex", 1000, schema);
 
         const val = await db.get("kitty", async () => ({
-          name: "Proxima Nova",
-          age: 3,
-          quirks: ["spicy", "fluffy", "assertive"],
+          success: true,
+          data: {
+            name: "Proxima Nova",
+            age: 3,
+            quirks: ["spicy", "fluffy", "assertive"],
+          },
         }));
         expect(val).toEqual({
           success: true,

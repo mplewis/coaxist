@@ -14,7 +14,7 @@ import { secureHash } from "./util/hash";
 import { OverseerrClient } from "./clients/overseerr";
 import { toDebridCreds } from "./data/debrid";
 import { loadOrInitUberConf } from "./uberconf/uberconf";
-import { DiskCache } from "./store/diskCache";
+import { Cache } from "./store/cache";
 import {
   TorrentioSearchResult,
   torrentioSearchResultSchema,
@@ -106,7 +106,7 @@ async function main() {
 
   const cacheDir = join(envConf.STORAGE_DIR, "cache");
   const cacheDB = new Level(cacheDir);
-  const torrentioCache = new DiskCache<TorrentioSearchResult[]>(
+  const torrentioCache = new Cache<TorrentioSearchResult[]>(
     cacheDB,
     "torrentio",
     uberConf.connector.torrentio.cacheExpiry,

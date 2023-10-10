@@ -10,7 +10,8 @@ function isNotFound(e: any): e is { code: string } {
   return e?.code === "LEVEL_NOT_FOUND";
 }
 
-export class DiskCache<T> {
+/** A TTL cache that persists data to disk using Level. */
+export class Cache<T> {
   log: Logger;
 
   constructor(
@@ -37,6 +38,12 @@ export class DiskCache<T> {
     return this.sl.put(key, JSON.stringify(dated));
   }
 
+  /**
+   * Get a value from the cache, or populate the value.
+   * @param key The key representing the value to get
+   * @param fn The function to use to populate the value if it's not found or expired
+   * @returns The value, or the error that occurred while getting it or populating it
+   */
   async get<E>(
     key: string,
     fn: () => Promise<
@@ -73,5 +80,3 @@ export class DiskCache<T> {
     return { success: true, data };
   }
 }
-
-// TODO: GC

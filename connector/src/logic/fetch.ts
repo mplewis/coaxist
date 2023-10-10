@@ -12,11 +12,11 @@ import { DbClient } from "../clients/db";
 import { FullSnatchInfo, snatchAndSave } from "./snatch";
 import { DebridCreds } from "../data/debrid";
 import { Profile } from "../data/profile";
-import { DiskCache } from "../store/diskCache";
+import { Cache } from "../store/cache";
 
 async function findBestCandidate(
   creds: DebridCreds,
-  torrentioCache: DiskCache<TorrentioSearchResult[]>,
+  torrentioCache: Cache<TorrentioSearchResult[]>,
   profiles: Profile[],
   f: ToFetch
 ): Promise<FullSnatchInfo[] | null> {
@@ -59,7 +59,7 @@ export async function fetchOutstanding(a: {
   overseerrClient: OverseerrClient;
   debridCreds: DebridCreds;
   profiles: Profile[];
-  torrentioCache: DiskCache<TorrentioSearchResult[]>;
+  torrentioCache: Cache<TorrentioSearchResult[]>;
   torrentioRequestConcurrency: number;
   overseerrRequestConcurrency: number;
   searchBeforeReleaseDateMs: number;

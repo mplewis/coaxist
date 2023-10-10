@@ -3,7 +3,7 @@ import log from "../log";
 import { DebridCreds, buildDebridPathPart } from "../data/debrid";
 import { ToFetch } from "../logic/list";
 import { VERSION } from "../util/version";
-import { DiskCache } from "../store/diskCache";
+import { Cache } from "../store/cache";
 import { RequestError, fetchResp, getJSON } from "./http";
 
 const TORRENTIO_HOST = "https://torrentio.strem.fun";
@@ -26,7 +26,7 @@ export const torrentioSearchResultSchema = z.object({
 });
 export type TorrentioSearchResult = z.infer<typeof torrentioSearchResultSchema>;
 
-function get(cache: DiskCache<TorrentioSearchResult[]>, url: string) {
+function get(cache: Cache<TorrentioSearchResult[]>, url: string) {
   return cache.get<ZodIssue | RequestError>(url, async () => {
     log.debug({ url }, "fetching from Torrentio");
     const result = await getJSON(url, torrentioSearchResultsSchema);
@@ -49,7 +49,7 @@ function get(cache: DiskCache<TorrentioSearchResult[]>, url: string) {
 
 export async function searchTorrentio(
   creds: DebridCreds,
-  cache: DiskCache<TorrentioSearchResult[]>,
+  cache: Cache<TorrentioSearchResult[]>,
   media: ToFetch
 ): Promise<TorrentioSearchResult[] | null> {
   const debridPathPart = buildDebridPathPart(creds);
