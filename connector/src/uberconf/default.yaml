@@ -34,6 +34,8 @@ connector:
   torrentio:
     # How many requests should we send to Torrentio at once?
     requestConcurrency: 5
+    # How long should we cache search results from Torrentio?
+    cacheExpiry: 1h
 
 # Media profiles define which results we choose for download when searching for media.
 # You need to configure at least one media profile.

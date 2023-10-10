@@ -90,12 +90,12 @@ export function loadOrInitUberConf(path: string): UberConf {
 
   const data = yaml.load(raw);
   const parsed = UBERCONF_SCHEMA.parse(data);
-  log.info({ path }, "Loaded UberConf config file");
+  log.info({ path }, "loaded UberConf config file");
   return parsed;
 }
 
 export function writeExternalConfigFiles(rootConfigDir: string, c: UberConf) {
   const path = join(rootConfigDir, "rclone", "rclone.conf");
   write(path, buildRcloneConf(c.debrid));
-  log.info({ path }, "Wrote Rclone config file");
+  log.info({ path }, "wrote Rclone config file");
 }

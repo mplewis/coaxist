@@ -40,8 +40,13 @@
 - [ ] Prioritize specific trackers
 - [ ] Support interrogation of torrent files by URL
 - [ ] Support interrogation of magnet links
-- [ ] Convert all HTTP calls to use the fetch retryer
+- [ ] Convert all HTTP calls to use the new fetch interface
+- [ ] Make bare use of `fetch` illegal
 - [ ] Deal with searching by non-IMDB ID in Prowlarr – parse title by tokens
       preceding numbering identifier
-- [ ] Disk caching option
-- [ ] Cache storage by namespace
+- [x] Disk caching option
+- [x] Cache storage by namespace
+- [ ] Keep version in sync with package.json
+- [ ] Log tags in "snatched media" and "all snatches complete" msg
+- [ ] Summarize "all snatches complete" as count – redundant
+- [ ] Auto-order TS imports

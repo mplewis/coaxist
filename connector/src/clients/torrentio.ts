@@ -1,14 +1,12 @@
-import { z } from "zod";
-import { cacheFor } from "../util/cache";
-import { errorForResponse } from "../util/fetch";
+import { ZodIssue, z } from "zod";
 import log from "../log";
 import { DebridCreds, buildDebridPathPart } from "../data/debrid";
 import { ToFetch } from "../logic/list";
 import { VERSION } from "../util/version";
+import { Cache } from "../store/cache";
+import { RequestError, fetchResp, getJSON } from "./http";
 
 const TORRENTIO_HOST = "https://torrentio.strem.fun";
-
-const cache = cacheFor("torrentio");
 
 const headers = {
   "User-Agent": `Coaxist-Connector/${VERSION}; github.com/mplewis/coaxist`,
@@ -21,20 +19,37 @@ export type Snatchable = {
 
 const torrentioSearchResultsSchema = z.object({ streams: z.array(z.any()) });
 
-const torrentioSearchResultSchema = z.object({
+export const torrentioSearchResultSchema = z.object({
   name: z.string(),
   title: z.string(),
   url: z.string(),
 });
 export type TorrentioSearchResult = z.infer<typeof torrentioSearchResultSchema>;
 
-function get(url: string) {
-  log.debug({ url }, "fetching from Torrentio");
-  return cache.getJSON(url, () => fetch(url, { headers }));
+function get(cache: Cache<TorrentioSearchResult[]>, url: string) {
+  return cache.get<ZodIssue | RequestError>(url, async () => {
+    log.debug({ url }, "fetching from Torrentio");
+    const result = await getJSON(url, torrentioSearchResultsSchema);
+    if (!result.success) return result;
+
+    const unverified = result.data.streams;
+    const verified: TorrentioSearchResult[] = [];
+    for (const s of unverified) {
+      const rs = torrentioSearchResultSchema.safeParse(s);
+      if (rs.success) {
+        verified.push(rs.data);
+      } else {
+        log.warn({ s, error: rs.error }, "malformed Torrentio result");
+      }
+    }
+
+    return { success: true, data: verified };
+  });
 }
 
 export async function searchTorrentio(
   creds: DebridCreds,
+  cache: Cache<TorrentioSearchResult[]>,
   media: ToFetch
 ): Promise<TorrentioSearchResult[] | null> {
   const debridPathPart = buildDebridPathPart(creds);
@@ -46,35 +61,15 @@ export async function searchTorrentio(
   })();
 
   const url = `${TORRENTIO_HOST}/${debridPathPart}/stream/${typeAndSlug}.json`;
-  const r = await get(url);
-  if (!r.ok) {
-    const error = await errorForResponse(r.res);
-    log.warn(
-      { url, status: r.res.status, error },
-      "error fetching from Torrentio"
-    );
+  const r = await get(cache, url);
+  if (!r.success) {
+    log.warn({ url, errors: r.errors }, "error fetching from Torrentio");
     return null;
   }
-
-  const wrapper = torrentioSearchResultsSchema.safeParse(r.json);
-  if (!wrapper.success) {
-    log.warn({ url, error: wrapper.error }, "malformed Torrentio result");
-    return null;
-  }
-
-  const results: TorrentioSearchResult[] = [];
-  for (const s of wrapper.data.streams) {
-    const rs = torrentioSearchResultSchema.safeParse(s);
-    if (!rs.success) {
-      log.warn({ s, error: rs.error }, "malformed Torrentio result");
-      continue;
-    }
-    results.push(rs.data);
-  }
-  return results;
+  return r.data;
 }
 
 export function snatchViaURL(s: Snatchable) {
   log.debug({ url: s.snatchURL }, "snatching via Torrentio");
-  return fetch(s.snatchURL, { method: "HEAD", headers });
+  return fetchResp(s.snatchURL, { method: "HEAD", headers });
 }
