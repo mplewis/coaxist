@@ -1,11 +1,12 @@
 import { SafeParseReturnType } from "zod";
 import { Result, Retryable, retry } from "../util/retry";
+import log from "../log";
 
 type RequestableURL =
   | string
   | URL
   | { url: string | URL; query: Record<string, any> };
-type RequestError = { status: number; text: string };
+export type RequestError = { status: number; text: string };
 export type Validator<T> = {
   safeParse: (data: any) => SafeParseReturnType<T, T>;
 };
@@ -27,6 +28,7 @@ function f(
         ? url
         : `${url.url}?${queryToStr(url.query)}`;
 
+    log.debug({ u, opts }, "fetching");
     const resp = await fetch(u, opts);
     const { status, statusText } = resp;
 
