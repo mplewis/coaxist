@@ -20,6 +20,12 @@ function queryToStr(query: Record<string, any>) {
     .join("&");
 }
 
+/**
+ * Make a request against an endpoint.
+ * @param url the URL to fetch
+ * @param opts options for the `fetch` request
+ * @returns the response, or the errors
+ */
 export function fetchResp(
   url: RequestableURL,
   opts: RequestInit
