@@ -47,6 +47,7 @@ export const CONNECTOR_SCHEMA = z.object({
   }),
   torrentio: z.object({
     requestConcurrency: z.number().int().positive(),
+    cacheExpiry: positiveDuration,
   }),
 });
 export type ConnectorConfig = z.infer<typeof CONNECTOR_SCHEMA>;
