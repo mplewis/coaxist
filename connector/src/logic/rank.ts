@@ -16,6 +16,7 @@ export type Candidate = {
   bytes: number;
 };
 
+/** Return true if the given item satisfies the given profile's quality requirements. */
 export function satisfiesQuality(profile: Profile, item: Candidate): boolean {
   if (profile.minimum?.quality) {
     if (
@@ -44,6 +45,7 @@ export function satisfiesQuality(profile: Profile, item: Candidate): boolean {
   return true;
 }
 
+/** Return true if the given item satisfies the given profile's seeders requirements. */
 export function satisfiesSeeders(profile: Profile, item: Candidate): boolean {
   if (profile.minimum?.seeders && item.seeders < profile.minimum.seeders) {
     log.debug(
@@ -62,6 +64,7 @@ export function satisfiesSeeders(profile: Profile, item: Candidate): boolean {
   return true;
 }
 
+/** Return true if the given item satisfies the given profile's tag requirements. */
 export function satisfiesTags(q: Profile, item: Candidate): boolean {
   if (q.required) {
     for (const tag of q.required ?? []) {
@@ -88,6 +91,7 @@ export function satisfiesTags(q: Profile, item: Candidate): boolean {
   return true;
 }
 
+/** Return true if the given item satisfies the given profile's requirements. */
 export function satisfies(profile: Profile, item: Candidate): boolean {
   return (
     satisfiesQuality(profile, item) &&

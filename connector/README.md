@@ -26,7 +26,7 @@
 - [x] Unit test for templates
 - [ ] Dry run mode
 - [ ] Rename QUALITY to RESOLUTION
-- [ ] Write file and function docstrings and enforce with ESLint
+- [x] Write file and function docstrings and enforce with ESLint
 - [ ] Use Prowlarr
 - [ ] Holistic handling of episode coverage in TV torrents - walk-forward
       algorithm

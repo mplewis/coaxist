@@ -54,6 +54,7 @@ function obscure(password: string) {
   return execa.sync("rclone", ["obscure", password]).stdout;
 }
 
+/** Build an Rclone config file from a Debrid config. */
 export function buildRcloneConf(dc: DebridConfig, obscureFn = obscure): string {
   const rc = rcloneConf(dc);
   const pass = obscureFn(rc.WEBDAV_PASS);
@@ -69,6 +70,11 @@ export function buildRcloneConf(dc: DebridConfig, obscureFn = obscure): string {
   return ini.encode(data, { whitespace: true });
 }
 
+/**
+ * Load an UberConf from a config file at a given path.
+ * Create it from the template and exit if it doesn't yet exist.
+ * Exit if the config file still contains the placeholder sentinel.
+ */
 export function loadOrInitUberConf(path: string): UberConf {
   if (!exists(path)) {
     const dfault = readFileSync(join(__dirname, "default.yaml"), "utf-8");
@@ -97,6 +103,7 @@ export function loadOrInitUberConf(path: string): UberConf {
   return parsed;
 }
 
+/** Write the config files for external apps from a given UberConf file. */
 export function writeExternalConfigFiles(rootConfigDir: string, c: UberConf) {
   const path = join(rootConfigDir, "rclone", "rclone.conf");
   write(path, buildRcloneConf(c.debrid));

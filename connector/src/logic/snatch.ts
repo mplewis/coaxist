@@ -62,6 +62,7 @@ export async function snatchAndSave(a: {
   return record;
 }
 
+/** Convert a `Snatch` to a `ToFetch` by standardizing its data. */
 function snatchToFetch(s: Snatch): ToFetch {
   const type = s.mediaType as "movie" | "tv";
   const base = { type, imdbID: s.imdbID, title: s.title };
