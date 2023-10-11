@@ -3,6 +3,7 @@ import { SafeParseReturnType } from "zod";
 import log from "../log";
 import { Result, Retryable, retry } from "../util/retry";
 
+// eslint-disable-next-line no-restricted-globals
 const nodeFetch = fetch;
 
 type RequestableURL =

@@ -4,6 +4,8 @@ import z from "zod";
 import log from "../log";
 import { secureHash } from "../util/hash";
 
+import { getJSON } from "./http";
+
 export type OverseerrRequest = OverseerrRequestTV | OverseerrRequestMovie;
 export type OverseerrRequestTV = {
   type: "tv";
@@ -27,10 +29,10 @@ interface Schema<T> {
   ) => { success: true; data: T } | { success: false; error: z.ZodError };
 }
 
-class ValidationError extends Error {
-  constructor(url: string, error: z.ZodError, data: unknown) {
-    const bits = [url, error.message, JSON.stringify(data, null, 2)];
-    super(`${ValidationError}: ${bits.join("\n\n")}`);
+class OverseerrError extends Error {
+  constructor(url: string, errors: any[]) {
+    const bits = [url, JSON.stringify(errors, null, 2)];
+    super(`${OverseerrError}: ${bits.join("\n\n")}`);
   }
 }
 
@@ -67,15 +69,10 @@ export class OverseerrClient {
 
   private async get<T>(path: string, schema: Schema<T>) {
     const url = `${this.a.host}/api/v1${path}`;
-    log.debug({ url }, "fetching from Overseerr");
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { "X-Api-Key": this.a.apiKey },
-    });
-    const data = await res.json();
-    const result = schema.safeParse(data);
-    if (result.success) return result;
-    return { ...result, rawData: data };
+    const headers = { "X-Api-Key": this.a.apiKey };
+    const resp = await getJSON<T>(url, schema, { headers });
+    if (!resp.success) throw new OverseerrError(url, resp.errors);
+    return resp;
   }
 
   /** List approved Overseerr requests. */
@@ -88,7 +85,6 @@ export class OverseerrClient {
       })
     );
     // TODO: Better error here when you forget to configure the Overseerr API key
-    if (!resp.success) throw new ValidationError(url, resp.error, resp.rawData);
     return resp.data.results;
   }
 
@@ -97,8 +93,6 @@ export class OverseerrClient {
     const getPage = async (page: number): Promise<WatchlistPage> => {
       const url = `/discover/watchlist?page=${page}`;
       const resp = await this.get(url, WATCHLIST_PAGE_SCHEMA);
-      if (!resp.success)
-        throw new ValidationError(url, resp.error, resp.rawData);
       return resp.data;
     };
 
@@ -159,7 +153,6 @@ export class OverseerrClient {
         ),
       })
     );
-    if (!resp.success) throw new ValidationError(url, resp.error, resp.rawData);
     // Some episodes lack air dates - we ignore them
     const maybeMissingAirDate = resp.data.episodes;
     const withAirDates = maybeMissingAirDate
@@ -178,7 +171,6 @@ export class OverseerrClient {
         externalIds: z.object({ imdbId: z.string() }),
       })
     );
-    if (!resp.success) throw new ValidationError(url, resp.error, resp.rawData);
     return resp.data;
   }
 
@@ -192,7 +184,6 @@ export class OverseerrClient {
         seasons: z.array(z.object({ seasonNumber: z.number() })),
       })
     );
-    if (!resp.success) throw new ValidationError(url, resp.error, resp.rawData);
     return resp.data;
   }
 

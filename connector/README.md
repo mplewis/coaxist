@@ -32,8 +32,8 @@
       algorithm
 - [ ] Rework DB to use schema for episode coverage
 - [ ] Drop snatches
-- [ ] Tag improvements
-  - [ ] Mark torrents with ads
+- [x] Tag improvements
+  - [x] Mark torrents with ads
   - [x] FHD = 1080p
   - [x] "Dubbed"
   - [x] HC = Hardsubs
