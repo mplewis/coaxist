@@ -41,7 +41,7 @@
 - [ ] Support interrogation of torrent files by URL
 - [ ] Support interrogation of magnet links
 - [ ] Convert all HTTP calls to use the new fetch interface
-- [ ] Make bare use of `fetch` illegal
+- [x] Make bare use of `fetch` illegal
 - [ ] Deal with searching by non-IMDB ID in Prowlarr – parse title by tokens
       preceding numbering identifier
 - [x] Disk caching option
