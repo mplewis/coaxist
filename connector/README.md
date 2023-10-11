@@ -34,12 +34,19 @@
 - [ ] Drop snatches
 - [ ] Tag improvements
   - [ ] Mark torrents with ads
-  - [ ] FHD = 1080p
-  - [ ] Dubbed
+  - [x] FHD = 1080p
+  - [x] "Dubbed"
+  - [x] HC = Hardsubs
 - [ ] Prioritize specific trackers
 - [ ] Support interrogation of torrent files by URL
 - [ ] Support interrogation of magnet links
+- [ ] Convert all HTTP calls to use the new fetch interface
+- [ ] Make bare use of `fetch` illegal
+- [ ] Deal with searching by non-IMDB ID in Prowlarr – parse title by tokens
+      preceding numbering identifier
+- [x] Disk caching option
+- [x] Cache storage by namespace
 - [ ] Keep version in sync with package.json
-- [ ] Migrate all callers to use new fetch
 - [ ] Log tags in "snatched media" and "all snatches complete" msg
 - [ ] Summarize "all snatches complete" as count – redundant
+- [ ] Auto-order TS imports

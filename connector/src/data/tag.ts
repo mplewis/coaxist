@@ -31,10 +31,12 @@ export const TAG_MATCHERS = [
     name: "cam",
     match: ["cam", "camrip", "hdts", "ts", "telesync", "telecine", "hdcam"],
   },
+  { name: "ads", match: [["ads", "included"]] },
 
   // internationalization
   { name: "hardsub", match: ["hc"] },
   { name: "multisub", match: [["multi", "sub"]], consume: true },
+  { name: "dub", match: ["dub", "dubbed"] },
   { name: "dualaudio", match: ["dual"] },
   { name: "multiaudio", match: ["multi"] },
 ] as const satisfies readonly TokenMatcher[];

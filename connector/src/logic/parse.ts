@@ -51,13 +51,13 @@ export function tokenize(s: string): string[] {
     x
       .split(TOKEN_SPLITTER)
       .filter(Boolean)
-      .map((t) => stripChars("[]()-", t))
+      .map((t) => stripChars("![]()-", t))
   );
   const leaveHyphens = dropVideoExtension(
     x
       .split(TOKEN_SPLITTER)
       .filter(Boolean)
-      .map((t) => stripChars("[]()", t))
+      .map((t) => stripChars("![]()", t))
   );
   const last = leaveHyphens[leaveHyphens.length - 1];
   const match = last.match(GROUP_SUFFIX_MATCHER);
