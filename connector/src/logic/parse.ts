@@ -1,7 +1,9 @@
 import parseBytes from "bytes";
-import { findSlidingWindowMatch } from "../util/search";
-import { TokenMatcher } from "./classify.types";
+
 import log from "../log";
+import { findSlidingWindowMatch } from "../util/search";
+
+import { TokenMatcher } from "./classify.types";
 
 const TOKEN_SPLITTER = /[\s.]+/;
 const CACHED_MATCHER = /\[(RD|PM|AD|DL|OC|Putio)\+\]/;

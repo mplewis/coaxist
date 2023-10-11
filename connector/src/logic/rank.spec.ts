@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+
+import { Profile, ProfileInput } from "../data/profile";
+
+import { Classification } from "./classify";
 import {
   Candidate,
   satisfies,
@@ -6,8 +10,6 @@ import {
   satisfiesTags,
   sortCandidates,
 } from "./rank";
-import { Classification } from "./classify";
-import { Profile, ProfileInput } from "../data/profile";
 
 describe("satisfiesQuality", () => {
   it("returns the expected results", () => {

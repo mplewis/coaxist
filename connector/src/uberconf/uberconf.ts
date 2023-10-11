@@ -1,10 +1,13 @@
-import { dirname, join } from "path";
-import yaml from "js-yaml";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
-import ini from "ini";
+import { dirname, join } from "path";
+
 import execa from "execa";
-import { DebridConfig, UBERCONF_SCHEMA, UberConf } from "./uberconf.types";
+import ini from "ini";
+import yaml from "js-yaml";
+
 import log from "../log";
+
+import { DebridConfig, UBERCONF_SCHEMA, UberConf } from "./uberconf.types";
 
 const EXAMPLE_FILE_SENTINEL = "### THIS_IS_AN_EXAMPLE_FILE ###";
 const RCLONE_DUMMY_PASSWORD =

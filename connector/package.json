@@ -6,7 +6,7 @@
   "scripts": {
     "configure": "ts-node ./src/uberconf/index.ts | pnpm pino-pretty --colorize",
     "dev": "node --watch --loader=ts-node/esm ./src/index.ts | pnpm pino-pretty",
-    "lint": "eslint src",
+    "lint": "eslint --max-warnings 0 src",
     "start": "ts-node ./src/index.ts | pnpm pino-pretty --colorize",
     "test": "vitest"
   },
@@ -44,6 +44,7 @@
     "eslint": "^8.49.0",
     "eslint-config-airbnb-typescript": "^17.1.0",
     "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.28.1",
     "prettier": "^3.0.3",
     "prisma": "^5.2.0",
     "tmp-promise": "^3.0.3",

@@ -1,11 +1,13 @@
 import { Snatch } from "@prisma/client";
 import { isTruthy, pick } from "remeda";
+
 import { DbClient } from "../clients/db";
 import { Snatchable, snatchViaURL } from "../clients/torrentio";
+import { Profile } from "../data/profile";
 import log from "../log";
 import { secureHash } from "../util/hash";
+
 import { EpisodeToFetch, MovieToFetch, SeasonToFetch, ToFetch } from "./list";
-import { Profile } from "../data/profile";
 
 export type FullSnatchInfo = {
   profile: Profile;

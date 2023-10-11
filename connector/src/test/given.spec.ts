@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { Given } from "./given";
 
 const { given, v } = new Given({ a: 0, b: 0 });
