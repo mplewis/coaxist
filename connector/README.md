@@ -47,7 +47,7 @@
 - [x] Disk caching option
 - [x] Cache storage by namespace
 - [x] Keep version in sync with package.json
-- [ ] Log tags in "snatched media" and "all snatches complete" msg
+- [x] Log tags in "snatched media" and "all snatches complete" msg
 - [x] Summarize "all snatches complete" as count – redundant
 - [x] Auto-order TS imports
 - [ ] Don't throw in Overseerr Client

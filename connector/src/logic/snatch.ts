@@ -7,10 +7,12 @@ import { Profile } from "../data/profile";
 import log from "../log";
 import { secureHash } from "../util/hash";
 
+import { TorrentInfo } from "./classify";
 import { EpisodeToFetch, MovieToFetch, SeasonToFetch, ToFetch } from "./list";
 
 export type FullSnatchInfo = {
   profile: Profile;
+  info?: TorrentInfo; // TODO: This is only optional because we still do refreshes. Make this mandatory when we don't refresh snatches.
   snatchable: Snatchable;
   origFetch: ToFetch;
 };
@@ -41,15 +43,22 @@ export async function snatchAndSave(a: {
     profileHash,
     debridCredsHash,
   });
-  const summary = pick(record, [
-    "id",
-    "title",
-    "mediaType",
-    "imdbID",
-    "season",
-    "episode",
-  ]);
-  log.info({ action, record: summary }, "snatched media and logged to db");
+
+  const data: Record<string, any> = {
+    action,
+    record: pick(record, [
+      "id",
+      "title",
+      "mediaType",
+      "imdbID",
+      "season",
+      "episode",
+    ]),
+  };
+  const { info } = snatchInfo;
+  if (info) data.info = pick(info, ["quality", "tags"]);
+  log.info(data, "snatched media and logged to db");
+
   return record;
 }
 
