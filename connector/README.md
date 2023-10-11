@@ -46,7 +46,8 @@
       preceding numbering identifier
 - [x] Disk caching option
 - [x] Cache storage by namespace
-- [ ] Keep version in sync with package.json
+- [x] Keep version in sync with package.json
 - [ ] Log tags in "snatched media" and "all snatches complete" msg
 - [ ] Summarize "all snatches complete" as count – redundant
-- [ ] Auto-order TS imports
+- [x] Auto-order TS imports
+- [ ] Don't throw in Overseerr Client
