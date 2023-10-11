@@ -1,5 +1,6 @@
-import { pick } from "remeda";
 import pLimit from "p-limit";
+import { pick } from "remeda";
+
 import {
   OverseerrClient,
   OverseerrRequest,
@@ -7,6 +8,7 @@ import {
   OverseerrRequestTV,
 } from "../clients/overseerr";
 import log from "../log";
+
 import { ContainedMediaType } from "./rank";
 
 export type ToFetch = MovieToFetch | SeasonToFetch | EpisodeToFetch;

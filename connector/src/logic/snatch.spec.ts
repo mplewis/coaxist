@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
 import { Snatch } from "@prisma/client";
+import { describe, expect, it } from "vitest";
+
 import { latestSnatch } from "./snatch";
 
 describe("latestSnatch", () => {

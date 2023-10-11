@@ -1,5 +1,7 @@
 import { PrismaClient, Snatch } from "@prisma/client";
+
 import { ToFetch } from "../logic/list";
+
 import { Snatchable } from "./torrentio";
 
 export class DbClient {

@@ -1,6 +1,7 @@
 import { SafeParseReturnType } from "zod";
-import { Result, Retryable, retry } from "../util/retry";
+
 import log from "../log";
+import { Result, Retryable, retry } from "../util/retry";
 
 const nodeFetch = fetch;
 

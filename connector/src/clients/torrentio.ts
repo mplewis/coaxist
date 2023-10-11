@@ -1,9 +1,11 @@
 import { ZodIssue, z } from "zod";
-import log from "../log";
+
 import { DebridCreds, buildDebridPathPart } from "../data/debrid";
+import log from "../log";
 import { ToFetch } from "../logic/list";
-import { VERSION } from "../util/version";
 import { Cache } from "../store/cache";
+import { VERSION } from "../util/version";
+
 import { RequestError, fetchResp, getJSON } from "./http";
 
 const TORRENTIO_HOST = "https://torrentio.strem.fun";

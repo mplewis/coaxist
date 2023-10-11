@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
 import { stripIndent } from "common-tags";
-import { TorrentInfo, classify, classifyTorrentioResult } from "./classify";
-import { TAG_MATCHERS } from "../data/tag";
+import { describe, expect, it } from "vitest";
+
 import { Quality, compareQuality } from "../data/quality";
-import { parseFromTokens, tokenize } from "./parse";
+import { TAG_MATCHERS } from "../data/tag";
 import { findSlidingWindowMatch } from "../util/search";
+
+import { TorrentInfo, classify, classifyTorrentioResult } from "./classify";
+import { parseFromTokens, tokenize } from "./parse";
 
 describe("compareQuality", () => {
   it("sorts qualities as expected", () => {

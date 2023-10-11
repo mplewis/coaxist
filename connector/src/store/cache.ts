@@ -1,7 +1,8 @@
 import { Level } from "level";
-import { ZodSchema, z } from "zod";
-import { Logger } from "pino";
 import ms from "ms";
+import { Logger } from "pino";
+import { ZodSchema, z } from "zod";
+
 import log from "../log";
 
 const GC_INTERVAL = ms("1h");

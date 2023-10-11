@@ -1,8 +1,9 @@
+import { Profile } from "../data/profile";
 import { QUALITY_RANKING, Quality, compareQuality } from "../data/quality";
 import { Tag } from "../data/tag";
-import { SortSpec, sort } from "./sort/engine";
-import { Profile } from "../data/profile";
 import log from "../log";
+
+import { SortSpec, sort } from "./sort/engine";
 
 /** What grouping of media is contained within this torrent? */
 export type ContainedMediaType = "movie" | "season" | "episode";

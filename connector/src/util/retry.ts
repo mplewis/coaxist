@@ -1,4 +1,5 @@
 import ms from "ms";
+
 import log from "../log";
 
 /** A function that can be retried and may return temporary or permanent errors. */

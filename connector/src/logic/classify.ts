@@ -1,14 +1,15 @@
+import { TorrentioSearchResult } from "../clients/torrentio";
 import { QUALITY_MATCHERS, Quality } from "../data/quality";
 import { TAG_MATCHERS, Tag } from "../data/tag";
+import log from "../log";
+
 import {
   TorrentioResultMetadata,
   parseFromTokens,
   parseTorrentioRawText,
   tokenize,
 } from "./parse";
-import { TorrentioSearchResult } from "../clients/torrentio";
 import { ContainedMediaType } from "./rank";
-import log from "../log";
 
 const SEASON_MATCHER = /\bs(\d+)\b/i;
 const EPISODE_MATCHER = /\bs(\d+)e(\d+)\b/i;
