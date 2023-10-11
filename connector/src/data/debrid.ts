@@ -13,6 +13,7 @@ export type DebridCreds = {
     }
 );
 
+/** Convert a Debrid config to Debrid credentials. */
 export function toDebridCreds(c: DebridConfig) {
   if ("realDebrid" in c) {
     return {
@@ -30,6 +31,7 @@ export function toDebridCreds(c: DebridConfig) {
   throw new Error(`unhandled debrid type: ${exhaustiveCheck}`);
 }
 
+/** Build the path part for a Torrentio request which includes Debrid credentials. */
 export function buildDebridPathPart(creds: DebridCreds) {
   if ("apiKey" in creds) return `${creds.provider}=${creds.apiKey}`;
   return `${creds.provider}=${creds.username}@${creds.password}`;

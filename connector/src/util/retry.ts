@@ -59,6 +59,7 @@ export async function retry<T, E>(
   opts: Partial<RetryOptions>,
   fn: Retryable<T, E>
 ): Promise<Result<T, E>>;
+/** */
 export async function retry<T, E>(
   a: any,
   b: any,

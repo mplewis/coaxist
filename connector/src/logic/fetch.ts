@@ -15,6 +15,7 @@ import { ToFetch, listOutstanding } from "./list";
 import { pickBest } from "./rank";
 import { FullSnatchInfo, snatchAndSave } from "./snatch";
 
+/** Search Torrentio for the best candidate for the given profiles and target media. */
 async function findBestCandidate(
   creds: DebridCreds,
   torrentioCache: Cache<TorrentioSearchResult[]>,

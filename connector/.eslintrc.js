@@ -2,13 +2,16 @@ module.exports = {
   parserOptions: { project: true },
   ignorePatterns: [".eslintrc.js"],
   extends: ["airbnb-base", "airbnb-typescript/base", "prettier"],
-  plugins: ["import"],
+  plugins: ["import", "jsdoc"],
   rules: {
-    "import/prefer-default-export": "off",
     "import/order": [
       "warn",
       { alphabetize: { order: "asc" }, "newlines-between": "always" },
     ],
+    "import/prefer-default-export": "off",
+
+    "jsdoc/require-jsdoc": ["warn", { enableFixer: false, publicOnly: true }],
+
     "max-classes-per-file": "off",
     "no-continue": "off",
     "no-labels": "off",
