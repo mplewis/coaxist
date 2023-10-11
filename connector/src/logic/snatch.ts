@@ -1,14 +1,18 @@
 import { Snatch } from "@prisma/client";
 import { isTruthy, pick } from "remeda";
+
 import { DbClient } from "../clients/db";
 import { Snatchable, snatchViaURL } from "../clients/torrentio";
+import { Profile } from "../data/profile";
 import log from "../log";
 import { secureHash } from "../util/hash";
+
+import { TorrentInfo } from "./classify";
 import { EpisodeToFetch, MovieToFetch, SeasonToFetch, ToFetch } from "./list";
-import { Profile } from "../data/profile";
 
 export type FullSnatchInfo = {
   profile: Profile;
+  info?: TorrentInfo; // TODO: This is only optional because we still do refreshes. Make this mandatory when we don't refresh snatches.
   snatchable: Snatchable;
   origFetch: ToFetch;
 };
@@ -39,18 +43,26 @@ export async function snatchAndSave(a: {
     profileHash,
     debridCredsHash,
   });
-  const summary = pick(record, [
-    "id",
-    "title",
-    "mediaType",
-    "imdbID",
-    "season",
-    "episode",
-  ]);
-  log.info({ action, record: summary }, "snatched media and logged to db");
+
+  const data: Record<string, any> = {
+    action,
+    record: pick(record, [
+      "id",
+      "title",
+      "mediaType",
+      "imdbID",
+      "season",
+      "episode",
+    ]),
+  };
+  const { info } = snatchInfo;
+  if (info) data.info = pick(info, ["quality", "tags"]);
+  log.info(data, "snatched media and logged to db");
+
   return record;
 }
 
+/** Convert a `Snatch` to a `ToFetch` by standardizing its data. */
 function snatchToFetch(s: Snatch): ToFetch {
   const type = s.mediaType as "movie" | "tv";
   const base = { type, imdbID: s.imdbID, title: s.title };

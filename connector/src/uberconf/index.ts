@@ -1,4 +1,5 @@
 import { join } from "path";
+
 import { loadOrInitUberConf, writeExternalConfigFiles } from "./uberconf";
 
 async function main() {

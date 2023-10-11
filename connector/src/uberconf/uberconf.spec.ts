@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
+
 import yaml from "js-yaml";
+import { describe, expect, it } from "vitest";
+
 import { buildRcloneConf } from "./uberconf";
 import { DebridConfig, UBERCONF_SCHEMA } from "./uberconf.types";
 

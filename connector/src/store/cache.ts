@@ -1,7 +1,8 @@
 import { Level } from "level";
-import { ZodSchema, z } from "zod";
-import { Logger } from "pino";
 import ms from "ms";
+import { Logger } from "pino";
+import { ZodSchema, z } from "zod";
+
 import log from "../log";
 
 const GC_INTERVAL = ms("1h");
@@ -52,7 +53,8 @@ export class Cache<T> {
     const start = new Date();
     for await (const key of this.sl.keys()) {
       const raw = await this.sl.get(key);
-      const dated = datedSchema.parse(raw);
+      const rawData = JSON.parse(raw);
+      const dated = datedSchema.parse(rawData);
       if (this.isExpired(dated)) await this.sl.del(key);
     }
     const duration = new Date().getTime() - start.getTime();

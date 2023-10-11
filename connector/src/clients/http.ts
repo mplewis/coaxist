@@ -1,7 +1,9 @@
 import { SafeParseReturnType } from "zod";
-import { Result, Retryable, retry } from "../util/retry";
-import log from "../log";
 
+import log from "../log";
+import { Result, Retryable, retry } from "../util/retry";
+
+// eslint-disable-next-line no-restricted-globals
 const nodeFetch = fetch;
 
 type RequestableURL =
@@ -75,6 +77,13 @@ export function fetchResp(
   return retry(`${opts.method ?? "fetch"} ${url}`, fn);
 }
 
+/**
+ * Make a request against an endpoint which returns JSON.
+ * @param url the URL to fetch
+ * @param schema the schema to use to parse the response
+ * @param opts options for the `fetch` request
+ * @returns the requested data, or the errors
+ */
 async function fetchJSON<T>(
   url: RequestableURL,
   schema: Validator<T>,

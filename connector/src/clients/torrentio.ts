@@ -1,9 +1,11 @@
 import { ZodIssue, z } from "zod";
-import log from "../log";
+
 import { DebridCreds, buildDebridPathPart } from "../data/debrid";
+import log from "../log";
 import { ToFetch } from "../logic/list";
-import { VERSION } from "../util/version";
 import { Cache } from "../store/cache";
+import { VERSION } from "../util/version";
+
 import { RequestError, fetchResp, getJSON } from "./http";
 
 const TORRENTIO_HOST = "https://torrentio.strem.fun";
@@ -47,6 +49,7 @@ function get(cache: Cache<TorrentioSearchResult[]>, url: string) {
   });
 }
 
+/** Search Torrentio for a piece of media. */
 export async function searchTorrentio(
   creds: DebridCreds,
   cache: Cache<TorrentioSearchResult[]>,
@@ -69,6 +72,7 @@ export async function searchTorrentio(
   return r.data;
 }
 
+/** Snatch media into a Debrid account via Torrentio URL. */
 export function snatchViaURL(s: Snatchable) {
   log.debug({ url: s.snatchURL }, "snatching via Torrentio");
   return fetchResp(s.snatchURL, { method: "HEAD", headers });

@@ -1,4 +1,5 @@
 import ms from "ms";
+
 import log from "../log";
 
 /** A function that can be retried and may return temporary or permanent errors. */
@@ -58,6 +59,7 @@ export async function retry<T, E>(
   opts: Partial<RetryOptions>,
   fn: Retryable<T, E>
 ): Promise<Result<T, E>>;
+/** */
 export async function retry<T, E>(
   a: any,
   b: any,

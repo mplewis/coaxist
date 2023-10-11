@@ -1,10 +1,13 @@
-import { dirname, join } from "path";
-import yaml from "js-yaml";
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
-import ini from "ini";
+import { dirname, join } from "path";
+
 import execa from "execa";
-import { DebridConfig, UBERCONF_SCHEMA, UberConf } from "./uberconf.types";
+import ini from "ini";
+import yaml from "js-yaml";
+
 import log from "../log";
+
+import { DebridConfig, UBERCONF_SCHEMA, UberConf } from "./uberconf.types";
 
 const EXAMPLE_FILE_SENTINEL = "### THIS_IS_AN_EXAMPLE_FILE ###";
 const RCLONE_DUMMY_PASSWORD =
@@ -51,6 +54,7 @@ function obscure(password: string) {
   return execa.sync("rclone", ["obscure", password]).stdout;
 }
 
+/** Build an Rclone config file from a Debrid config. */
 export function buildRcloneConf(dc: DebridConfig, obscureFn = obscure): string {
   const rc = rcloneConf(dc);
   const pass = obscureFn(rc.WEBDAV_PASS);
@@ -66,6 +70,11 @@ export function buildRcloneConf(dc: DebridConfig, obscureFn = obscure): string {
   return ini.encode(data, { whitespace: true });
 }
 
+/**
+ * Load an UberConf from a config file at a given path.
+ * Create it from the template and exit if it doesn't yet exist.
+ * Exit if the config file still contains the placeholder sentinel.
+ */
 export function loadOrInitUberConf(path: string): UberConf {
   if (!exists(path)) {
     const dfault = readFileSync(join(__dirname, "default.yaml"), "utf-8");
@@ -94,6 +103,7 @@ export function loadOrInitUberConf(path: string): UberConf {
   return parsed;
 }
 
+/** Write the config files for external apps from a given UberConf file. */
 export function writeExternalConfigFiles(rootConfigDir: string, c: UberConf) {
   const path = join(rootConfigDir, "rclone", "rclone.conf");
   write(path, buildRcloneConf(c.debrid));

@@ -1,19 +1,21 @@
 import pLimit from "p-limit";
 import { isTruthy, shuffle } from "remeda";
-import log from "../log";
 
-import { OverseerrClient } from "../clients/overseerr";
-import { ToFetch, listOutstanding } from "./list";
-import { pickBest } from "./rank";
-import { classifyTorrentioResult } from "./classify";
-import { secureHash } from "../util/hash";
-import { TorrentioSearchResult, searchTorrentio } from "../clients/torrentio";
 import { DbClient } from "../clients/db";
-import { FullSnatchInfo, snatchAndSave } from "./snatch";
+import { OverseerrClient } from "../clients/overseerr";
+import { TorrentioSearchResult, searchTorrentio } from "../clients/torrentio";
 import { DebridCreds } from "../data/debrid";
 import { Profile } from "../data/profile";
+import log from "../log";
 import { Cache } from "../store/cache";
+import { secureHash } from "../util/hash";
 
+import { classifyTorrentioResult } from "./classify";
+import { ToFetch, listOutstanding } from "./list";
+import { pickBest } from "./rank";
+import { FullSnatchInfo, snatchAndSave } from "./snatch";
+
+/** Search Torrentio for the best candidate for the given profiles and target media. */
 async function findBestCandidate(
   creds: DebridCreds,
   torrentioCache: Cache<TorrentioSearchResult[]>,
@@ -133,5 +135,5 @@ export async function fetchOutstanding(a: {
     snatchID: records[i].id,
     profile: r.profile.name,
   }));
-  log.info({ snatched }, "all snatches complete");
+  log.info({ snatchCount: snatched.length }, "all snatches complete");
 }

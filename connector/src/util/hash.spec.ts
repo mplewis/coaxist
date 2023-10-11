@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { secureHash } from "./hash";
 
 describe("secureHash", () => {
