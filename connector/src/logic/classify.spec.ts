@@ -131,6 +131,14 @@ describe("classify", () => {
           tags: ["h265"],
         },
       },
+      {
+        raw: "Some.File.Dubbed.1080p (Ads Included!)",
+        expected: {
+          quality: "1080p",
+          mediaType: "movie",
+          tags: ["ads", "dub"],
+        },
+      },
     ];
 
     for (const { raw, expected } of examples) {

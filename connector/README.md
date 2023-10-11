@@ -34,9 +34,9 @@
 - [ ] Drop snatches
 - [ ] Tag improvements
   - [ ] Mark torrents with ads
-  - [ ] FHD = 1080p
-  - [ ] "Dubbed"
-  - [ ] HC = Hardsubs
+  - [x] FHD = 1080p
+  - [x] "Dubbed"
+  - [x] HC = Hardsubs
 - [ ] Prioritize specific trackers
 - [ ] Support interrogation of torrent files by URL
 - [ ] Support interrogation of magnet links
