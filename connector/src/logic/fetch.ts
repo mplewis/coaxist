@@ -134,5 +134,5 @@ export async function fetchOutstanding(a: {
     snatchID: records[i].id,
     profile: r.profile.name,
   }));
-  log.info({ snatched }, "all snatches complete");
+  log.info({ snatchCount: snatched.length }, "all snatches complete");
 }
