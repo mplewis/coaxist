@@ -14,6 +14,7 @@ module.exports = {
     "no-labels": "off",
     "no-multiple-empty-lines": "warn",
     "no-plusplus": "off",
+    "no-restricted-globals": ["error", "fetch"],
     "no-restricted-syntax": "off",
   },
 };
