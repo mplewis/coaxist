@@ -1,6 +1,7 @@
 import pLimit from "p-limit";
 import { pick } from "remeda";
 
+import { RespData } from "../clients/http";
 import {
   OverseerrClient,
   OverseerrRequest,
@@ -156,16 +157,17 @@ export async function listOutstanding(a: {
   ignoreCache: boolean;
   overseerrRequestConcurrency: number;
   searchBeforeReleaseDateMs: number;
-}): Promise<ToFetch[] | "NO_NEW_REQUESTS"> {
+}): Promise<RespData<ToFetch[] | "NO_NEW_REQUESTS">> {
   const { overseerrClient } = a;
   const ignoreCache = a.ignoreCache ?? false;
 
-  const requests =
-    await overseerrClient.getMetadataForRequestsAndWatchlistItems({
-      ignoreCache,
-    });
-  if (!requests) {
-    return "NO_NEW_REQUESTS";
+  const resp = await overseerrClient.getMetadataForRequestsAndWatchlistItems({
+    ignoreCache,
+  });
+  if (!resp.success) return resp;
+  const requests = resp.data;
+  if (!requests.length) {
+    return { success: true, data: "NO_NEW_REQUESTS" };
   }
 
   log.debug(
@@ -190,5 +192,5 @@ export async function listOutstanding(a: {
     },
     "built list of current Overseerr requests"
   );
-  return results.flat();
+  return { success: true, data: results.flat() };
 }

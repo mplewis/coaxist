@@ -4,7 +4,7 @@ import z from "zod";
 import log from "../log";
 import { secureHash } from "../util/hash";
 
-import { RespFailure, getJSON } from "./http";
+import { RespData, RespFailure, getJSON } from "./http";
 
 export type OverseerrRequest = OverseerrRequestTV | OverseerrRequestMovie;
 export type OverseerrRequestTV = {
@@ -180,7 +180,7 @@ export class OverseerrClient {
    * If there are no new requests since last time, return null. */
   async getMetadataForRequestsAndWatchlistItems(options: {
     ignoreCache: boolean;
-  }): Promise<OverseerrRequest[] | RespFailure | null> {
+  }): Promise<RespData<OverseerrRequest[]>> {
     const requestsReq = await this.getApprovedRequests();
     if (!requestsReq.success) return requestsReq;
     const requests = requestsReq.data.results;
@@ -197,19 +197,19 @@ export class OverseerrClient {
       if (!r1.success) return r1;
       const r2 = await this.watchlistToOverseerrRequests(watchlist);
       if (!r2.success) return r2;
-      return [...r1.requests, ...r2.requests];
+      return { success: true, data: [...r1.data, ...r2.data] };
     }
 
     log.debug(
       "no new Overseerr requests or Plex watchlist items since last check"
     );
-    return null;
+    return { success: true, data: [] };
   }
 
   /** Get the full media metadata for a set of Overseerr requests. */
   private async rawToOverseerrRequests(
     requests: RawRequest[]
-  ): Promise<{ success: true; requests: OverseerrRequest[] } | RespFailure> {
+  ): Promise<RespData<OverseerrRequest[]>> {
     const inFlight = requests.map(async (request) => {
       const { mediaType, tmdbId } = request.media;
       if (mediaType === "movie") {
@@ -270,13 +270,13 @@ export class OverseerrClient {
       if (!r.success) return r;
       successes.push(r.request);
     }
-    return { success: true, requests: successes };
+    return { success: true, data: successes };
   }
 
   /** Convert the items on the Plex watchlist to Overseerr requests. */
   private async watchlistToOverseerrRequests(
     items: WatchlistItem[]
-  ): Promise<{ success: true; requests: OverseerrRequest[] } | RespFailure> {
+  ): Promise<RespData<OverseerrRequest[]>> {
     const inFlight = items.map(async (item) => {
       const { mediaType, tmdbId } = item;
       if (mediaType === "movie") {
@@ -337,6 +337,6 @@ export class OverseerrClient {
       if (!r.success) return r;
       successes.push(r.request);
     }
-    return { success: true, requests: successes };
+    return { success: true, data: successes };
   }
 }
