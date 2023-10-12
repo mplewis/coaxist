@@ -4,7 +4,7 @@ import z from "zod";
 import log from "../log";
 import { secureHash } from "../util/hash";
 
-import { getJSON } from "./http";
+import { RespData, RespFailure, getJSON } from "./http";
 
 export type OverseerrRequest = OverseerrRequestTV | OverseerrRequestMovie;
 export type OverseerrRequestTV = {
@@ -29,13 +29,6 @@ interface Schema<T> {
   ) => { success: true; data: T } | { success: false; error: z.ZodError };
 }
 
-class OverseerrError extends Error {
-  constructor(url: string, errors: any[]) {
-    const bits = [url, JSON.stringify(errors, null, 2)];
-    super(`${OverseerrError}: ${bits.join("\n\n")}`);
-  }
-}
-
 const RAW_REQUEST_SCHEMA = z.object({
   media: z.object({
     mediaType: z.enum(["movie", "tv"]),
@@ -58,7 +51,6 @@ const WATCHLIST_PAGE_SCHEMA = z.object({
   totalResults: z.number(),
   results: z.array(WATCHLIST_ITEM_SCHEMA),
 });
-type WatchlistPage = z.infer<typeof WATCHLIST_PAGE_SCHEMA>;
 
 export class OverseerrClient {
   lastSeenRequestsHash: string | null = null;
@@ -67,44 +59,46 @@ export class OverseerrClient {
 
   constructor(private a: { host: string; apiKey: string }) {}
 
-  private async get<T>(path: string, schema: Schema<T>) {
+  private async get<T>(desc: string, path: string, schema: Schema<T>) {
     const url = `${this.a.host}/api/v1${path}`;
     const headers = { "X-Api-Key": this.a.apiKey };
-    const resp = await getJSON<T>(url, schema, { headers });
-    if (!resp.success) throw new OverseerrError(url, resp.errors);
-    return resp;
+    return getJSON<T>(desc, url, schema, { headers });
   }
 
   /** List approved Overseerr requests. */
-  async getApprovedRequests(): Promise<RawRequest[]> {
+  async getApprovedRequests() /*: Promise<RespData<RawRequest[]>> */ {
     const url = `/request?take=99999999&filter=approved`;
-    const resp = await this.get(
+    return this.get(
+      "approved Overseerr requests",
       url,
       z.object({
         results: z.array(RAW_REQUEST_SCHEMA),
       })
     );
-    // TODO: Better error here when you forget to configure the Overseerr API key
-    return resp.data.results;
   }
 
   /** List all items on the Plex watchlist. */
-  async getWatchlistItems(): Promise<WatchlistItem[]> {
-    const getPage = async (page: number): Promise<WatchlistPage> => {
-      const url = `/discover/watchlist?page=${page}`;
-      const resp = await this.get(url, WATCHLIST_PAGE_SCHEMA);
-      return resp.data;
-    };
+  async getWatchlistItems() {
+    const getPage = async (page: number) =>
+      this.get(
+        "page of Plex watchlist items",
+        `/discover/watchlist?page=${page}`,
+        WATCHLIST_PAGE_SCHEMA
+      );
 
-    const { totalPages, results } = await getPage(1);
+    const first = await getPage(1);
+    if (!first.success) return first;
+    const { totalPages, results } = first.data;
+
     const inFlight = [];
     for (let i = 2; i <= totalPages; i++) {
       inFlight.push(getPage(i));
     }
     for (const page of await Promise.all(inFlight)) {
-      results.push(...page.results);
+      if (!page.success) return page;
+      results.push(...page.data.results);
     }
-    return results;
+    return { success: true as const, items: results };
   }
 
   /** Update the last seen requests with the most recent results,
@@ -140,9 +134,11 @@ export class OverseerrClient {
     return changed;
   }
 
+  /** Get the metadata for a season of a TV show. */
   async getMetadataSeason(tmdbID: number, season: number) {
     const url = `/tv/${tmdbID}/season/${season}`;
     const resp = await this.get(
+      "TV season metadata",
       url,
       z.object({
         episodes: z.array(
@@ -153,84 +149,93 @@ export class OverseerrClient {
         ),
       })
     );
+    if (!resp.success) return resp;
     // Some episodes lack air dates - we ignore them
     const maybeMissingAirDate = resp.data.episodes;
     const withAirDates = maybeMissingAirDate
       .map((e) => (e.airDate ? { ...e, airDate: e.airDate } : null))
       .filter(isTruthy);
-    return withAirDates;
+    return { success: true as const, data: withAirDates };
   }
 
+  /** Get the metadata for a movie. */
   async getMetadataMovie(tmdbID: number) {
-    const url = `/movie/${tmdbID}`;
-    const resp = await this.get(
-      url,
+    return this.get(
+      "movie metadata",
+      `/movie/${tmdbID}`,
       z.object({
         title: z.string(),
         releaseDate: z.string(),
         externalIds: z.object({ imdbId: z.string() }),
       })
     );
-    return resp.data;
   }
 
   async getMetadataTV(tmdbID: number) {
-    const url = `/tv/${tmdbID}`;
-    const resp = await this.get(
-      url,
+    return this.get(
+      "TV show metadata",
+      `/tv/${tmdbID}`,
       z.object({
         name: z.string(),
         externalIds: z.object({ imdbId: z.string() }),
         seasons: z.array(z.object({ seasonNumber: z.number() })),
       })
     );
-    return resp.data;
   }
 
+  // TODO: remove null
   /** Fetch metadata for all approved Overseerr requests and Plex watchlist items.
    * If there are no new requests since last time, return null. */
   async getMetadataForRequestsAndWatchlistItems(options: {
     ignoreCache: boolean;
-  }): Promise<OverseerrRequest[] | null> {
-    const requests = await this.getApprovedRequests();
-    const watchlist = await this.getWatchlistItems();
+  }): Promise<RespData<OverseerrRequest[]>> {
+    const requestsReq = await this.getApprovedRequests();
+    if (!requestsReq.success) return requestsReq;
+    const requests = requestsReq.data.results;
+    const watchlistReq = await this.getWatchlistItems();
+    if (!watchlistReq.success) return watchlistReq;
+    const watchlist = watchlistReq.items;
 
     const nr = this.newRequests(requests);
     const nwi = this.newWatchlistItems(watchlist);
     const newItems = nr || nwi;
 
     if (newItems || options.ignoreCache) {
-      return [
-        ...(await this.rawToOverseerrRequests(requests)),
-        ...(await this.watchlistToOverseerrRequests(watchlist)),
-      ];
+      const r1 = await this.rawToOverseerrRequests(requests);
+      if (!r1.success) return r1;
+      const r2 = await this.watchlistToOverseerrRequests(watchlist);
+      if (!r2.success) return r2;
+      return { success: true, data: [...r1.data, ...r2.data] };
     }
 
     log.debug(
       "no new Overseerr requests or Plex watchlist items since last check"
     );
-    return null;
+    return { success: true, data: [] };
   }
 
   /** Get the full media metadata for a set of Overseerr requests. */
   private async rawToOverseerrRequests(
     requests: RawRequest[]
-  ): Promise<OverseerrRequest[]> {
+  ): Promise<RespData<OverseerrRequest[]>> {
     const inFlight = requests.map(async (request) => {
       const { mediaType, tmdbId } = request.media;
       if (mediaType === "movie") {
         const metadata = await this.getMetadataMovie(tmdbId);
-        const ret: OverseerrRequestMovie = {
+        if (!metadata.success) return metadata;
+        const r: OverseerrRequestMovie = {
           type: "movie",
-          title: metadata.title,
-          imdbID: metadata.externalIds.imdbId,
-          releaseDate: metadata.releaseDate,
+          title: metadata.data.title,
+          imdbID: metadata.data.externalIds.imdbId,
+          releaseDate: metadata.data.releaseDate,
         };
-        return ret;
+        return { success: true as const, request: r };
       }
 
       const metadata = await this.getMetadataTV(tmdbId);
-      const seasons = await Promise.all(
+      if (!metadata.success) return metadata;
+
+      const maybeSeasons = await Promise.all(
         request.seasons
           .filter((s) => s.seasonNumber > 0) // episodes in some Specials seasons lack air dates
           .map(async ({ seasonNumber }) => ({
@@ -238,10 +243,24 @@ export class OverseerrClient {
             data: await this.getMetadataSeason(tmdbId, seasonNumber),
           }))
       );
-      const ret: OverseerrRequestTV = {
+      const seasons: {
+        seasonNumber: number;
+        data: { airDate: string; episodeNumber: number }[];
+      }[] = [];
+      const errors: RespFailure[] = [];
+      for (const s of maybeSeasons) {
+        if (s.data.success) {
+          seasons.push({ seasonNumber: s.seasonNumber, data: s.data.data });
+        } else {
+          errors.push(s.data);
+        }
+      }
+      if (errors.length > 0) return errors[0];
+
+      const r: OverseerrRequestTV = {
         type: "tv",
-        title: metadata.name,
-        imdbID: metadata.externalIds.imdbId,
+        title: metadata.data.name,
+        imdbID: metadata.data.externalIds.imdbId,
         seasons: seasons.map((s) => ({
           season: s.seasonNumber,
           episodes: s.data.map((e) => ({
@@ -250,40 +269,65 @@ export class OverseerrClient {
           })),
         })),
       };
-      return ret;
+      return { success: true as const, request: r };
     });
-    return Promise.all(inFlight);
+
+    const results = await Promise.all(inFlight);
+    const successes: OverseerrRequest[] = [];
+    for (const r of results) {
+      if (!r.success) return r;
+      successes.push(r.request);
+    }
+    return { success: true, data: successes };
   }
 
+  /** Convert the items on the Plex watchlist to Overseerr requests. */
   private async watchlistToOverseerrRequests(
     items: WatchlistItem[]
-  ): Promise<OverseerrRequest[]> {
+  ): Promise<RespData<OverseerrRequest[]>> {
     const inFlight = items.map(async (item) => {
       const { mediaType, tmdbId } = item;
       if (mediaType === "movie") {
         const metadata = await this.getMetadataMovie(tmdbId);
-        const ret: OverseerrRequestMovie = {
+        if (!metadata.success) return metadata;
+        const r: OverseerrRequestMovie = {
           type: "movie",
-          title: metadata.title,
-          imdbID: metadata.externalIds.imdbId,
-          releaseDate: metadata.releaseDate,
+          title: metadata.data.title,
+          imdbID: metadata.data.externalIds.imdbId,
+          releaseDate: metadata.data.releaseDate,
         };
-        return ret;
+        return { success: true as const, request: r };
       }
 
       const metadata = await this.getMetadataTV(tmdbId);
-      const seasons = await Promise.all(
-        metadata.seasons
+      if (!metadata.success) return metadata;
+
+      const maybeSeasons = await Promise.all(
+        metadata.data.seasons
           .filter((s) => s.seasonNumber > 0) // episodes in some Specials seasons lack air dates
           .map(async ({ seasonNumber }) => ({
             seasonNumber,
             data: await this.getMetadataSeason(tmdbId, seasonNumber),
           }))
       );
-      const ret: OverseerrRequestTV = {
+      const seasons: {
+        seasonNumber: number;
+        data: { airDate: string; episodeNumber: number }[];
+      }[] = [];
+      const errors: RespFailure[] = [];
+      for (const s of maybeSeasons) {
+        if (s.data.success) {
+          seasons.push({ seasonNumber: s.seasonNumber, data: s.data.data });
+        } else {
+          errors.push(s.data);
+        }
+      }
+      if (errors.length > 0) return errors[0];
+
+      const r: OverseerrRequestTV = {
         type: "tv",
-        title: metadata.name,
-        imdbID: metadata.externalIds.imdbId,
+        title: metadata.data.name,
+        imdbID: metadata.data.externalIds.imdbId,
         seasons: seasons.map((s) => ({
           season: s.seasonNumber,
           episodes: s.data.map((e) => ({
@@ -292,8 +336,15 @@ export class OverseerrClient {
           })),
         })),
       };
-      return ret;
+      return { success: true as const, request: r };
     });
-    return Promise.all(inFlight);
+
+    const results = await Promise.all(inFlight);
+    const successes: OverseerrRequest[] = [];
+    for (const r of results) {
+      if (!r.success) return r;
+      successes.push(r.request);
+    }
+    return { success: true, data: successes };
   }
 }

@@ -28,10 +28,9 @@ export const torrentioSearchResultSchema = z.object({
 });
 export type TorrentioSearchResult = z.infer<typeof torrentioSearchResultSchema>;
 
-function get(cache: Cache<TorrentioSearchResult[]>, url: string) {
+function get(cache: Cache<TorrentioSearchResult[]>, desc: string, url: string) {
   return cache.get<ZodIssue | RequestError>(url, async () => {
-    log.debug({ url }, "fetching from Torrentio");
-    const result = await getJSON(url, torrentioSearchResultsSchema);
+    const result = await getJSON(desc, url, torrentioSearchResultsSchema);
     if (!result.success) return result;
 
     const unverified = result.data.streams;
@@ -64,7 +63,7 @@ export async function searchTorrentio(
   })();
 
   const url = `${TORRENTIO_HOST}/${debridPathPart}/stream/${typeAndSlug}.json`;
-  const r = await get(cache, url);
+  const r = await get(cache, "searching Torrentio", url);
   if (!r.success) {
     log.warn({ url, errors: r.errors }, "error fetching from Torrentio");
     return null;
@@ -74,6 +73,8 @@ export async function searchTorrentio(
 
 /** Snatch media into a Debrid account via Torrentio URL. */
 export function snatchViaURL(s: Snatchable) {
-  log.debug({ url: s.snatchURL }, "snatching via Torrentio");
-  return fetchResp(s.snatchURL, { method: "HEAD", headers });
+  return fetchResp("snatching via Torrentio", s.snatchURL, {
+    method: "HEAD",
+    headers,
+  });
 }

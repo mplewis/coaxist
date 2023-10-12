@@ -1,6 +1,7 @@
 import pLimit from "p-limit";
 import { pick } from "remeda";
 
+import { RespData } from "../clients/http";
 import {
   OverseerrClient,
   OverseerrRequest,
@@ -145,6 +146,10 @@ export function listOverdue(
   return listOverdueTV(request, searchBeforeReleaseDateMs, now);
 }
 
+function leftPad2d(n: number): string {
+  return n.toString().padStart(2, "0");
+}
+
 /**
  * List the media that should be fetched for approved Radarr requests.
  * @param a.overseerrClient The Overseerr client to use
@@ -156,16 +161,17 @@ export async function listOutstanding(a: {
   ignoreCache: boolean;
   overseerrRequestConcurrency: number;
   searchBeforeReleaseDateMs: number;
-}): Promise<ToFetch[] | "NO_NEW_REQUESTS"> {
+}): Promise<RespData<ToFetch[] | "NO_NEW_REQUESTS">> {
   const { overseerrClient } = a;
   const ignoreCache = a.ignoreCache ?? false;
 
-  const requests =
-    await overseerrClient.getMetadataForRequestsAndWatchlistItems({
-      ignoreCache,
-    });
-  if (!requests) {
-    return "NO_NEW_REQUESTS";
+  const resp = await overseerrClient.getMetadataForRequestsAndWatchlistItems({
+    ignoreCache,
+  });
+  if (!resp.success) return resp;
+  const requests = resp.data;
+  if (!requests.length) {
+    return { success: true, data: "NO_NEW_REQUESTS" };
   }
 
   log.debug(
@@ -180,15 +186,13 @@ export async function listOutstanding(a: {
 
   log.debug(
     {
-      results: results.map((r) => ({
-        type: r.type,
-        imdbID: r.imdbID,
-        title: r.title,
-        season: "season" in r ? r.season : undefined,
-        episode: "episode" in r ? r.episode : undefined,
-      })),
+      results: results.map((r) => {
+        const s = "season" in r ? ` S${leftPad2d(r.season)}` : "";
+        const e = "episode" in r ? ` E${leftPad2d(r.episode)}` : "";
+        return `${r.imdbID}: ${r.title}${s}${e}`;
+      }),
     },
     "built list of current Overseerr requests"
   );
-  return results.flat();
+  return { success: true, data: results.flat() };
 }

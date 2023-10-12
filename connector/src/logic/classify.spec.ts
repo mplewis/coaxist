@@ -263,10 +263,14 @@ describe("parseTorrentInfo", () => {
           },
         },
       },
+      // parse properly when neither torrent nor filename have quality
       {
         name: "[RD+] Torrentio\nWEBRip",
-        title:
-          "Homestead Rescue S08 Complete WEBRip x264-skorpion\nHomestead.Rescue.S08E01.Sweet.Homestead.Alabama.WEBRip.x264-skorpion.mp4\n👤 3 💾 981.8 MB ⚙️ 1337x",
+        title: stripIndent`
+          Homestead Rescue S08 Complete WEBRip x264-skorpion
+          Homestead.Rescue.S08E01.Sweet.Homestead.Alabama.WEBRip.x264-skorpion.mp4
+          👤 3 💾 981.8 MB ⚙️ 1337x
+        `,
         expected: {
           bytes: 1029491916,
           cached: true,
@@ -274,12 +278,71 @@ describe("parseTorrentInfo", () => {
           season: 8,
           originalResult: {
             name: "[RD+] Torrentio\nWEBRip",
-            title:
-              "Homestead Rescue S08 Complete WEBRip x264-skorpion\nHomestead.Rescue.S08E01.Sweet.Homestead.Alabama.WEBRip.x264-skorpion.mp4\n👤 3 💾 981.8 MB ⚙️ 1337x",
+            title: stripIndent`
+              Homestead Rescue S08 Complete WEBRip x264-skorpion
+              Homestead.Rescue.S08E01.Sweet.Homestead.Alabama.WEBRip.x264-skorpion.mp4
+              👤 3 💾 981.8 MB ⚙️ 1337x
+            `,
             url: "some url",
           },
           quality: "1080p",
           seeders: 3,
+          tags: ["cached", "h264", "web"],
+          tracker: "1337x",
+        },
+      },
+      // parse properly when torrent has quality but filename doesn't
+      {
+        name: "[AD+] Torrentio\nWEBRip",
+        title: stripIndent`
+          Mr Robot S01 Complete 4k
+          Mr.Robot.S01E01.eps1.0_hellofriend.mov.WEBRip.x264-fs0ci3ty.mp4
+          👤 1 💾 1.23 GB ⚙️ 1337x
+        `,
+        expected: {
+          bytes: 1320702443,
+          cached: true,
+          mediaType: "season",
+          season: 1,
+          originalResult: {
+            name: "[AD+] Torrentio\nWEBRip",
+            title: stripIndent`
+              Mr Robot S01 Complete 4k
+              Mr.Robot.S01E01.eps1.0_hellofriend.mov.WEBRip.x264-fs0ci3ty.mp4
+              👤 1 💾 1.23 GB ⚙️ 1337x
+            `,
+            url: "some url",
+          },
+          quality: "2160p",
+          seeders: 1,
+          tags: ["cached", "h264", "web"],
+          tracker: "1337x",
+        },
+      },
+      // parse properly when filename has quality but torrent doesn't
+      {
+        name: "[AD+] Torrentio\nWEBRip",
+        title: stripIndent`
+          Mr Robot S01 Complete
+          Mr.Robot.S01E01.eps1.0_hellofriend.mov.4k.WEBRip.x264-fs0ci3ty.mp4
+          👤 1 💾 1.23 GB ⚙️ 1337x
+        `,
+        expected: {
+          bytes: 1320702443,
+          cached: true,
+          mediaType: "season",
+          season: 1,
+          originalResult: {
+            name: "[AD+] Torrentio\nWEBRip",
+            title: stripIndent`
+              Mr Robot S01 Complete
+              Mr.Robot.S01E01.eps1.0_hellofriend.mov.4k.WEBRip.x264-fs0ci3ty.mp4
+              👤 1 💾 1.23 GB ⚙️ 1337x
+            `,
+            url: "some url",
+          },
+          quality: "2160p",
+          seeders: 1,
           tags: ["cached", "h264", "web"],
           tracker: "1337x",
         },

@@ -1,10 +1,20 @@
-import { SafeParseReturnType } from "zod";
+import { SafeParseReturnType, ZodIssue } from "zod";
 
 import log from "../log";
 import { Result, Retryable, retry } from "../util/retry";
 
 // eslint-disable-next-line no-restricted-globals
 const nodeFetch = fetch;
+
+export type RespData<T> = RespSuccess<T> | RespFailure;
+export type RespSuccess<T> = {
+  success: true;
+  data: T;
+};
+export type RespFailure = {
+  success: false;
+  errors: (RequestError | ZodIssue)[];
+};
 
 type RequestableURL =
   | string
@@ -24,11 +34,13 @@ function queryToStr(query: Record<string, any>) {
 
 /**
  * Make a request against an endpoint.
+ * @param desc a description of the task the request is performing
  * @param url the URL to fetch
  * @param opts options for the `fetch` request
  * @returns the response, or the errors
  */
 export function fetchResp(
+  desc: string,
   url: RequestableURL,
   opts: RequestInit
 ): Promise<Result<Response, RequestError>> {
@@ -38,7 +50,7 @@ export function fetchResp(
         ? url
         : `${url.url}?${queryToStr(url.query)}`;
 
-    log.debug({ u, opts }, "fetching");
+    log.debug({ u, opts }, `fetching: ${desc}`);
     const resp = await nodeFetch(u, opts);
     const { status, statusText } = resp;
 
@@ -79,22 +91,24 @@ export function fetchResp(
 
 /**
  * Make a request against an endpoint which returns JSON.
+ * @param desc a description of the task the request is performing
  * @param url the URL to fetch
  * @param schema the schema to use to parse the response
  * @param opts options for the `fetch` request
  * @returns the requested data, or the errors
  */
 async function fetchJSON<T>(
+  desc: string,
   url: RequestableURL,
   schema: Validator<T>,
   opts: RequestInit
-) {
+): Promise<RespData<T>> {
   const o = {
     ...opts,
     headers: { Accept: "application/json", ...(opts.headers ?? {}) },
   };
 
-  const result = await fetchResp(url, o);
+  const result = await fetchResp(desc, url, o);
   if (!result.success) return result;
 
   const data = await result.data.json();
@@ -107,34 +121,39 @@ async function fetchJSON<T>(
 
 /**
  * Make a GET request against an endpoint.
+ * @param desc a description of the task the request is performing
  * @param url the URL to fetch
  * @param opts options for the `fetch` request
  * @returns the response, or the errors
  */
 export async function get(
+  desc: string,
   url: RequestableURL,
   opts: RequestInit = {}
 ): Promise<Result<Response, RequestError>> {
-  return fetchResp(url, { ...opts, method: "GET" });
+  return fetchResp(desc, url, { ...opts, method: "GET" });
 }
 
 /**
  * Make a GET request against an endpoint which returns JSON.
+ * @param desc a description of the task the request is performing
  * @param url the URL to fetch
  * @param schema the schema to use to parse the response
  * @param opts options for the `fetch` request
  * @returns the requested data, or the errors
  */
 export async function getJSON<T>(
+  desc: string,
   url: RequestableURL,
   schema: Validator<T>,
   opts: RequestInit = {}
 ) {
-  return fetchJSON(url, schema, { ...opts, method: "GET" });
+  return fetchJSON(desc, url, schema, { ...opts, method: "GET" });
 }
 
 /**
  * Make a POST request against an endpoint which returns JSON.
+ * @param desc a description of the task the request is performing
  * @param url the URL to fetch
  * @param body the body to send
  * @param schema the schema to use to parse the response
@@ -142,10 +161,11 @@ export async function getJSON<T>(
  * @returns the requested data, or the errors
  */
 export async function postJSON<T>(
+  desc: string,
   url: RequestableURL,
   body: BodyInit,
   schema: Validator<T>,
   opts: RequestInit = {}
 ) {
-  return fetchJSON(url, schema, { ...opts, method: "POST", body });
+  return fetchJSON(desc, url, schema, { ...opts, method: "POST", body });
 }
