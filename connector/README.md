@@ -51,5 +51,5 @@
 - [x] Summarize "all snatches complete" as count – redundant
 - [x] Auto-order TS imports
 - [ ] Don't throw in Overseerr Client
-- [ ] Fix quality parsing fallback when at least one quality is present on
+- [x] Fix quality parsing fallback when at least one quality is present on
       filename/torrent

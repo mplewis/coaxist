@@ -11,6 +11,7 @@ import {
 } from "./parse";
 import { ContainedMediaType } from "./rank";
 
+const ASSUMED_QUALITY = "1080p"; // If we can't determine a quality, fall back to this
 const SEASON_MATCHER = /\bs(\d+)\b/i;
 const EPISODE_MATCHER = /\bs(\d+)e(\d+)\b/i;
 
@@ -20,6 +21,11 @@ export type TorrentInfo = Classification &
     mediaType: ContainedMediaType;
     originalResult: TorrentioSearchResult;
   };
+
+export type ClassificationMaybeQuality = {
+  quality?: Quality;
+  tags: Tag[];
+} & Numbering;
 
 /** A piece of media that has been classified with a known quality, numbering (if applicable), and tagged. */
 export type Classification = { quality: Quality; tags: Tag[] } & Numbering;
@@ -31,13 +37,11 @@ export type Numbering =
   | { mediaType: "movie" };
 
 /** Classify a torrent based on its raw name. */
-export function classify(s: string): Classification {
+export function classify(s: string): ClassificationMaybeQuality {
   const tokens = tokenize(s);
-  let quality = parseFromTokens(tokens, QUALITY_MATCHERS)[0] as Quality;
-  if (!quality) {
-    log.warn({ raw: s }, "Failed to parse quality. Assuming 1080p.");
-    quality = "1080p";
-  }
+  const quality = parseFromTokens(tokens, QUALITY_MATCHERS)[0] as
+    | Quality
+    | undefined;
   const tags = parseFromTokens(tokens, TAG_MATCHERS) as Tag[];
 
   if (s.match(EPISODE_MATCHER)) {
@@ -54,14 +58,19 @@ export function classify(s: string): Classification {
   return { quality, tags, mediaType: "movie" };
 }
 
+function assumeQualityIfUnset(c: ClassificationMaybeQuality): Classification {
+  if (c.quality) return c as Classification;
+  return { ...c, quality: ASSUMED_QUALITY };
+}
+
 /**
  * Build numbering from the torrent and filename.
  * Since we're parsing info for a torrent, if the torrent is for an entire season,
  * return the torrent's season rather than the file's episode number.
  */
 function numberingFrom(
-  filename: Classification | null,
-  torrent: Classification | null
+  filename: Numbering | null,
+  torrent: Numbering | null
 ): Numbering {
   if (torrent && "season" in torrent && !("episode" in torrent)) return torrent; // Torrent is for a full season
   if (filename && "episode" in filename) return filename;
@@ -82,7 +91,7 @@ export function classifyTorrentioResult(
   const { torrentLine, filenameLine, seeders, bytes, tracker, cached } = parsed;
 
   const cl: Classification | null = (() => {
-    if (!torrentLine) return classify(filenameLine);
+    if (!torrentLine) return assumeQualityIfUnset(classify(filenameLine));
 
     // The filename is often more descriptive than the torrent name, so prefer it
     const clF = classify(filenameLine);
@@ -91,7 +100,7 @@ export function classifyTorrentioResult(
     const tagsT = (clT && clT.tags) || [];
     const tagsF = (clF && clF.tags) || [];
     const tags = [...tagsT, ...tagsF];
-    return { ...numberingFrom(clF, clT), quality, tags };
+    return assumeQualityIfUnset({ ...numberingFrom(clF, clT), quality, tags });
   })();
   if (!cl) return null;
 
