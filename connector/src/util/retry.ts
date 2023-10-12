@@ -86,11 +86,9 @@ export async function retry<T, E>(
       nextMaxDelay: delay,
     });
 
-    alog.debug("retry: calling fn with retry");
     // eslint-disable-next-line no-await-in-loop
     const outcome = await fn();
     if (outcome.state === "done") {
-      alog.debug("retryOpts: got result");
       return { success: true, data: outcome.data, errors };
     }
 
@@ -110,7 +108,6 @@ export async function retry<T, E>(
       Math.random() * delay, // full jitter
       maxDurationMs - (Date.now() - start) // one last try
     );
-    alog.debug("retry: retrying", { toSleep });
     // eslint-disable-next-line no-await-in-loop
     await sleep(toSleep);
     delay *= 2; // exponential backoff

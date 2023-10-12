@@ -146,6 +146,10 @@ export function listOverdue(
   return listOverdueTV(request, searchBeforeReleaseDateMs, now);
 }
 
+function leftPad2d(n: number): string {
+  return n.toString().padStart(2, "0");
+}
+
 /**
  * List the media that should be fetched for approved Radarr requests.
  * @param a.overseerrClient The Overseerr client to use
@@ -182,13 +186,11 @@ export async function listOutstanding(a: {
 
   log.debug(
     {
-      results: results.map((r) => ({
-        type: r.type,
-        imdbID: r.imdbID,
-        title: r.title,
-        season: "season" in r ? r.season : undefined,
-        episode: "episode" in r ? r.episode : undefined,
-      })),
+      results: results.map((r) => {
+        const s = "season" in r ? ` S${leftPad2d(r.season)}` : "";
+        const e = "episode" in r ? ` E${leftPad2d(r.episode)}` : "";
+        return `${r.imdbID}: ${r.title}${s}${e}`;
+      }),
     },
     "built list of current Overseerr requests"
   );

@@ -59,16 +59,17 @@ export class OverseerrClient {
 
   constructor(private a: { host: string; apiKey: string }) {}
 
-  private async get<T>(path: string, schema: Schema<T>) {
+  private async get<T>(desc: string, path: string, schema: Schema<T>) {
     const url = `${this.a.host}/api/v1${path}`;
     const headers = { "X-Api-Key": this.a.apiKey };
-    return getJSON<T>(url, schema, { headers });
+    return getJSON<T>(desc, url, schema, { headers });
   }
 
   /** List approved Overseerr requests. */
   async getApprovedRequests() /*: Promise<RespData<RawRequest[]>> */ {
     const url = `/request?take=99999999&filter=approved`;
     return this.get(
+      "approved Overseerr requests",
       url,
       z.object({
         results: z.array(RAW_REQUEST_SCHEMA),
@@ -79,7 +80,11 @@ export class OverseerrClient {
   /** List all items on the Plex watchlist. */
   async getWatchlistItems() {
     const getPage = async (page: number) =>
-      this.get(`/discover/watchlist?page=${page}`, WATCHLIST_PAGE_SCHEMA);
+      this.get(
+        "page of Plex watchlist items",
+        `/discover/watchlist?page=${page}`,
+        WATCHLIST_PAGE_SCHEMA
+      );
 
     const first = await getPage(1);
     if (!first.success) return first;
@@ -133,6 +138,7 @@ export class OverseerrClient {
   async getMetadataSeason(tmdbID: number, season: number) {
     const url = `/tv/${tmdbID}/season/${season}`;
     const resp = await this.get(
+      "TV season metadata",
       url,
       z.object({
         episodes: z.array(
@@ -155,6 +161,7 @@ export class OverseerrClient {
   /** Get the metadata for a movie. */
   async getMetadataMovie(tmdbID: number) {
     return this.get(
+      "movie metadata",
       `/movie/${tmdbID}`,
       z.object({
         title: z.string(),
@@ -166,6 +173,7 @@ export class OverseerrClient {
 
   async getMetadataTV(tmdbID: number) {
     return this.get(
+      "TV show metadata",
       `/tv/${tmdbID}`,
       z.object({
         name: z.string(),

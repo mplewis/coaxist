@@ -50,7 +50,9 @@
 - [x] Log tags in "snatched media" and "all snatches complete" msg
 - [x] Summarize "all snatches complete" as count – redundant
 - [x] Auto-order TS imports
-- [ ] Don't throw in Overseerr Client
+- [x] Don't throw in Overseerr Client
 - [x] Fix quality parsing fallback when at least one quality is present on
       filename/torrent
-- [ ] Pass name of call along to http calls for logging
+- [x] Pass name of call along to http calls for logging
+- [ ] Figure out sane way to do optionals in UberConf to not disrupt existing
+      users on upgrade
