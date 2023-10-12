@@ -41,6 +41,10 @@ fully transferrable between containers. The `transcode` directory holds
 temporary transcoded media files and can be safely mounted into a temp
 directory.
 
+At this point, the container will be restarting, as it refuses to start with the
+example `config.yaml`. For now, you can ignore these restarts – they will go away
+after you update the config.
+
 # 2. Configure Coaxist in `config.yaml`
 
 After starting the container, Coaxist creates `/config/config.yaml` with some
