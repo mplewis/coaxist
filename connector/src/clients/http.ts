@@ -51,7 +51,16 @@ export function fetchResp(
         : `${url.url}?${queryToStr(url.query)}`;
 
     log.debug({ u, opts }, `fetching: ${desc}`);
-    const resp = await nodeFetch(u, opts);
+    let resp: Response;
+    try {
+      resp = await nodeFetch(u, opts);
+    } catch (e: any) {
+      return {
+        state: "retry",
+        error: { status: -1, text: e?.message || `${e}` },
+        // TODO: investigate error.log. what is crashing us?
+      };
+    }
     const { status, statusText } = resp;
 
     if (status >= 200 && status < 300) {
