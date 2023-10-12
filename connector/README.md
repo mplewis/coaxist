@@ -53,3 +53,4 @@
 - [ ] Don't throw in Overseerr Client
 - [x] Fix quality parsing fallback when at least one quality is present on
       filename/torrent
+- [ ] Pass name of call along to http calls for logging
