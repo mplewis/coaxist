@@ -10,6 +10,14 @@ if [ ! -f /config/rclone/start.sh ]; then
 	echo "#######################################################################"
 fi
 
+if [ ! -f /config/rclone/rclone.conf ]; then
+  echo "/config/rclone/rclone.conf does not exist yet."
+	echo "UberConf creates this file using the Debrid creds in /config/config.yaml."
+	echo "Waiting 30 seconds before checking again."
+	sleep 30
+  exit 1
+fi
+
 echo "Starting rclone."
 rm -rf /media
 mkdir -p /media
