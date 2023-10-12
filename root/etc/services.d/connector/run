@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
+export COAXIST_ROOT_CONFIG_DIR=/config
 export UBERCONF_PATH=/config/config.yaml
 export STORAGE_DIR=/config/connector
 export OVERSEERR_CONFIG_PATH=/config/overseerr/settings.json
@@ -8,5 +9,6 @@ export OVERSEERR_HOST=http://localhost:5055
 
 (
 	cd /app/connector
+	pnpm configure
 	pnpm start
 )

@@ -42,8 +42,8 @@ temporary transcoded media files and can be safely mounted into a temp
 directory.
 
 At this point, the container will be restarting, as it refuses to start with the
-example `config.yaml`. For now, you can ignore these restarts – they will go away
-after you update the config.
+example `config.yaml`. For now, you can ignore these restarts – they will go
+away after you update the config.
 
 # 2. Configure Coaxist in `config.yaml`
 

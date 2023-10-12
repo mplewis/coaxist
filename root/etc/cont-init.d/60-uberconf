@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-export COAXIST_ROOT_CONFIG_DIR=/config
-
-(
-	cd /app/connector
-	pnpm configure
-)
