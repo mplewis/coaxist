@@ -13,6 +13,9 @@ echo "Building coaxist container."
 
 ./build.sh
 
+mkdir -p "$(pwd)/tmp/config"
+mkdir -p "$(pwd)/tmp/transcode"
+
 echo "Running coaxist container."
 
 docker run \
@@ -21,8 +24,6 @@ docker run \
 	--security-opt apparmor:unconfined \
 	--mount type=bind,source="$(pwd)"/tmp/config,target=/config \
 	--mount type=bind,source="$(pwd)"/tmp/transcode,target=/transcode \
-	-p 32400:32400 \
-	-p 5055:5055 \
 	--name "coaxist" \
 	-it "$APP_TAG" \
 	"$@"
