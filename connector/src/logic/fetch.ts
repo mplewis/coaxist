@@ -77,7 +77,12 @@ export async function fetchOutstanding(a: {
   } = a;
 
   log.debug({ ignoreCache }, "fetching Overseerr requests");
-  const requested = await listOutstanding(a);
+  const resp = await listOutstanding(a);
+  if (!resp.success) {
+    log.error({ errors: resp.errors }, "failed to fetch Overseerr requests");
+    return;
+  }
+  const requested = resp.data;
   if (requested === "NO_NEW_REQUESTS") {
     log.debug("no new Overseerr requests, nothing to do");
     return;
