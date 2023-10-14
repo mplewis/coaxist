@@ -15,12 +15,18 @@ export type RespFailure = {
   success: false;
   errors: (RequestError | ZodIssue)[];
 };
+export type RequestError = {
+  method: string;
+  url: string;
+  status: number;
+  statusText: string;
+  text: string;
+};
 
 type RequestableURL =
   | string
   | URL
   | { url: string | URL; query: Record<string, any> };
-export type RequestError = { status: number; text: string };
 export type Validator<T> = {
   safeParse: (data: any) => SafeParseReturnType<T, T>;
 };
@@ -47,21 +53,27 @@ export function fetchResp(
   const fn: Retryable<Response, RequestError> = async () => {
     let u =
       typeof url === "string" || url instanceof URL
-        ? url
+        ? url.toString()
         : `${url.url}?${queryToStr(url.query)}`;
 
     log.debug({ u, opts }, `fetching: ${desc}`);
+    const meta1 = { method: opts.method ?? "fetch", url: u };
     let resp: Response;
     try {
       resp = await nodeFetch(u, opts);
     } catch (e: any) {
       return {
-        state: "retry",
-        error: { status: -1, text: e?.message || `${e}` },
-        // TODO: investigate error.log. what is crashing us?
+        state: "error",
+        error: {
+          ...meta1,
+          status: -1,
+          statusText: `${e?.cause?.code ?? "unknown"}`,
+          text: `${e?.cause ?? e?.message ?? e}`,
+        },
       };
     }
     const { status, statusText } = resp;
+    const meta2 = { ...meta1, status, statusText };
 
     if (status >= 200 && status < 300) {
       return { state: "done", data: resp };
@@ -72,27 +84,24 @@ export function fetchResp(
       if (!loc) {
         return {
           state: "error",
-          error: {
-            status,
-            statusText,
-            text: "no location header for redirect",
-          },
+          error: { ...meta2, text: "no location header for redirect" },
         };
       }
       u = loc;
+      // HACK
       return {
         state: "retry",
-        error: { status, statusText, text: `redirecting to ${loc}` },
+        error: { ...meta2, text: `redirecting to ${loc}` },
       };
     }
 
     if (status >= 500) {
       const text = await resp.text();
-      return { state: "retry", error: { status, statusText, text } };
+      return { state: "retry", error: { ...meta2, text } };
     }
 
     const text = await resp.text();
-    return { state: "error", error: { status, statusText, text } };
+    return { state: "error", error: { ...meta2, text } };
   };
 
   return retry(`${opts.method ?? "fetch"} ${url}`, fn);
