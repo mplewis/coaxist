@@ -2,12 +2,12 @@ import pLimit from "p-limit";
 import { pick } from "remeda";
 
 import { RespData } from "../clients/http";
+import { OverseerrClient } from "../clients/overseerr";
 import {
-  OverseerrClient,
   OverseerrRequest,
   OverseerrRequestMovie,
   OverseerrRequestTV,
-} from "../clients/overseerr";
+} from "../clients/overseerr.types";
 import log from "../log";
 
 import { ContainedMediaType } from "./rank";

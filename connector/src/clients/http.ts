@@ -1,5 +1,6 @@
 import { SafeParseReturnType, ZodIssue } from "zod";
 
+import { CommonError } from "../data/error";
 import log from "../log";
 import { Result, Retryable, retry } from "../util/retry";
 
@@ -13,7 +14,7 @@ export type RespSuccess<T> = {
 };
 export type RespFailure = {
   success: false;
-  errors: (RequestError | ZodIssue)[];
+  errors: CommonError[];
 };
 export type RequestError = {
   method: string;

@@ -54,7 +54,11 @@ async function main() {
   const snatchExpiryMs = uberConf.connector.snatch.debridExpiry;
   const refreshWithinExpiryMs = uberConf.connector.snatch.refreshWithinExpiry;
 
+  const cacheDir = join(envConf.STORAGE_DIR, "cache");
+  const cacheDB = new Level(cacheDir);
+
   const overseerrClient = new OverseerrClient({
+    cacheDB,
     host: envConf.OVERSEERR_HOST,
     apiKey: overseerrAPIKey,
   });
@@ -62,8 +66,6 @@ async function main() {
   const databaseUrl = `file:${envConf.STORAGE_DIR}/db.sqlite`;
   const { client, db } = await connectDB(databaseUrl);
 
-  const cacheDir = join(envConf.STORAGE_DIR, "cache");
-  const cacheDB = new Level(cacheDir);
   const torrentioCache = new Cache<TorrentioSearchResult[]>(
     cacheDB,
     "torrentio",
