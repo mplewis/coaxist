@@ -1,10 +1,8 @@
-import { readFileSync } from "fs";
 import { join } from "path";
 
 import { PrismaClient } from "@prisma/client";
 import execa from "execa";
 import { Level } from "level";
-import ms from "ms";
 import pLimit from "p-limit";
 import z from "zod";
 
@@ -14,48 +12,12 @@ import {
   TorrentioSearchResult,
   torrentioSearchResultSchema,
 } from "./clients/torrentio";
-import { toDebridCreds } from "./data/debrid";
+import { loadConfig } from "./data/config";
 import log from "./log";
 import { fetchOutstanding } from "./logic/fetch";
 import { resnatchOverdue } from "./logic/snatch";
 import { Cache } from "./store/cache";
-import { loadOrInitUberConf } from "./uberconf/uberconf";
-import { secureHash } from "./util/hash";
-
-const ENV_CONF_SCHEMA = z.intersection(
-  z.object({
-    /** Location of the config.yaml which holds the UberConf data */
-    UBERCONF_PATH: z.string(),
-    /** Directory where Connector will store all of its state */
-    STORAGE_DIR: z.string(),
-    /** Location of the Overseerr server */
-    OVERSEERR_HOST: z.string().default("http://localhost:5055"),
-  }),
-  z.union([
-    z.object({ OVERSEERR_CONFIG_PATH: z.string() }),
-    z.object({ OVERSEERR_API_KEY: z.string() }),
-  ])
-);
-
-function getOverseerrAPIKey(path: string): string {
-  const raw = readFileSync(path, "utf-8");
-  const data = JSON.parse(raw);
-  return data.main.apiKey;
-}
-
-function schedule(desc: string, intervalMs: number, task: () => Promise<void>) {
-  setInterval(async () => {
-    log.debug({ task: desc }, "running periodic task");
-    const start = new Date();
-    await task();
-    log.debug(
-      { task: desc, durationMs: new Date().getTime() - start.getTime() },
-      "periodic task complete"
-    );
-  }, intervalMs);
-  const intervalDesc = ms(intervalMs, { long: true });
-  log.info({ task: desc, interval: intervalDesc }, "registered periodic task");
-}
+import { schedule } from "./util/schedule";
 
 async function connectDB(dbURL: string) {
   log.info({ url: dbURL }, "connecting to database");
@@ -79,14 +41,11 @@ async function connectDB(dbURL: string) {
 async function main() {
   log.info("starting Coaxist Connector");
 
-  const envConf = ENV_CONF_SCHEMA.parse(process.env);
-  const uberConf = loadOrInitUberConf(envConf.UBERCONF_PATH);
-  const overseerrAPIKey = (() => {
-    if ("OVERSEERR_API_KEY" in envConf) return envConf.OVERSEERR_API_KEY;
-    return getOverseerrAPIKey(envConf.OVERSEERR_CONFIG_PATH);
-  })();
-  const profiles = uberConf.mediaProfiles;
+  const config = loadConfig();
+  const { envConf, uberConf, overseerrAPIKey, debridCreds, debridCredsHash } =
+    config;
 
+  const profiles = uberConf.mediaProfiles;
   const torrentioRequestConcurrency =
     uberConf.connector.torrentio.requestConcurrency;
   const overseerrRequestConcurrency =
@@ -94,9 +53,6 @@ async function main() {
   const searchBeforeReleaseDateMs = uberConf.connector.search.beforeReleaseDate;
   const snatchExpiryMs = uberConf.connector.snatch.debridExpiry;
   const refreshWithinExpiryMs = uberConf.connector.snatch.refreshWithinExpiry;
-
-  const debridCreds = toDebridCreds(uberConf.debrid);
-  const debridCredsHash = secureHash(debridCreds);
 
   const overseerrClient = new OverseerrClient({
     host: envConf.OVERSEERR_HOST,
