@@ -1,4 +1,4 @@
-import { ZodIssue, z } from "zod";
+import { z } from "zod";
 
 import { DebridCreds, buildDebridPathPart } from "../data/debrid";
 import log from "../log";
@@ -6,7 +6,8 @@ import { ToFetch } from "../logic/list";
 import { Cache } from "../store/cache";
 import { VERSION } from "../util/version";
 
-import { RequestError, fetchResp, getJSON } from "./http";
+import { fetchResp, getJSON } from "./http";
+import { CommonError } from "./http.types";
 
 const TORRENTIO_HOST = "https://torrentio.strem.fun";
 
@@ -29,7 +30,7 @@ export const torrentioSearchResultSchema = z.object({
 export type TorrentioSearchResult = z.infer<typeof torrentioSearchResultSchema>;
 
 function get(cache: Cache<TorrentioSearchResult[]>, desc: string, url: string) {
-  return cache.get<ZodIssue | RequestError>(url, async () => {
+  return cache.get<CommonError>(url, async () => {
     const result = await getJSON(desc, url, torrentioSearchResultsSchema);
     if (!result.success) return result;
 

@@ -1,27 +1,12 @@
-import { SafeParseReturnType, ZodIssue } from "zod";
+import { SafeParseReturnType } from "zod";
 
 import log from "../log";
 import { Result, Retryable, retry } from "../util/retry";
 
+import { RequestError, RespData } from "./http.types";
+
 // eslint-disable-next-line no-restricted-globals
 const nodeFetch = fetch;
-
-export type RespData<T> = RespSuccess<T> | RespFailure;
-export type RespSuccess<T> = {
-  success: true;
-  data: T;
-};
-export type RespFailure = {
-  success: false;
-  errors: (RequestError | ZodIssue)[];
-};
-export type RequestError = {
-  method: string;
-  url: string;
-  status: number;
-  statusText: string;
-  text: string;
-};
 
 type RequestableURL =
   | string
