@@ -3,13 +3,9 @@ import { withDir } from "tmp-promise";
 import { describe, expect, it } from "vitest";
 import z from "zod";
 
-import { Cache } from "./cache";
+import { sleep } from "../util/sleep";
 
-function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
+import { Cache } from "./cache";
 
 describe("Cache", () => {
   it("caches values as expected", async () => {
