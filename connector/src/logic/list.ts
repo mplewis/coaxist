@@ -1,7 +1,7 @@
 import pLimit from "p-limit";
 import { pick } from "remeda";
 
-import { RespData } from "../clients/http";
+import { RespData } from "../clients/http.types";
 import { OverseerrClient } from "../clients/overseerr";
 import {
   OverseerrRequest,

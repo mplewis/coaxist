@@ -6,7 +6,8 @@ import z, { Schema } from "zod";
 import { Cache } from "../store/cache";
 import { secureHash } from "../util/hash";
 
-import { RespData, RespFailure, getJSON } from "./http";
+import { getJSON } from "./http";
+import { RespData, RespFailure } from "./http.types";
 import {
   MOVIE_METADATA_SCHEMA,
   MovieMetadata,
