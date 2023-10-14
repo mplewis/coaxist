@@ -2,6 +2,7 @@ import ms from "ms";
 
 import log from "../log";
 
+/** Schedule a task to run periodically. */
 export function schedule(
   desc: string,
   intervalMs: number,

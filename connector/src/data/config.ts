@@ -23,6 +23,7 @@ const ENV_CONF_SCHEMA = z.intersection(
   ])
 );
 
+/** Get the Overseerr API key from its config file. */
 function getOverseerrAPIKey(path: string): string {
   const raw = readFileSync(path, "utf-8");
   const data = JSON.parse(raw);
