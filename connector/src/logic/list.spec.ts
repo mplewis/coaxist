@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   OverseerrRequestMovie,
   OverseerrRequestTV,
-} from "../clients/overseerr";
+} from "../clients/overseerr.types";
 import { Given } from "../test/given";
 
 import {
