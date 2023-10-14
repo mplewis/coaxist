@@ -2,7 +2,7 @@
 set -euxo pipefail
 
 # --config: location of the config file
-# mount provider:/torrents /media: connect to the source named [provider] in rclone.conf and mount the remote /torrents directory into local /media
+# mount provider:/ /media: connect to the source named [provider] in rclone.conf and mount the remote / directory into local /media
 # --allow-other: allow user `plex` to access our files
 # everything else are recommended settings for AllDebrid: https://help.alldebrid.com/en/faq/rclone-webdav
 
@@ -16,6 +16,4 @@ rclone \
 	--network-mode \
 	--read-only \
 	--vfs-cache-mode minimal \
-	mount \
-	provider:/torrents \
-	/media
+	mount provider:/ /media
