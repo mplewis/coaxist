@@ -2,6 +2,8 @@ import ms from "ms";
 
 import log from "../log";
 
+import { sleep } from "./sleep";
+
 /** A function that can be retried and may return temporary or permanent errors. */
 export type Retryable<T, E> = () => Promise<Attempt<T, E>>;
 /** The result of an attempt for a retryable function. */
@@ -29,12 +31,6 @@ const DEFAULT_BACKOFF_OPTIONS: RetryOptions = {
   initialDelayMs: ms("0.1s"),
   maxAttempts: Infinity,
 };
-
-function sleep(durationMs: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, durationMs);
-  });
-}
 
 /**
  * Retry a function until it succeeds or we run out of attempts or time.
