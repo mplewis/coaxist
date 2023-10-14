@@ -1,7 +1,6 @@
 import { isTruthy, map, pipe, sortBy } from "remeda";
 import z from "zod";
 
-import log from "../log";
 import { secureHash } from "../util/hash";
 
 import { RespData, RespFailure, getJSON } from "./http";
@@ -208,9 +207,6 @@ export class OverseerrClient {
       return { success: true, data: [...r1.data, ...r2.data] };
     }
 
-    log.debug(
-      "no new Overseerr requests or Plex watchlist items since last check"
-    );
     return { success: true, data: [] };
   }
 
