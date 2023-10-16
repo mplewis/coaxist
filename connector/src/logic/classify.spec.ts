@@ -5,7 +5,12 @@ import { Quality, compareQuality } from "../data/quality";
 import { TAG_MATCHERS } from "../data/tag";
 import { findSlidingWindowMatch } from "../util/search";
 
-import { TorrentInfo, classify, classifyTorrentioResult } from "./classify";
+import {
+  TorrentInfo,
+  bestMount,
+  classify,
+  classifyTorrentioResult,
+} from "./classify";
 import { parseFromTokens, tokenize } from "./parse";
 
 describe("compareQuality", () => {
@@ -352,5 +357,34 @@ describe("parseTorrentInfo", () => {
       const actual = classifyTorrentioResult({ name, title, url: "some url" });
       expect(actual, title).toEqual(expected);
     }
+  });
+});
+
+describe("bestMount", () => {
+  it("categorizes files as expected", () => {
+    const paths = [
+      "Asteroid.City.2023.2160p.4K.WEB.x265.10bit.AAC5.1-[YTS.MX].mkv/Asteroid.City.2023.2160p.4K.WEB.x265.10bit.AAC5.1-[YTS.MX].mkv",
+      "Cyberpunk - Edgerunners - S01 - MULTi 1080p WEB DV H.265 -NanDesuKa (NF)/Cyberpunk - Edgerunners - S01E01 - MULTi 1080p WEB DV H.265 -NanDesuKa (NF).mkv",
+      "Logans.Run.1976.1080p.BluRay.REMUX.VC-1.TrueHD.5.1-FGT/Logans.Run.1976.1080p.BluRay1.TrueHD.5.1-FGT.mkv",
+      "[nyadex] Spy x Family - S01 [01-12] (BD 1080p HEVC FLAC-AAC Multi-Audio)/[nyadex] Spy x Family - 01 (BD 1080p HEVC FLAC-AAC Multi-Audio).mkv",
+    ];
+    const sorted: Record<string, string[]> = {};
+    for (const path of paths) {
+      const mount = bestMount(path);
+      if (!sorted[mount]) sorted[mount] = [];
+      sorted[mount].push(path);
+    }
+    expect(sorted).toMatchInlineSnapshot(`
+      {
+        "movie": [
+          "Asteroid.City.2023.2160p.4K.WEB.x265.10bit.AAC5.1-[YTS.MX].mkv/Asteroid.City.2023.2160p.4K.WEB.x265.10bit.AAC5.1-[YTS.MX].mkv",
+          "Logans.Run.1976.1080p.BluRay.REMUX.VC-1.TrueHD.5.1-FGT/Logans.Run.1976.1080p.BluRay1.TrueHD.5.1-FGT.mkv",
+        ],
+        "series": [
+          "Cyberpunk - Edgerunners - S01 - MULTi 1080p WEB DV H.265 -NanDesuKa (NF)/Cyberpunk - Edgerunners - S01E01 - MULTi 1080p WEB DV H.265 -NanDesuKa (NF).mkv",
+          "[nyadex] Spy x Family - S01 [01-12] (BD 1080p HEVC FLAC-AAC Multi-Audio)/[nyadex] Spy x Family - 01 (BD 1080p HEVC FLAC-AAC Multi-Audio).mkv",
+        ],
+      }
+    `);
   });
 });

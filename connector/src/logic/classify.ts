@@ -12,7 +12,7 @@ import {
 import { ContainedMediaType } from "./rank";
 
 const ASSUMED_QUALITY = "1080p"; // If we can't determine a quality, fall back to this
-const SEASON_MATCHER = /\bs(\d+)\b/i;
+const SEASON_MATCHER = /\b(s|season\s)(\d+)\b/i;
 const EPISODE_MATCHER = /\bs(\d+)e(\d+)\b/i;
 
 /** Information parsed from a torrent's raw title. */
@@ -44,6 +44,7 @@ export function classify(s: string): ClassificationMaybeQuality {
     | undefined;
   const tags = parseFromTokens(tokens, TAG_MATCHERS) as Tag[];
 
+  console.log({ s, tokens, match: s.match(SEASON_MATCHER) });
   if (s.match(EPISODE_MATCHER)) {
     const [, seasonRaw, episodeRaw] = s.match(EPISODE_MATCHER)!;
     const season = parseInt(seasonRaw, 10);
@@ -108,4 +109,22 @@ export function classifyTorrentioResult(
   cl.tags = [...new Set([...cl.tags, ...ct])].sort();
 
   return { ...cl, tracker, seeders, bytes, cached, originalResult: tsr };
+}
+
+function mountTypeFor(mt: Classification["mediaType"]): "movie" | "series" {
+  if (mt === "season" || mt === "episode") return "series";
+  return "movie";
+}
+
+/** Categorize a file into movie or series. */
+export function bestMount(path: string): "movie" | "series" {
+  const parts = path.split("/");
+  let dirs = parts.slice(0, -1);
+  const basename = parts[parts.length - 1];
+  if (dirs[0] === basename) dirs = dirs.slice(1);
+
+  const dirTypes = dirs.map((d) => mountTypeFor(classify(d).mediaType));
+  const basenameType = mountTypeFor(classify(basename).mediaType);
+  if (dirTypes.includes("series")) return "series";
+  return basenameType;
 }
