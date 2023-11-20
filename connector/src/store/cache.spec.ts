@@ -43,7 +43,7 @@ describe("Cache", () => {
           data: { name: "Witch from Mercury" },
         });
 
-        await sleep(10);
+        await sleep(20);
         const s3 = await short.get("gundam", async () => ({
           success: true,
           data: { name: "Gundam SEED" },
