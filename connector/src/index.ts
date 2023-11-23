@@ -1,5 +1,6 @@
 import { join } from "path";
 
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import execa from "execa";
 import { Level } from "level";

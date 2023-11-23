@@ -1,8 +1,9 @@
 import { Level } from "level";
 import ms from "ms";
 import { Logger } from "pino";
-import { ZodSchema, z } from "zod";
+import { ZodSchema, object, z } from "zod";
 
+import { CommonError } from "../clients/http.types";
 import log from "../log";
 
 const GC_INTERVAL = ms("1h");
@@ -73,7 +74,7 @@ export class Cache<T> {
       { success: true; data: T } | { success: false; errors: E[] }
     >
   ): Promise<
-    { success: true; data: T } | { success: false; errors: (E | Error)[] }
+    { success: true; data: T } | { success: false; errors: (E | CommonError)[] }
   > {
     const klog = this.log.child({ key });
 
@@ -87,7 +88,11 @@ export class Cache<T> {
         if (newVal.success) await this.put(key, newVal.data);
         return newVal;
       }
-      return { success: false, errors: [e as Error] };
+      const ce: CommonError = {
+        ...(e instanceof Error || e instanceof Object ? e : { data: e }),
+        errorCategory: "internal",
+      };
+      return { success: false, errors: [ce] };
     }
 
     const rawData = JSON.parse(raw);

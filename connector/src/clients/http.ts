@@ -51,6 +51,7 @@ export function fetchResp(
         state: "error",
         error: {
           ...meta1,
+          errorCategory: "network",
           status: -1,
           statusText: `${e?.cause?.code ?? "unknown"}`,
           text: `${e?.cause ?? e?.message ?? e}`,
@@ -69,24 +70,38 @@ export function fetchResp(
       if (!loc) {
         return {
           state: "error",
-          error: { ...meta2, text: "no location header for redirect" },
+          error: {
+            ...meta2,
+            errorCategory: "server",
+            text: "no location header for redirect",
+          },
         };
       }
       u = loc;
       // HACK
       return {
         state: "retry",
-        error: { ...meta2, text: `redirecting to ${loc}` },
+        error: {
+          ...meta2,
+          errorCategory: "server",
+          text: `redirecting to ${loc}`,
+        },
       };
     }
 
     if (status >= 500) {
       const text = await resp.text();
-      return { state: "retry", error: { ...meta2, text } };
+      return {
+        state: "retry",
+        error: { ...meta2, text, errorCategory: "server" },
+      };
     }
 
     const text = await resp.text();
-    return { state: "error", error: { ...meta2, text } };
+    return {
+      state: "error",
+      error: { ...meta2, text, errorCategory: "client" },
+    };
   };
 
   return retry(`${opts.method ?? "fetch"} ${url}`, fn);
@@ -117,7 +132,13 @@ async function fetchJSON<T>(
   const data = await result.data.json();
   const parsed = schema.safeParse(data);
   if (!parsed.success)
-    return { success: false as const, errors: parsed.error.errors };
+    return {
+      success: false as const,
+      errors: parsed.error.errors.map((e) => ({
+        ...e,
+        errorCategory: "validation",
+      })),
+    };
 
   return { success: true as const, data: parsed.data };
 }
