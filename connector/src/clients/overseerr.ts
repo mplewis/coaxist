@@ -1,13 +1,14 @@
 import { Level } from "level";
 import ms from "ms";
-import { isTruthy, map, pipe, sortBy } from "remeda";
+import { isTruthy, map, partition, pipe, sortBy } from "remeda";
 import z, { Schema } from "zod";
 
+import log from "../log";
 import { Cache } from "../store/cache";
 import { secureHash } from "../util/hash";
 
 import { getJSON } from "./http";
-import { RespData, RespFailure } from "./http.types";
+import { CommonError, RespData, RespFailure, justErrors } from "./http.types";
 import {
   MOVIE_METADATA_SCHEMA,
   MovieMetadata,
@@ -315,11 +316,26 @@ export class OverseerrClient {
     });
 
     const results = await Promise.all(inFlight);
-    const successes: OverseerrRequest[] = [];
+    const data: OverseerrRequest[] = [];
+    const errors: CommonError[] = [];
+
     for (const r of results) {
-      if (!r.success) return r;
-      successes.push(r.request);
+      if (r.success) {
+        data.push(r.request);
+        continue;
+      }
+      for (const e of r.errors) {
+        if (e.errorCategory === "validation") {
+          log.warn(e, "Error validating Overseerr watchlist item metadata");
+        } else {
+          errors.push(e);
+          log.error(e, "Error fetching Overseerr watchlist item metadata");
+        }
+      }
     }
-    return { success: true, data: successes };
+
+    return errors.length === 0
+      ? { success: true, data }
+      : { success: false, errors };
   }
 }
