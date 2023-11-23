@@ -1,6 +1,6 @@
 import { Level } from "level";
 import ms from "ms";
-import { isTruthy, map, partition, pipe, sortBy } from "remeda";
+import { isTruthy, map, pipe, sortBy } from "remeda";
 import z, { Schema } from "zod";
 
 import log from "../log";
@@ -8,7 +8,7 @@ import { Cache } from "../store/cache";
 import { secureHash } from "../util/hash";
 
 import { getJSON } from "./http";
-import { CommonError, RespData, RespFailure, justErrors } from "./http.types";
+import { CommonError, RespData, RespFailure } from "./http.types";
 import {
   MOVIE_METADATA_SCHEMA,
   MovieMetadata,

@@ -1,7 +1,7 @@
 import { Level } from "level";
 import ms from "ms";
 import { Logger } from "pino";
-import { ZodSchema, object, z } from "zod";
+import { ZodSchema, z } from "zod";
 
 import { CommonError } from "../clients/http.types";
 import log from "../log";
