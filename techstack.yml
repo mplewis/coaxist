@@ -1,11 +1,11 @@
 repo_name: mplewis/coaxist
-report_id: 2100920209048f14c3e0d01e59846ce5
+report_id: 6c6c3cdb0b733fefdd79f07288d8e846
 repo_type: Public
-timestamp: '2023-11-12T14:10:54+00:00'
+timestamp: '2023-12-14T10:31:45+00:00'
 requested_by: mplewis
 provider: github
 branch: main
-detected_tools_count: 35
+detected_tools_count: 38
 tools:
 - name: JavaScript
   description: Lightweight, interpreted, object-oriented language with first-class
@@ -56,7 +56,7 @@ tools:
   category: Languages & Frameworks
   sub_category: Microframeworks (Backend)
   image_url: https://img.stackshare.io/service/7609/24939410.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-09 07:38:41.000000000 Z
@@ -70,8 +70,8 @@ tools:
   category: Languages & Frameworks
   sub_category: Frameworks (Full Stack)
   image_url: https://img.stackshare.io/service/1011/n1JRsFeB_400x400.png
-  detection_source_url: Dockerfile
-  detection_source: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/Dockerfile
+  detection_source: Dockerfile
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-19 06:45:14.000000000 Z
 - name: Prisma
@@ -84,10 +84,21 @@ tools:
   category: Data Stores
   sub_category: Object Relational Mapper (ORM)
   image_url: https://img.stackshare.io/service/8680/Logo_Symbol_White.jpg
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-13 04:34:13.000000000 Z
+- name: pgvector
+  description: Open-source vector similarity search for Postgres
+  website_url: https://github.com/pgvector/pgvector/
+  open_source: false
+  hosted_saas: false
+  category: Data Stores
+  sub_category: Database Tools
+  image_url: https://img.stackshare.io/service/109221/default_b888cdf5617d936aa6aacf130911906955508639.png
+  detection_source: pms-docker/charts/plex-media-server/templates/NOTES.txt
+  last_updated_by: Marshall Asch
+  last_updated_on: 2023-07-04 19:01:38.000000000 Z
 - name: Docker
   description: Enterprise Container Platform for High-Velocity Innovation.
   website_url: https://www.docker.com/
@@ -98,6 +109,18 @@ tools:
   sub_category: Virtual Machine Platforms & Containers
   image_url: https://img.stackshare.io/service/586/n4u37v9t_400x400.png
   detection_source: Repo Metadata
+- name: Dotenv
+  description: Loads environment variables from .env for Nodejs projects
+  website_url: https://github.com/motdotla/dotenv
+  license: BSD-2-Clause
+  open_source: true
+  hosted_saas: false
+  category: Build, Test, Deploy
+  sub_category: Server Configuration and Automation
+  image_url: https://img.stackshare.io/service/8067/default_90dcb1286af7685c68df319c764b80704df1155b.png
+  detection_source: connector/package.json
+  last_updated_by: Matt Lewis
+  last_updated_on: 2023-11-23 19:48:21.000000000 Z
 - name: ESLint
   description: The fully pluggable JavaScript code quality tool
   website_url: http://eslint.org/
@@ -127,7 +150,7 @@ tools:
   category: Build, Test, Deploy
   sub_category: Continuous Integration
   image_url: https://img.stackshare.io/service/11563/actions.png
-  detection_source: ".github/workflows/test.yml"
+  detection_source: ".github/workflows/deploy.yml"
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-21 06:44:29.000000000 Z
 - name: Prettier
@@ -140,7 +163,7 @@ tools:
   category: Build, Test, Deploy
   sub_category: Code Review
   image_url: https://img.stackshare.io/service/7035/default_66f265943abed56bcdbfca1c866a4261b1fbb063.jpg
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-30 06:00:38.000000000 Z
@@ -155,6 +178,17 @@ tools:
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-09 04:47:02.000000000 Z
+- name: LangChain
+  description: Build AI apps with LLMs through composability
+  website_url: https://github.com/hwchase17/langchain
+  open_source: true
+  hosted_saas: false
+  category: Communications
+  sub_category: Large Language Model Tools
+  image_url: https://img.stackshare.io/service/48790/default_5b6c6b73f1ff3775c85d2a1ba954cb87e30cbf13.jpg
+  detection_source: pms-docker/charts/plex-media-server/templates/NOTES.txt
+  last_updated_by: Marshall Asch
+  last_updated_on: 2023-07-04 19:01:38.000000000 Z
 - name: Shell
   description: A shell is a text-based terminal, used for manipulating programs and
     files. Shell scripts typically manage program execution.
@@ -195,7 +229,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/16757/default_c6eddffbed005d007ab4638fbcac90e4b79576b2.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-30 06:00:38.000000000 Z
@@ -209,7 +243,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/15809/default_5e5e8ac63beda29f31f1844df64d4b8247570a66.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-30 06:00:38.000000000 Z
@@ -223,7 +257,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/15982/default_8b5680d4e916298d08363c291a0d6e34c07ceb15.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-10-11 04:08:02.000000000 Z
@@ -237,7 +271,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/15980/default_732016a20524708efe7a4c77497fe9bfeea19ba6.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-10-11 04:08:02.000000000 Z
@@ -251,7 +285,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/17201/default_37d9ccc57ae4d32e7ff46614e4f8bb2c4ddc7964.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-12 04:15:29.000000000 Z
@@ -265,7 +299,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/17307/default_78541a280e8cac42279d6c363e71e5b8f462e962.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-12 04:15:29.000000000 Z
@@ -279,7 +313,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/15879/default_0b10af8ca19c215f781dc07442e75bdc831089d0.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-10-11 04:08:02.000000000 Z
@@ -293,7 +327,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/15806/default_98aa227f51aa9d787815ec3fd98d0ab2bfebbb91.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-10-11 04:08:02.000000000 Z
@@ -307,7 +341,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/16672/default_783b9b6c17b863f264c1418b0eb831316f741afd.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-10-11 04:08:02.000000000 Z
@@ -333,7 +367,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/16594/default_ebd83b4f0415be108d977ea72558b13fd7c5283d.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-09 04:47:02.000000000 Z
@@ -347,7 +381,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/15997/default_f8be85789693a9901dbcfa43c135c60525ae49a1.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-18 01:03:00.000000000 Z
@@ -361,7 +395,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/16953/default_277303773c2bdb575ee8f4bfe869f0a33d6755b2.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-17 19:48:30.000000000 Z
@@ -375,7 +409,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/16948/default_3740a7ec4487cb5332a821b353451c008aa3d4ae.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-10-10 06:01:49.000000000 Z
@@ -389,7 +423,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/16565/default_536789d2630ed352dc721a1c915ab456b7660201.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-09 04:47:02.000000000 Z
@@ -415,7 +449,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/16974/default_192373fe2b3ded7bb442c39dbf0f34ca3e5bed5d.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-30 06:00:38.000000000 Z
@@ -429,7 +463,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/18639/default_f02e96cdbc1c3cf01dabe59b227d3b3961e56b72.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-30 06:00:38.000000000 Z
@@ -443,7 +477,7 @@ tools:
   category: Libraries
   sub_category: npm Packages
   image_url: https://img.stackshare.io/package/15830/default_6743ba96cf149a3c3c68a185199f9705d6eff80e.png
-  detection_source_url: connector/package.json
+  detection_source_url: https://github.com/mplewis/coaxist/blob/main/connector/package.json
   detection_source: connector/package.json
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-30 06:00:38.000000000 Z
