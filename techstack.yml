@@ -2,7 +2,7 @@ repo_name: mplewis/coaxist
 report_id: 2100920209048f14c3e0d01e59846ce5
 version: 0.1
 repo_type: Public
-timestamp: '2024-01-05T08:48:22+00:00'
+timestamp: '2024-02-29T18:41:04+00:00'
 requested_by: mplewis
 provider: github
 branch: main
@@ -165,7 +165,7 @@ tools:
   last_updated_by: Matt Lewis
   last_updated_on: 2023-09-21 06:44:29.000000000 Z
 - name: Prettier
-  description: 'Prettier is an opinionated code formatter. '
+  description: Prettier is an opinionated code formatter.
   website_url: https://prettier.io/
   version: 3.0.3
   license: MIT
